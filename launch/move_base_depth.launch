@@ -1,0 +1,31 @@
+<!-- move_base_depth.launch -->
+<launch>
+  <!-- Arguments -->
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="odom_topic" default="odom" />
+  <arg name="move_forward_only" default="false"/>
+
+  <arg name="EBAND" default="true"/>
+
+  <!-- move_base -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <param unless="$(arg EBAND)" name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+    <param if="$(arg EBAND)" name="base_local_planner" value="eband_local_planner/EBandPlannerROS" />
+    <rosparam file="$(find turtlebot3_navi_my)/param_depth/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find turtlebot3_navi_my)/param_depth/costmap_common_params_$(arg model).yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find turtlebot3_navi_my)/param_depth/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find turtlebot3_navi_my)/param_depth/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find turtlebot3_navi_my)/param_depth/move_base_params.yaml" command="load" />
+    <rosparam unless="$(arg EBAND)" file="$(find turtlebot3_navi_my)/param_depth/dwa_local_planner_params_$(arg model).yaml" command="load" />
+    <rosparam if="$(arg EBAND)" file="$(find turtlebot3_navi_my)/param_depth/eband_local_planner_params.yaml" command="load" />
+    <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
+    <remap from="odom" to="$(arg odom_topic)"/>
+    <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" />
+
+
+    <!-- test by nishi -->
+    <param name="max_planning_retries" value="10" />
+
+  </node>
+</launch>
