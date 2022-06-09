@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# multi_goals4.py
+# multi_goals4_cmd_vel.py
 # https://www.programcreek.com/python/?code=tianbot%2Ftianbot_racecar%2Ftianbot_racecar-master%2Fracecar_navigation%2Fscript%2Fmulti_goals.py
 # https://www.programcreek.com/python/example/70252/geometry_msgs.msg.PoseStamped
 #
@@ -59,6 +59,8 @@ import cv2
 from nav_msgs.msg import OccupancyGrid,Odometry
 
 from std_srvs.srv import Empty
+
+import cmd_vel2 as cmd_v2
 
 
 class GetMap:
@@ -257,6 +259,9 @@ class MultiGoals:
 
         self.get_map=get_map
         self.use_sim_time=use_sim_time
+
+        self.cmd_ctl=cmd_v2.cmd_control()
+
         # Publish the first goal
         time.sleep(1)
         #self.mloop()
@@ -324,36 +329,55 @@ class MultiGoals:
 
     '''
     mloop(self)
-      self.goalList =[[func,x,y,yaw],....] or [[func,dist,angle],....]
-        func,x,y,yaw
-        func: 0 -> move point  x,y,Yaw
-              1 -> sleep
-              2 -> get map
+      self.goalList =[[func,x,y,d_yaw],....] or [[func,dist,d_yaw],....]
+        func,x,y,d_yaw
+        func: 0 -> move point x,y, and rotate d_yaw
+              1 -> move point x,y only
+              2 -> rotate d_yaw only
+              21 -> sleep
+              22 -> get map
               50 -> set Navigation mode
               99 -> end
-        func,dist,angle
-        func: 0 -> move dist,angle
-              1 -> sleep
-              2 -> get map
+        func,dist,d_yaw
+        func: 0 -> move dist and rotate d_yaw
+              21 -> sleep
+              22 -> get map
               50 -> set Navigation mode
+              60 -> course_correct ON
+              61 -> course_correct OFF
+              62 -> after_correct_wait ON
+              63 -> after_correct_wait OFF
               99 -> end
     '''
     def mloop(self):
         while(1):
             if self.goalId <= (len(self.goalList)-1):
-                if self.goalList[self.goalId][0] == 0:
+                if self.goalList[self.goalId][0] == 0 or self.goalList[self.goalId][0] == 1 or self.goalList[self.goalId][0] == 2:
                     self.mloop_sub()
-
-                elif self.goalList[self.goalId][0] == 1:
+                elif self.goalList[self.goalId][0] == 21:
                     time.sleep(1)
-
-                elif self.goalList[self.goalId][0] == 2:
+                elif self.goalList[self.goalId][0] == 22:
                     self.get_map.get()
-              
                 elif self.goalList[self.goalId][0] == 50:
                     #rospy.set_param('/rtabmap/rtabmap/Mem/IncrementalMemory',False)
                     self.call_service()
                     print 'set Navigation Mode'
+
+                elif self.goalList[self.goalId][0] == 60:   # course correct ON
+                    self.cmd_ctl.course_correct = True
+                    print 'course correct ON'
+
+                elif self.goalList[self.goalId][0] == 61:   # course correct OFF
+                    self.cmd_ctl.course_correct = False
+                    print 'course correct OFF'
+
+                elif self.goalList[self.goalId][0] == 62:   # after_correct_wait ON
+                    self.cmd_ctl.after_correct_wait = True
+                    print 'after_correct_wait ON'
+
+                elif self.goalList[self.goalId][0] == 63:   # after_correct_wait OFF
+                    self.cmd_ctl.after_correct_wait = False
+                    print 'after_correct_wait OFF'
 
                 elif self.goalList[self.goalId][0] == 99:
                     break
@@ -382,17 +406,37 @@ class MultiGoals:
                 if t_type == 0:
                     x = self.goalList[self.goalId][1]
                     y = self.goalList[self.goalId][2]
-                    yaw = self.goalList[self.goalId][3]
+                    d_yaw = self.goalList[self.goalId][3]
+                    if self.goalList[self.goalId][0] == 0:
+                        self.cmd_ctl.move_abs(x,y,d_yaw)
+                        self.goalMsg.pose.position.y = y
+                        self.goalMsg.pose.position.x = x
+                    elif self.goalList[self.goalId][0] == 1:
+                        self.cmd_ctl.go_abs(x,y)
+                        self.goalMsg.pose.position.y = y
+                        self.goalMsg.pose.position.x = x
+                    elif self.goalList[self.goalId][0] == 2:
+                        self.cmd_ctl.rotate_abs(d_yaw)
+
                 else:
                     dist = self.goalList[self.goalId][1]
-                    deg = self.goalList[self.goalId][2]
-                    y = dist * math.sin(math.radians(deg)) + self.goalMsg.pose.position.y
-                    x = dist * math.cos(math.radians(deg)) + self.goalMsg.pose.position.x
-                    yaw = math.radians(deg)
+                    d_yaw = self.goalList[self.goalId][2]
+                    self.cmd_ctl.move(dist,d_yaw)
+                    self.goalMsg.pose.position.y += dist * math.sin(math.radians(d_yaw))
+                    self.goalMsg.pose.position.x += dist * math.cos(math.radians(d_yaw))
+
+                r_yaw = math.radians(d_yaw)
+                q0 = tf.transformations.quaternion_from_euler(0.0, 0.0, r_yaw)
+                self.goalMsg.pose.orientation.x = q0[0]
+                self.goalMsg.pose.orientation.y = q0[1]
+                self.goalMsg.pose.orientation.z = q0[2]
+                self.goalMsg.pose.orientation.w = q0[3]
+
 
                 print "goal published! Goal ID is:", self.goalId
-                self.pub_sub(x,y,yaw)
-                self.sts=1
+                #self.pub_sub(x,y,yaw)
+                self.sts=2
+
             elif self.sts==2:
                 return
             elif self.sts==3:
@@ -517,53 +561,175 @@ if __name__ == "__main__":
 
         use_sim_time=rospy.get_param('/use_sim_time')
 
-        # func,x,y,yaw
-        # func: 0 -> move point
-        #       1 -> sleep
-        #       2 -> get map
+        # func,x,y,d_yaw
+        # func: 0 -> move point x,y and rotate d_yaw
+        #       1 -> move point x,y only
+        #       2 -> rotate d_yaw only
+        #       21 -> sleep
+        #       22 -> get map
         #       50 -> set Navigation mode
         #       99 -> end
-        goalList =[[0,0.0,0.0, 0.0],
-                    [0,0.0,0.0, math.pi / 2.0],
-                    [0,0.0,0.0, math.pi ],
-                    [0,0.0,0.0, math.pi * 1.5 ],
-                    [0,0.0,0.0, 0.0],
+        goalList =[[60,0.0, 0.0],      # course correct ON
+                   [0,0.0,0.0, 0],     # go (0.0,0.0) and rotate 0
+                   [2,0.0,0.0, 90],    # rotate 90
+                   [2,0.0,0.0, 180 ],  # rotate 180
+                   [2,0.0,0.0, 270],   # rotate 270
+                   [2,0.0,0.0, 360],   # rotate 360
+                   #[2,0.0,0.0, 0.0],
+
+                   [0,1.0,0.0, 0],      # go (1.0,0.0) and rotate 0
+                   [2,1.0,0.0, 90],     # rotate 90
+                   [2,1.0,0.0, 180],    # rotate 180
+                   [2,1.0,0.0, 270],    # rotate 270
+                   [2,1.0,0.0, 360],    # rotate 360
+                   #[2,0.0,0.0, 0],
+
+                   [0,2.0,0.0, 0],      # go (2.0,0.0) and rotate 0
+                   [2,2.0,0.0, 90],     # rotate 90
+
+                   [0,2.0,0.4, 90],     # go (2.0,0.4) and rotate 90
+                   [2,2.0,0.4, 180],    # rotate 180
+                   [2,2.0,0.4, 270],    # rotate 270
+
+                   [0,2.0,0.0, 270],    # go (2.0,0.0) and rotate 270
+                   [2,2.0,0.0, -180],   # rotate -180
+
+                   [50,0.0,0.0, 0],     # set Navigation mode
+
+                    #[2,0.0,0.0, 0],
+                    #[99,0.0,0.0, 0],
+
+                    #[50,0.0,0.0, 0],
+
+                   [0,1.0,0.0, -180 ],  # go (1.0,0.0) and rotate -180
+                   [2,1.0,0.0, 270 ],   # rotate 270
+                   [2,1.0,0.0, 360],    # rotate 360
+                   [2,1.0,0.0, 90],     # rotate 90
+                   [2,1.0,0.0, 180],    # rotate 180
                     #[2,0.0,0.0, 0.0],
 
-                    [0,1.0,0.0, 0.0],
-                    [0,1.0,0.0, math.pi / 2.0],
-                    [0,1.0,0.0, math.pi ],
-                    [0,1.0,0.0, math.pi * 1.5 ],
-                    [0,1.0,0.0, 0.0],
+                   [0,0.0,0.0, 180],    # (0.0,0.0) and rotate 180
+                   [2,0.0,0.0, 270],    # rotate 270
+                   [2,0.0,0.0, 360],    # rotate 360
+                   [22,0.0,0.0, 0]]
+
+
+        m_goalList =[[60,0.0, 0.0],      # course correct ON
+                    [0, 0.0, 0],       # [0,0]
+                    [0, 0.0, 90],
+                    [0, 0.0, 180],
+                    [0, 0.0, 270],
+                    [0, 0.0, 360],
                     #[2,0.0,0.0, 0.0],
 
-                    [0,2.0,0.0, 0.0],
-                    [0,2.0,0.0, math.pi / 2.0],
-
-                    [0,2.0,0.4, math.pi / 2.0],
-                    [0,2.0,0.4, math.pi ],
-                    [0,2.0,0.4, math.pi * 1.5 ],
-
-                    [0,2.0,0.0, math.pi * 1.5 ],
-                    [0,2.0,0.0, math.pi ],
-
-                    [50,0.0,0.0, 0.0],
-
+                    [0, 1.0, 0],        # [1,0]
+                    [0, 0.0, 90],
+                    [0, 0.0, 180],
+                    [0, 0.0, 270],
+                    [0, 0.0, 360],
                     #[2,0.0,0.0, 0.0],
+
+                    [0, 1.0, 0],        # [2,0]
+                    [0, 0.0, 90],       # [2,0]
+
+                    [0, 0.4, 90],       # [2,0.4]
+                    [0,0.0, 180],
+                    [0,0.0, 270 ],
+
+                    [0,0.4,270],         # [2,0]
+                    [0,0.0, -180 ],
+
+                    [50,0.0, 0.0],
+
+                    [60,0.0, 0.0],      # course correct ON
+                    #[62,0.0, 0.0],      # after_correct_wait ON
                     #[99,0.0,0.0, 0.0],
 
                     #[50,0.0,0.0, 0.0],
 
-                    [0,1.0,0.0, math.pi ],
-                    [0,1.0,0.0, math.pi * 1.5 ],
-                    [0,1.0,0.0, 0.0],
-                    [0,1.0,0.0, math.pi / 2.0],
-                    [0,1.0,0.0, math.pi ],
+                    [0,1.0, 180 ],     # [1.5,0]
+                    [0,0.0, 270],
+                    [0,0.0, 360],
+                    [0,0.0, 90],
+                    [0,0.0, 180 ],
                     #[2,0.0,0.0, 0.0],
 
-                    [0,0.0,0.0, math.pi ],
-                    [0,0.0,0.0, 0.0],
-                    [2,0.0,0.0, 0.0]]
+                    [0,1.0, 180 ],      # [0,0]
+                    [0,0.0, 270],
+                    [0,0.0, 360],
+                    [22,0.0, 0.0]]
+
+
+        m_goalList2 =[[0, 0.0, 0],       # [0,0]
+                    [0, 1.0, 0],        # [1,0]
+                    #[2,0.0,0.0, 0.0],
+                    [0, 1.0, 0],        # [2,0]
+                    #[0, 1.0, 0],        # [3,0]
+                    ]
+
+
+        m_goalList3 =[[60,0.0, 0.0],      # course correct ON
+                    [0, 0.0, 0],       # [0,0]
+                    [0, 0.0, 90],
+                    [0, 0.0, 180],
+                    [0, 0.0, 270],
+                    [0, 0.0, 360],
+                    #[2,0.0,0.0, 0.0],
+
+                    [0, 0.0, 90],        # [1,0]
+                    [0, 1.0, 90],
+                    [0, 0.0, 180],
+                    [0, 0.0, 270],
+
+                    [0, 2.0, 270],
+                    [0, 0.0, -180],
+                    [0, 0.0, -270],
+                    [0, 1.0, -270],
+
+                    #[2,0.0,0.0, 0.0],
+
+                    [0,0.0, -360]]
+
+
+        # 1平米を動く 0.8 x 0.8
+        m_square_1 =[[0, 0.0, 90],  # (0,0)
+                   [0, 0.4, 90],   # (0,0.4)
+                   [0, 0.0, -360],
+                   [0, 0.8, 0],     # (0.8,0.4)
+                   [0, 0.0, -90],
+                   [0, 0.2, -90],   # (0.8,0.2)
+                   [0, 0.0, -180],
+                   [0, 0.8, -180],  # (0.0,0.2)
+                   [0, 0.0, 270], 
+                   [0, 0.2, 270],   # (0.0,0.0)
+                   #[0, 0.0, 0],   # 
+                   #[0, 0.8, 0],   #  (0.8,0.0)
+                   #[0, 0.0, -90],  
+                   #[0, 0.2, -90],   # (0.8,-0.2)
+                   #[0, 0.0, -180],
+                   #[0, 0.8, -180],  # (0.0,-0.2)
+                   #[0, 0.0, 270],   
+                   #[0, 0.2, 270],   # (0.0,-0.4)
+                   #[0, 0.0, 0],   
+                   #[0, 0.8, 0],   # (0.8,-0.4)
+                   ]
+
+        m_rotate_1 =[[0, 0, 0],
+                     [0, 0, 45],
+                     [0, 0, 90],  # (0,0)
+                     [0, 0, 180],
+                     [0, 0, 270],
+                     [0, 0, 360],
+                     #[0, 1.0, -90],   # (0,0.4)
+                    ]
+
+
+        m_rotate_2 =[[0, 0, -0],
+                     [0, 0, -90],  # (0,0)
+                     [0, 0, -180],
+                     [0, 0, -270],
+                     [0, 0, -360],
+                    ]
 
         #print goalList
 
@@ -575,17 +741,24 @@ if __name__ == "__main__":
 
         #sys.exit()
 
-        if len(goalList) > 0:          
-            # Constract MultiGoals Obj
-            rospy.loginfo("Multi Goals Executing...")
-            mg_ex = MultiGoals(map_frame,get_map,use_sim_time)   
-            mg_ex.mloop_ex(goalList)
+        # Constract MultiGoals Obj
+        rospy.loginfo("Multi Goals Executing...")
+        mg_ex = MultiGoals(map_frame,get_map,use_sim_time)   
+        mg_ex.mloop_ex(goalList)
+        #mg_ex.mloop_ex(m_rotate_1)
+        #mg_ex.mloop_ex(m_rotate_2)
+        #mg_ex.mloop_ex(m_square_1)
+        #mg_ex.mloop_ex(m_goalList2)
+        #mg_ex.mloop_ex(m_goalList)
+        #mg_ex.mloop_ex(m_goalList3)
 
-            sys.exit()
-            rospy.spin()
+        # 最後の Publish 完了を待つ
+        rate = rospy.Rate(1)   # 1[Hz]
+        rate.sleep()
 
-        else:
-            rospy.errinfo("Lengths of goal lists are not the same")
+        sys.exit()
+        #rospy.spin()
+
     except KeyboardInterrupt:
         print("shutting down")
     
