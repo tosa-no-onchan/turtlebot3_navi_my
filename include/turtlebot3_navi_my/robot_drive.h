@@ -21,6 +21,8 @@ $ rosrun turtlebot3_navi_my drive_base
 #include <geometry_msgs/Twist.h>
 #include <tf/transform_listener.h>
 
+#include "turtlebot3_navi_my/robot_navi.h"
+
 #include <unistd.h>
 
 //#include <math.h>
@@ -40,9 +42,7 @@ private:
   ros::Publisher _pub;
   //! We will be listening to TF transforms as well
   tf::TransformListener listener_;
-
   tf::StampedTransform base_tf;
-
   geometry_msgs::Twist _vel_msg;
 
 public:
@@ -53,7 +53,6 @@ public:
 
   //! ROS node initialization
   RobotDrive(){}
-
   void init(ros::NodeHandle &nh);
 
   /*
@@ -70,7 +69,6 @@ public:
   */
   void move_abs(float x,float y,float d_yaw);
 
-
   /*
   * T round_my(T dt,int n)
   */
@@ -85,12 +83,10 @@ public:
       return std::round(dt);
     }
   }
-
   /*
   * void get_tf(int func)
   */
   void get_tf(int func=0);
-
   /*
   go_abs(x,y,isForward=True,speed=0.05)
   直進する。
@@ -102,14 +98,12 @@ public:
       speed :  5.0  [deg/s]
   */
   void rotate_abs(float stop_dz,float speed=5.0);
-
   /* 
   void rotate_off()
       d_theta : [deg] ロボット座標上の角度
       speed :  5.0  [deg/s]
   */
   void rotate_off(float d_theta, float speed=5.0);
-
   //! Drive forward a specified distance based on odometry information
   bool driveForwardOdom(double distance);
   bool turnOdom(bool clockwise, double radians);

@@ -18,6 +18,7 @@ $ rosrun turtlebot3_navi_my drive_base
 void RobotDrive::init(ros::NodeHandle &nh)
 {
   nh_ = nh;
+
   //set up the publisher for the cmd_vel topic
   _pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
