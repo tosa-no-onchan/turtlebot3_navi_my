@@ -45,6 +45,10 @@ public:
   navfn::NavfnROS global_planner_;
   base_local_planner::TrajectoryPlannerROS local_planner_;
 
+  // local cost map access add by nishi 2022.7.7
+  costmap_2d::Costmap2D* costmap2D_;
+  std::vector<geometry_msgs::Point> footprint_spec_;
+
 #if ROS_VERSION_MINIMUM(1,14,0)
   RobotNavi() : tfBuffer(), tfListener(tfBuffer), global_costmap_("global_costmap", tfBuffer), local_costmap_("local_costmap", tfBuffer){}
 #else
@@ -62,6 +66,9 @@ public:
   */
   void move(float x,float y,float r_yaw);
   bool MakePlan();
+
+  unsigned char check_cost(float x=0.0,float y=0.0);
+  void map_save();
 
 };
 

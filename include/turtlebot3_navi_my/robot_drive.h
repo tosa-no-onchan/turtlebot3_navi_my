@@ -42,18 +42,24 @@ private:
   ros::Publisher _pub;
   //! We will be listening to TF transforms as well
   tf::TransformListener listener_;
-  tf::StampedTransform base_tf;
   geometry_msgs::Twist _vel_msg;
 
+  u_char log_level=1;
+
 public:
+  tf::StampedTransform base_tf;
+
+  RobotNavi navi_;
 
   double _rx, _ry, _rz;
   bool _course_correct;
   bool _after_correct_wait;
+  bool _go_curve;
+  bool _dumper;
 
   //! ROS node initialization
   RobotDrive(){}
-  void init(ros::NodeHandle &nh);
+  void init(ros::NodeHandle &nh,bool navi_use=false);
 
   /*
   move()
@@ -92,6 +98,7 @@ public:
   直進する。
   */
   void go_abs(float x,float y,float speed=0.05 ,bool isForward=true);
+
   /*
   rotate_abs()
       stop_dz(d_theta) : [deg] 基本座標上の角度
@@ -103,7 +110,7 @@ public:
       d_theta : [deg] ロボット座標上の角度
       speed :  5.0  [deg/s]
   */
-  void rotate_off(float d_theta, float speed=5.0);
+  void rotate_off(float d_theta, float speed=5.0,bool go_curve=false);
   //! Drive forward a specified distance based on odometry information
   bool driveForwardOdom(double distance);
   bool turnOdom(bool clockwise, double radians);

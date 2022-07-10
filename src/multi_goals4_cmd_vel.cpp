@@ -72,6 +72,9 @@ typedef struct {
 
 GoalList goallist[] ={
             {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            {67, 0.0, 0.0, 0.0},      // set dumper ON
             {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},  // rotate 90
             {2, 0.0, 0.0, 180.0},  // rotate 180
@@ -80,7 +83,7 @@ GoalList goallist[] ={
 
             //{50,0.0,0.0, 0.0},      // set Navigation mode
             //{22,0.0,0.0, 0.0},      // get map
-            //{99,0.0,0.0, 0.0},      // end
+            {99,0.0,0.0, 0.0},      // end
 
             {0,1.0,0.0, 0.0},      // go (1.0,0.0) and rotate 0
             {2,1.0,0.0, 90.0},     // rotate 90
@@ -119,6 +122,115 @@ GoalList goallist[] ={
             {22,0.0,0.0, 0.0},
             {99,0.0,0.0, 0.0}       // end
             };
+
+
+GoalList turtlebot3_house[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            {67, 0.0, 0.0, 0.0},      // set dumper ON
+            {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
+            {2, 0.0, 0.0, 90.0},  // rotate 90
+            {2, 0.0, 0.0, 180.0},  // rotate 180
+            {2, 0.0, 0.0, 270.0},  // rotate 270
+            //{2, 0.0, 0.0, 360},   // rotate 360
+            {0,0.0, -1.5, 270.0},      // go (0.0,-1.5) and rotate 270
+
+            //{50,0.0,0.0, 0.0},      // set Navigation mode
+            //{22,0.0,0.0, 0.0},      // get map
+            //{99,0.0,0.0, 0.0},      // end
+
+            //{0,2.0, 0.0, 0.0},      // go (1.0,0.0) and rotate 0
+            //{69,0.0, 0.0, 0.0},     // save local cost map
+            {99,0.0,0.0, 0.0},      // end
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            {2,1.0,0.0, 270.0},    // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            //{2,0.0,0.0, 0.0},
+
+            {0,2.0,0.0, 0.0},      // go (2.0,0.0) and rotate 0
+            {2,2.0,0.0, 90.0},     // rotate 90
+
+            {0,2.0,0.4, 90.0},     // go (2.0,0.4) and rotate 90
+            {2,2.0,0.4, 180.0},    // rotate 180
+            {2,2.0,0.4, 270.0},    // rotate 270
+
+            {0,2.0,0.0, 270.0},    // go (2.0,0.0) and rotate 270
+            {2,2.0,0.0, -180.0},   // rotate -180
+
+            {50,0.0,0.0, 0.0},     // set Navigation mode
+
+            //{2,0.0,0.0, 0.0},
+            //{99,0.0,0.0, 0.0},
+
+            //{50,0.0,0.0, 0.0},
+
+            {0,1.0,0.0, -180.0 },  // go (1.0,0.0) and rotate -180
+            {2,1.0,0.0, 270.0 },   // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            //{2,0.0,0.0, 0.0},
+
+            {0,0.0,0.0, 180.0},    // (0.0,0.0) and rotate 180
+            {2,0.0,0.0, 270.0},    // rotate 270
+            {2,0.0,0.0, 360.0},    // rotate 360
+            {22,0.0,0.0, 0.0},
+            {99,0.0,0.0, 0.0}       // end
+            };
+
+
+
+GoalList goallist2[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
+            {0,2.0,0.5, 0.0},      // go (2.0,0.5) and rotate 0
+            {0,5.0,0.0, 0.0},      // go (5.0,0.0) and rotate 0
+
+            //{50,0.0,0.0, 0.0},      // set Navigation mode
+            //{22,0.0,0.0, 0.0},      // get map
+            {99,0.0,0.0, 0.0},      // end
+
+            {0,1.0,0.0, 0.0},      // go (1.0,0.0) and rotate 0
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            {2,1.0,0.0, 270.0},    // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            //{2,0.0,0.0, 0.0},
+
+            {0,2.0,0.0, 0.0},      // go (2.0,0.0) and rotate 0
+            {2,2.0,0.0, 90.0},     // rotate 90
+
+            {0,2.0,0.4, 90.0},     // go (2.0,0.4) and rotate 90
+            {2,2.0,0.4, 180.0},    // rotate 180
+            {2,2.0,0.4, 270.0},    // rotate 270
+
+            {0,2.0,0.0, 270.0},    // go (2.0,0.0) and rotate 270
+            {2,2.0,0.0, -180.0},   // rotate -180
+
+            {50,0.0,0.0, 0.0},     // set Navigation mode
+
+            //{2,0.0,0.0, 0.0},
+            //{99,0.0,0.0, 0.0},
+
+            //{50,0.0,0.0, 0.0},
+
+            {0,1.0,0.0, -180.0 },  // go (1.0,0.0) and rotate -180
+            {2,1.0,0.0, 270.0 },   // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            //{2,0.0,0.0, 0.0},
+
+            {0,0.0,0.0, 180.0},    // (0.0,0.0) and rotate 180
+            {2,0.0,0.0, 270.0},    // rotate 270
+            {2,0.0,0.0, 360.0},    // rotate 360
+            {22,0.0,0.0, 0.0},
+            {99,0.0,0.0, 0.0}       // end
+            };
+
 
 GoalList navi_list1[] ={
             {60, 0.0, 0.0, 0.0},    // course correct ON
@@ -501,23 +613,35 @@ private:
     GoalList *_goalList;
     GoalList2 *_goalList2;
 
-    RobotDrive drive;
-    RobotNavi navi;
+    bool force_start_origin;
+    float start_pos_x;
+    float start_pos_y;
+    float start_pos_z;
+
+    tf::Vector3 cur_pos;
 
 public:
+
+    //RobotNavi navi;
+    RobotDrive drive;
 
     MultiGoals(){}
 
     //void init( map_frame,get_map,use_sim_time){
     void init(ros::NodeHandle &nh){
         nh_=nh;
-        navi.init(nh,2);
-        drive.init(nh);
+        //navi.init(nh,2);
+        drive.init(nh,true);
+
         get_map.init(nh);
 
         goalId = 0;
         sts=0;
         t_type=0;
+
+        force_start_origin=false;
+
+        start_pos_x = start_pos_y = start_pos_z = 0.0;
 
         sleep(1);
     }
@@ -593,16 +717,15 @@ public:
     mloop(self)
       self.goalList =[[func,x,y,d_yaw],....] or [[func,dist,d_yaw],....]
         func,x,y,d_yaw
-        func: 0 -> move point x,y, and rotate d_yaw
-              1 -> move point x,y only
-              2 -> rotate d_yaw only
-              10 -> navi move x,y,d_yaw
-              21 -> sleep
-              22 -> get map
-              50 -> set Navigation mode
-              99 -> end
+            func: 0 -> move point x,y, and rotate d_yaw
+                1 -> move point x,y only
+                2 -> rotate d_yaw only
+                10 -> navi move x,y,d_yaw
+
         func,dist,d_yaw
-        func: 0 -> move dist and rotate d_yaw
+            func: 0 -> move dist and rotate d_yaw
+
+        func
               21 -> sleep
               22 -> get map
               50 -> set Navigation mode
@@ -610,6 +733,12 @@ public:
               61 -> course_correct OFF
               62 -> after_correct_wait ON
               63 -> after_correct_wait OFF
+              64 -> go curve ON
+              65 -> go curve OFF
+              66 -> set current postion as map(0,0)
+              67 -> set dumper ON
+              68 -> set dumper OFF
+              69 -> save local cost map
               99 -> end
     */
     void mloop(){
@@ -659,6 +788,46 @@ public:
                     drive._after_correct_wait = false;
                     std::cout << "after_correct_wait OFF" << std::endl;
                     break;
+
+                case 64:
+                    // go curve ON
+                    drive._go_curve = true;
+                    std::cout << "go curve ON" << std::endl;
+                    break;
+                case 65:
+                    // go curve OFF
+                    drive._go_curve = false;
+                    std::cout << "go curve OFF" << std::endl;
+                    break;
+
+                case 66:    // set current postion to start
+
+                    std::cout << "set current postion to start" << std::endl;
+
+                    drive.get_tf();
+
+                    cur_pos = drive.base_tf.getOrigin();
+
+                    force_start_origin=true;
+                    start_pos_x = cur_pos.getX();
+                    start_pos_y = cur_pos.getY();
+
+                    break;
+
+                case 67:    // set dumper ON
+                    std::cout << "set dumper ON" << std::endl;
+                    drive._dumper=true;
+                    break;
+
+                case 68:    // set dumper OFF
+                    std::cout << "set dumper OFF" << std::endl;
+                    drive._dumper=false;
+                    break;
+                case 69:
+                    std::cout << "save local cost map" << std::endl;
+                    drive.navi_.map_save();
+                    break;
+
                 case 99:
                     f = false;
                     break;
@@ -678,6 +847,10 @@ public:
             x = _goalList[goalId].x;
             y = _goalList[goalId].y;
             d_yaw = _goalList[goalId].d_yaw;
+            if(force_start_origin==true){
+                x += start_pos_x;
+                y += start_pos_y;
+            }
             if (_goalList[goalId].func == 0){
                 drive.move_abs(x,y,d_yaw);
                 //self.goalMsg.pose.position.y = y;
@@ -692,7 +865,7 @@ public:
                 drive.rotate_abs(d_yaw);
             }
             else if(_goalList[goalId].func == 10){
-                navi.move(x,y,d_yaw/RADIANS_F);
+                drive.navi_.move(x,y,d_yaw/RADIANS_F);
             }
         }
         else{
@@ -809,9 +982,14 @@ int main(int argc, char** argv)
     //}
 
     //mg_ex.mloop_ex(goallist);
+    mg_ex.mloop_ex(turtlebot3_house);
+    //mg_ex.mloop_ex(goallist2);
     //mg_ex.mloop_ex2(m_rotate_2);
 
-    mg_ex.mloop_ex(navi_list1);
+    //mg_ex.mloop_ex(navi_list1);
+
+    //unsigned char cost = mg_ex.drive.navi_.check_cost(-3.0,1.0);
+    //std::cout <<"cost = "<< std::hex << (unsigned int)cost << std::endl;
 
     //ros::Rate rate(1);   //  1[Hz]
     rate.sleep();

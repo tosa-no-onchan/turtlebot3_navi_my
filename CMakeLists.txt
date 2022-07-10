@@ -146,7 +146,7 @@ add_library(robot_navi
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/turtlebot3_navi_my_node.cpp)
-add_executable(drive_base src/drive_base.cpp)
+#add_executable(drive_base src/drive_base.cpp)
 add_executable(multi_goals4_cmd_vel src/multi_goals4_cmd_vel.cpp)
 add_executable(${PROJECT_NAME}_move_navigation src/move_navigation.cpp)
 
@@ -165,11 +165,12 @@ add_executable(${PROJECT_NAME}_move_navigation src/move_navigation.cpp)
 #   ${catkin_LIBRARIES}
 # )
 
-target_link_libraries(drive_base
-  ${catkin_LIBRARIES}
-  robot_drive
-  #${PROJECT_NAME}
-)
+#target_link_libraries(drive_base
+#  ${catkin_LIBRARIES}
+#  robot_drive
+#  robot_navi
+#  #${PROJECT_NAME}
+#)
 
 target_link_libraries(multi_goals4_cmd_vel
   ${catkin_LIBRARIES}

@@ -15,9 +15,13 @@ $ rosrun turtlebot3_navi_my drive_base
 #include "turtlebot3_navi_my/robot_drive.h"
 
 //! ROS node initialization
-void RobotDrive::init(ros::NodeHandle &nh)
+void RobotDrive::init(ros::NodeHandle &nh, bool navi_use)
 {
   nh_ = nh;
+
+  if (navi_use==true){
+    navi_.init(nh,2);
+  }
 
   //set up the publisher for the cmd_vel topic
   _pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -28,6 +32,8 @@ void RobotDrive::init(ros::NodeHandle &nh)
 
   _course_correct=false;
   _after_correct_wait=false;
+  _go_curve=false;
+  _dumper=false;
 
   //wait for the listener to get the first message
   //listener_.waitForTransform("base_footprint","odom", ros::Time(0), ros::Duration(1.0));
@@ -46,6 +52,7 @@ void RobotDrive::init(ros::NodeHandle &nh)
   }
 
 }
+
 
 /*
 move()
@@ -110,7 +117,8 @@ void RobotDrive::get_tf(int func){
     tf::Matrix3x3 m(q);
     //double roll, pitch, yaw;
     m.getRPY(_rx, _ry, _rz);
-    std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
+    if(log_level>=3)
+        std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
   }
 }
 
@@ -159,6 +167,8 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
     int i = 0;
     bool ex_f=false;
 
+    unsigned char cost;
+
     //Loop to move the turtle in an specified distance
     while(current_distance < start_distance){
       //std::cout << "pub cmd_vel" << std::endl;
@@ -183,8 +193,25 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
 
       current_distance = std::sqrt(off_x*off_x+off_y*off_y+off_z*off_z);
 
+      // dumper ON
+      if(_dumper==true){
+          cost=navi_.check_cost(cur_x,cur_y);
+          if(cost>0){
+                std::cout << "cost=" << (unsigned int)cost << std::endl;
+                _vel_msg.linear.x = 0.0;
+                // Force the robot to stop
+                _pub.publish(_vel_msg);
+                //while(1){
+                //    rate.sleep();
+                //}
+                return;
+          }
+      }
+
+
       i+=1;
       if (i > 5){
+
         // 自分からの目的地の方角
         float off_target_x = x - cur_x;
         float off_target_y = y - cur_y;
@@ -210,8 +237,9 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
         if (_course_correct == true){
             // 10 [cm] 以上距離がある 時に方向を補正
             if ((start_distance - current_distance) > 0.1 && current_distance > 0.1){
-                if (abs(theta_ar * RADIANS_F) > 5.0){
-                    rotate_off(theta_ar*RADIANS_F,3.0);
+                // 到達点まで 1[M] 以上　かつ　ズレが 2.0[dgree] か ズレが 4.0[dgree]
+                if ((abs(theta_ar * RADIANS_F) > 4.0) || ((start_distance - current_distance) > 1.0 &&  abs(theta_ar * RADIANS_F) > 2.0)){
+                    rotate_off(theta_ar*RADIANS_F,3.0,_go_curve);
                     _vel_msg.linear.x = i_spped;
                     //std::exit(0);
                     //ex_f=true;
@@ -231,6 +259,7 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
         std::cout << "current_distance=" << round_my<float>(current_distance,3) << std::endl;
         i=0;
       }    
+      ros::spinOnce();
     }
     std::cout << "stop" << std::endl;
     // After the loop, stops the robot
@@ -379,6 +408,7 @@ void RobotDrive::rotate_abs(float stop_dz,float speed){
             }
         }
         rate.sleep();
+        ros::spinOnce();
     }
     std::cout << "stop" << std::endl;
     _vel_msg.angular.z = 0.0;   // [rad]
@@ -394,7 +424,7 @@ void rotate_off()
     d_theta : [deg] ロボット座標上の角度
     speed :  5.0  [deg/s]
 */
-void RobotDrive::rotate_off(float d_theta, float speed){
+void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
     // 目的の角度と速度を設定
     //d_theta = 180.0 # [deg]
     //speed = 10.0 # [deg/s]
@@ -430,7 +460,10 @@ void RobotDrive::rotate_off(float d_theta, float speed){
     // Twist 型のデータ
     //t = Twist()
     //t.linear.x = 0
-    _vel_msg.linear.x = 0.0;
+    // go on straight and turn to target point
+    if (go_curve == false){
+        _vel_msg.linear.x = 0.0;
+    }
 
     float stop_rz= _rz + r_theta;
 
@@ -492,6 +525,7 @@ void RobotDrive::rotate_off(float d_theta, float speed){
             }
         }
         rate.sleep();
+        ros::spinOnce();
     }
 
     std::cout << "stop" << std::endl;

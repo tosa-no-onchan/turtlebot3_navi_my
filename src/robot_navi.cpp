@@ -3,6 +3,9 @@
 *
 *
 * http://wiki.ros.org/costmap_2d/
+*
+* http://docs.ros.org/en/jade/api/costmap_2d/html/classcostmap__2d_1_1Costmap2DROS.html
+* http://docs.ros.org/en/jade/api/costmap_2d/html/namespacecostmap__2d.html
 */
 
 #include "turtlebot3_navi_my/robot_navi.h"
@@ -19,8 +22,14 @@ void RobotNavi::goalCallback(const geometry_msgs::PoseStamped msg){
 void RobotNavi::init(ros::NodeHandle &nh,int func){
   nh_=nh;
   func_=func;
+
+  ros::Rate rate(5);   //  5[Hz]
+
   //twist_pub_ = nh_.advertise<geometry_msgs::Twist>("/dtw_robot1/diff_drive_controller/cmd_vel", 10);
   twist_pub_ = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
+
+  rate.sleep();
+  ros::spinOnce();
 
   // Rviz での Navi操作用の Topic受信
   if(func_==2){
@@ -40,20 +49,132 @@ void RobotNavi::init(ros::NodeHandle &nh,int func){
   if(func_ != 0){
     timer_ = nh_.createTimer(ros::Duration(0.2), &RobotNavi::timerCallback, this);
   }
+
+
   // ~<name>/costmap(navi_msgs/OcuupancyGrid) がパブリッシュされ始めれば、セットアップ完了だが、
   // ~<name>: global_costmap or local_costmap
   // global_costmap_,local_costmap_ のメソッドの中で Setup完了チェックできる機能があれば良いのだが?
   // 今は、単純にディレイさせる。
-  ros::Rate rate(1);   //  1[Hz]
+
   //for(int i=0;i<6;i++){
   while(global_costmap_.isCurrent() == false || local_costmap_.isCurrent() == false){
       ros::spinOnce();
       rate.sleep();
   }
 
+  // local cost map access add by nishi 2022.7.7
+  costmap2D_= local_costmap_.getCostmap();
+  footprint_spec_ = local_costmap_.getRobotFootprint();
+
   std::cout << "RobotNavi::init() ok!" << std::endl;
 
 }
+
+void RobotNavi::map_save(){
+  //local_costmap_.updateMap();
+  //costmap2D_= local_costmap_.getCostmap();
+  std::cout << "save map start" << std::endl;
+  costmap2D_->saveMap("/home/nishi/local_costmap.pgm");
+  std::cout << "save map end" << std::endl;
+}
+
+/*
+* unsigned char RobotNavi::check_cost(float x,float y)
+*/
+unsigned char RobotNavi::check_cost(float x,float y){
+  std::cout << "RobotNavi::check_cost() start" << std::endl;
+
+  //ros::spinOnce();  // 必要みたい。
+
+
+  //costmap2D_= local_costmap_.getCostmap();
+  //footprint_spec_ = local_costmap_.getRobotFootprint();
+
+  /*
+  double 	getOriginX () const
+    Accessor for the x origin of the costmap.
+  double 	getOriginY () const
+    Accessor for the y origin of the costmap.
+  double 	getResolution () const
+    Accessor for the resolution of the costmap.
+  unsigned int 	getSizeInCellsX () const
+    Accessor for the x size of the costmap in cells.
+  unsigned int 	getSizeInCellsY () const
+    Accessor for the y size of the costmap in cells.
+  double 	getSizeInMetersX () const
+    Accessor for the x size of the costmap in meters.
+  double 	getSizeInMetersY () const 
+  */
+
+  /*
+  std::cout << "ostmap2D_->getOriginX()=" << costmap2D_->getOriginX() << std::endl;
+  std::cout << "ostmap2D_->getOriginY()=" << costmap2D_->getOriginX() << std::endl;
+  std::cout << "ostmap2D_->getResolution()=" << costmap2D_->getResolution() << std::endl;
+  std::cout << "ostmap2D_->getSizeInCellsX()=" << costmap2D_->getSizeInCellsX() << std::endl;
+  std::cout << "ostmap2D_->getSizeInCellsY()=" << costmap2D_->getSizeInCellsY() << std::endl;
+
+  std::cout << "ostmap2D_->getSizeInMetersX()=" << costmap2D_->getSizeInMetersX() << std::endl;
+  std::cout << "ostmap2D_->getSizeInMetersY()=" << costmap2D_->getSizeInMetersY() << std::endl;
+  */
+
+  /*
+  ostmap2D_->getOriginX()=-4.95
+  ostmap2D_->getOriginY()=-4.95
+  ostmap2D_->getResolution()=0.05
+  ostmap2D_->getSizeInCellsX()=80
+  ostmap2D_->getSizeInCellsY()=80
+  ostmap2D_->getSizeInMetersX()=3.975
+  ostmap2D_->getSizeInMetersY()=3.975
+  */
+
+
+  geometry_msgs::Point p;
+  unsigned int mx,my;
+  unsigned char cost=0;
+  for(int i=0;i<footprint_spec_.size();i++){
+      p = footprint_spec_[i];
+      //std::cout <<"x,y,z = "<< p.x <<","<< p.y <<"," << p.z << std::endl;
+      if(costmap2D_->worldToMap(p.x+x, p.y+y, mx,my)==true){
+          //costmap2D_->worldToMapEnforceBounds(p.x+x, p.y+y, mx,my);
+          //std::cout <<"mx,my = "<< mx <<","<< my << std::endl;
+          unsigned char costx = costmap2D_->getCost(mx,my);
+          if(costx > cost){
+            cost=costx;
+          }
+          //std::cout <<"cost = "<< std::hex << (unsigned int)cost << std::endl;
+      }
+  }
+  //unsigned char * cost_max = std::max_element(std::begin(cost), std::end(cost));
+  //std::cout <<"cost_max = "<< std::hex << (unsigned int)*cost_max << std::endl;
+
+  /* 前方の時
+  x,y,z= -0.21,-0.13,0
+  x,y,z= -0.21,0.13,0
+  x,y,z= 0.06,0.13,0
+  x,y,z= 0.06,-0.13,0
+  */
+  /* 90度左向いた時
+  x,y,z = -0.21,-0.13,0
+  x,y,z = -0.21,0.13,0
+  x,y,z = 0.06,0.13,0
+  x,y,z = 0.06,-0.13,0
+  */
+
+  /*
+  costmap2D_->worldToMap(x,y,mx,my);
+  unsigned char cost2 = costmap2D_->getCost(mx,my);
+  //unsigned int j = costmap2D_->getIndex(mx,my);
+  std::cout <<"cost = "<< std::hex << (unsigned int)cost2 << std::endl;
+  //std::cout <<"j = "<< j << std::endl;
+
+ 	double wx,wy;
+  costmap2D_->mapToWorld(0,0,wx,wy);
+  std::cout <<"wx,wy = "<< wx <<"," << wy << std::endl;
+  */
+ return cost;
+
+}
+
 
 /*
 move()
