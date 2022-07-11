@@ -56,15 +56,17 @@ void RobotNavi::init(ros::NodeHandle &nh,int func){
   // global_costmap_,local_costmap_ のメソッドの中で Setup完了チェックできる機能があれば良いのだが?
   // 今は、単純にディレイさせる。
 
+  // local cost map access add by nishi 2022.7.7
+  costmap2D_= local_costmap_.getCostmap();
+  footprint_spec_ = local_costmap_.getRobotFootprint();
+
+
   //for(int i=0;i<6;i++){
   while(global_costmap_.isCurrent() == false || local_costmap_.isCurrent() == false){
       ros::spinOnce();
       rate.sleep();
   }
 
-  // local cost map access add by nishi 2022.7.7
-  costmap2D_= local_costmap_.getCostmap();
-  footprint_spec_ = local_costmap_.getRobotFootprint();
 
   std::cout << "RobotNavi::init() ok!" << std::endl;
 
