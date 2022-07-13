@@ -17,8 +17,10 @@ global_costmap:
     track_unknown_space: false
     subscribe_to_updates: true
   inflation_layer:
-    inflation_radius: 0.50
+    #inflation_radius: 0.50
+    inflation_radius: 0.10
     cost_scaling_factor: 3.0
+    #cost_scaling_factor: 7.0
 
 local_costmap:
   plugins: 
@@ -56,12 +58,13 @@ local_costmap:
       topic: /cloudXYZ
       #expected_update_rate: 0.5 
       #expected_update_rate: 1.0 
-      expected_update_rate: 80.0
+      expected_update_rate: 2.0
       marking: true
       clearing: true
       min_obstacle_height: 0.05
       #min_obstacle_height: 0.3
-      max_obstacle_height: 1.0
+      #max_obstacle_height: 1.0
+      max_obstacle_height: 0.6
 
   #sonar_layer:
   #  topics: [ /dtw_robot1/sonar_back/range ]
@@ -74,7 +77,7 @@ local_planner:
   #max_vel_x: 0.15
   max_vel_x: 0.1
   #min_vel_x: 0.05
-  min_vel_x: -0.01
+  min_vel_x: -0.05
   #max_vel_theta: 2.0
   max_vel_theta: 0.15
   #min_in_place_vel_theta: 0.4
