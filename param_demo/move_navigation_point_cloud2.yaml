@@ -20,7 +20,7 @@ global_costmap:
     subscribe_to_updates: true
   inflation_layer:
     #inflation_radius: 0.50
-    inflation_radius: 0.11
+    inflation_radius: 0.14
     #cost_scaling_factor: 7.0
     cost_scaling_factor: 10.0
 
@@ -74,7 +74,7 @@ local_costmap:
   #  topics: [ /dtw_robot1/sonar_back/range ]
   #  clear_on_max_reading: true
   inflation_layer:
-    inflation_radius: 0.11
+    inflation_radius: 0.14
     cost_scaling_factor: 10.0
 
 local_planner:

@@ -17,8 +17,8 @@ global_costmap:
     track_unknown_space: false
     subscribe_to_updates: true
   inflation_layer:
-    inflation_radius: 0.50
-    cost_scaling_factor: 3.0
+    inflation_radius: 0.19
+    cost_scaling_factor: 10.0
 
 local_costmap:
   plugins: 
@@ -66,7 +66,7 @@ local_costmap:
   #  topics: [ /dtw_robot1/sonar_back/range ]
   #  clear_on_max_reading: true
   inflation_layer:
-    inflation_radius: 0.20
+    inflation_radius: 0.19
     cost_scaling_factor: 10.0
 
 local_planner:
