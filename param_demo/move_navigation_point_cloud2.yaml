@@ -1,5 +1,6 @@
-#http://wiki.ros.org/costmap_2d/Tutorials/Configuring%20Layered%20Costmaps
+# http://wiki.ros.org/costmap_2d/Tutorials/Configuring%20Layered%20Costmaps
 # http://wiki.ros.org/costmap_2d/hydro/obstacles
+# https://robo-marc.github.io/navigation_documents/costmap_2d.html
 global_costmap:
   plugins: 
     - {name: static_layer, type: "costmap_2d::StaticLayer"}
@@ -8,7 +9,8 @@ global_costmap:
   global_frame: map
   #robot_base_frame: dtw_robot1/base_link
   robot_base_frame: base_footprint
-  footprint: [[-0.2, -0.12], [-0.2, 0.12], [0.05, 0.12], [0.05, -0.12]]
+  #footprint: [[-0.2, -0.12], [-0.2, 0.12], [0.05, 0.12], [0.05, -0.12]]
+  footprint: [[-0.105, -0.105], [-0.105, 0.105], [0.041, 0.105], [0.041, -0.105]]
   update_frequency: 2.0
   publish_frequency: 2.0
   static_layer:
@@ -18,9 +20,9 @@ global_costmap:
     subscribe_to_updates: true
   inflation_layer:
     #inflation_radius: 0.50
-    inflation_radius: 0.10
-    cost_scaling_factor: 3.0
+    inflation_radius: 0.11
     #cost_scaling_factor: 7.0
+    cost_scaling_factor: 10.0
 
 local_costmap:
   plugins: 
@@ -31,7 +33,9 @@ local_costmap:
   global_frame: map
   #robot_base_frame: dtw_robot1/base_link
   robot_base_frame: base_footprint
-  footprint: [[-0.2, -0.12], [-0.2, 0.12], [0.05, 0.12], [0.05, -0.12]]
+  #footprint: [[-0.2, -0.12], [-0.2, 0.12], [0.05, 0.12], [0.05, -0.12]]
+  # burger  0.21 X 0.14
+  footprint: [[-0.105, -0.105], [-0.105, 0.105], [0.041, 0.105], [0.041, -0.105]]
   rolling_window: true
   width: 4.0
   height: 4.0
@@ -70,7 +74,7 @@ local_costmap:
   #  topics: [ /dtw_robot1/sonar_back/range ]
   #  clear_on_max_reading: true
   inflation_layer:
-    inflation_radius: 0.20
+    inflation_radius: 0.11
     cost_scaling_factor: 10.0
 
 local_planner:
