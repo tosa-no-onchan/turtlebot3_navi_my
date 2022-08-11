@@ -22,6 +22,7 @@ $ rosrun turtlebot3_navi_my drive_base
 #include <tf/transform_listener.h>
 
 #include "turtlebot3_navi_my/robot_navi.h"
+#include "turtlebot3_navi_my/com_lib.h"
 
 #include <unistd.h>
 
@@ -31,7 +32,9 @@ $ rosrun turtlebot3_navi_my drive_base
 //#define deg_to_rad(deg) (((deg)/360)*2*M_PI)
 //#define rad_to_deg(rad) (((rad)/2/M_PI)*360)
 
+#ifndef RADIANS_F
 #define RADIANS_F   57.29577951308232    // [deg/rad]
+#endif
 
 class RobotDrive
 {
@@ -41,7 +44,7 @@ private:
   //! We will be publishing to the "cmd_vel" topic to issue commands
   ros::Publisher _pub;
   //! We will be listening to TF transforms as well
-  tf::TransformListener listener_;
+  //tf::TransformListener listener_;
   geometry_msgs::Twist _vel_msg;
 
   u_char log_level=1;
@@ -50,6 +53,7 @@ public:
   tf::StampedTransform base_tf;
 
   RobotNavi navi_;
+  GetTF getTF_;
 
   double _rx, _ry, _rz;
   bool _course_correct;
@@ -68,12 +72,23 @@ public:
       d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
   */
   void move(float dist,float d_yaw);
+
   /*
   move_abs()
       x,y: 絶対番地への移動(基準座標)
       d_yaw: 基準座標での角度。 [degree]
   */
   void move_abs(float x,float y,float d_yaw);
+
+  /*
+  comp_dad() : compute distanse and direction
+  目的地までの距離と方角を計算する。
+      float x:
+      float y:
+      float &dist:
+      float &r_yaw:
+  */
+  void comp_dad(float x,float y,float &dist, float &r_yaw, float &r_yaw_off);
 
   /*
   * T round_my(T dt,int n)
@@ -114,6 +129,11 @@ public:
   //! Drive forward a specified distance based on odometry information
   bool driveForwardOdom(double distance);
   bool turnOdom(bool clockwise, double radians);
+
+
+  bool navi_move(float x,float y,float r_yaw,float r_yaw_off=0.0);
+  void navi_map_save();
+
 };
 
 #endif      // ROBOT_DRIVE_H

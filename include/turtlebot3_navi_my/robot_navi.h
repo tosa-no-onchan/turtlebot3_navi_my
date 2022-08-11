@@ -14,6 +14,8 @@
 #include <base_local_planner/trajectory_planner_ros.h>
 #include <navfn/navfn_ros.h>
 
+#include "turtlebot3_navi_my/com_lib.h"
+
 enum class NavState{
   STANDBY,
   WAIT_PLAN,
@@ -23,6 +25,12 @@ enum class NavState{
 class RobotNavi {
 private:
   int func_;
+  int moving_cnt_;
+  int moving_err_cnt_;
+
+  geometry_msgs::PoseStamped target_pose_;
+
+  double last_x_,last_y_,last_yaw_;
 
 public:
 
@@ -57,6 +65,7 @@ public:
 #endif
 
   void init(ros::NodeHandle &nh,int func=0);
+  //void init(ros::NodeHandle &nh,GetTF &getTF,int func=0);
   void goalCallback(const geometry_msgs::PoseStamped msg);
   void timerCallback(const ros::TimerEvent& e);
   /*
@@ -65,10 +74,27 @@ public:
       r_yaw: 基準座標での角度。 [rad]
   */
   void move(float x,float y,float r_yaw);
+  void moving_proc();
+  bool get_tf();
   bool MakePlan();
 
   unsigned char check_cost(float x=0.0,float y=0.0);
   void map_save();
+
+  /*
+  * T round_my(T dt,int n)
+  */
+  template <class T=float>
+  T round_my(T dt,int n){
+    if (n > 0){
+      T x=(T)pow(10.0, n);
+      dt *= x;
+      return std::round(dt) / x;
+    }
+    else{
+      return std::round(dt);
+    }
+  }
 
 };
 

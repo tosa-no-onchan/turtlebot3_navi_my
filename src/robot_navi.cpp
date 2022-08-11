@@ -21,6 +21,7 @@ void RobotNavi::goalCallback(const geometry_msgs::PoseStamped msg){
 */
 void RobotNavi::init(ros::NodeHandle &nh,int func){
   nh_=nh;
+
   func_=func;
 
   ros::Rate rate(5);   //  5[Hz]
@@ -178,13 +179,14 @@ unsigned char RobotNavi::check_cost(float x,float y){
 }
 
 
-/*
+/*----------------------------------------------
 move()
+ called from RobotDrive::navi_move()
     x,y: 絶対番地への移動(基準座標)
     r_yaw: 基準座標での角度。 [rad]
 
   https://answers.ros.org/question/371925/euler-to-quaternion-c/
-*/
+------------------------------------------------*/
 void RobotNavi::move(float x,float y,float r_yaw){
 
   std::cout << "RobotNavi::move" << std::endl;
@@ -205,6 +207,7 @@ void RobotNavi::move(float x,float y,float r_yaw){
   last_pose_.pose.orientation.z = q.z();
   last_pose_.pose.orientation.w = q.w();
 
+  // timerCallback() 処理に任せる。
   if (func_!=0){
     std::cout << "func_ = " << func_ << std::endl;
     nav_state_ = NavState::WAIT_PLAN;
@@ -218,12 +221,21 @@ void RobotNavi::move(float x,float y,float r_yaw){
   }
 
   if(MakePlan()==true){
+
+    last_x_ = target_pose_.pose.position.x;
+    last_y_ = target_pose_.pose.position.y;
+    //target_pose_.pose.orientation.w;
+
+
     nav_state_ = NavState::MOVING;
+    moving_cnt_=0;
+    moving_err_cnt_=0;
 
     local_planner_.setPlan(last_global_plan_);
     geometry_msgs::Twist cmd_vel;
     if (local_planner_.isGoalReached()){
-      ROS_INFO("reach");
+      //ROS_INFO("reach");
+      std::cout << "reach" << std::endl;
       //twist_pub_.publish(cmd_vel);
       nav_state_ = NavState::STANDBY;
     }
@@ -236,62 +248,82 @@ void RobotNavi::move(float x,float y,float r_yaw){
 
     while(nav_state_ != NavState::STANDBY){
       rate.sleep();
-
-      // ここの判定がシビアすぎか?
-      if (local_planner_.isGoalReached()){
-        ROS_INFO("reach");
-        twist_pub_.publish(cmd_vel);
-        nav_state_ = NavState::STANDBY;
-        break;
-      }
-      local_planner_.computeVelocityCommands(cmd_vel);
-      twist_pub_.publish(cmd_vel);
+      moving_proc();
     }
   }
 }
 
-bool RobotNavi::MakePlan(){
-  std::cout << "MakePlan()" << std::endl;
+/*----------------------------------------
+* moving_proc()
+-----------------------------------------*/
+void RobotNavi::moving_proc(){
+  geometry_msgs::Twist cmd_vel;
 
-  geometry_msgs::PoseStamped source_pose;
-  //source_pose.header.frame_id="dtw_robot1/base_link";
-  source_pose.header.frame_id="base_footprint";
-  source_pose.header.stamp=ros::Time(0);
-  source_pose.pose.orientation.w=1.0;
+  double x,y;
+  moving_cnt_++;
 
-  geometry_msgs::PoseStamped target_pose;
-  //std::string target_frame="dtw_robot1/map";
-  std::string target_frame="map";
-  try{
-    tf_.waitForTransform(source_pose.header.frame_id, target_frame, ros::Time(0), ros::Duration(1.0));
-    // 現在位置を得る  -> target_pose
-    tf_.transformPose(target_frame, source_pose, target_pose);
-    ROS_INFO("x:%+5.2f, y:%+5.2f,z:%+5.2f",target_pose.pose.position.x,target_pose.pose.position.y,target_pose.pose.position.z);
+  if(moving_cnt_> 70){
+    moving_cnt_=0;
+
+    if(get_tf()==true){
+
+      x = target_pose_.pose.position.x;
+      y = target_pose_.pose.position.y;
+
+      float off_x = x -  last_x_;
+      float off_y = y -  last_y_;
+
+      float cur_dist = std::sqrt(off_x*off_x+off_y*off_y);
+
+      last_x_=x;
+      last_y_=y;
+
+      cur_dist = round_my<float>(cur_dist,3);
+      //if(cur_dist <= 0.005){
+      if(cur_dist <= 0.01){
+        moving_err_cnt_++;
+        std::cout << "not moving (" << moving_err_cnt_ << ")" << std::endl;
+      }
+      else{
+        moving_err_cnt_=0;
+        std::cout << "moving" << std::endl;
+
+      }
+
+      if(moving_err_cnt_ >= 8){
+        std::cout << "not moving exceed limits" << std::endl;
+        nav_state_ = NavState::STANDBY;
+        return;
+      }
+
+    }
+
   }
-  catch(...){
-    ROS_INFO("tf error");
-    return false;
-  }
-  geometry_msgs::PoseStamped start = target_pose;   // 現在位置 / start position
+  //std::cout << "moving" << std::endl;
 
-  std::cout << "last_pose_.header.frame_id=" << last_pose_.header.frame_id << std::endl;
-  std::cout <<  "last_pose_.header.stamp=" << last_pose_.header.stamp << std::endl;
-  std::cout << "last_pose_.pose.position.x,y,z=" << last_pose_.pose.position.x <<","<< last_pose_.pose.position.y <<","<< last_pose_.pose.position.z << std::endl;
-  std::cout << "last_pose_.pose.orientation.x,y,z,w=" << last_pose_.pose.orientation.x <<","<< last_pose_.pose.orientation.y 
-      <<","<< last_pose_.pose.orientation.z <<","<< last_pose_.pose.orientation.w << std::endl;
-
-  if (!global_planner_.makePlan(start, last_pose_, last_global_plan_)){
-    ROS_WARN("global plan fail");
-    return false;
+  // ここの判定がシビアすぎか?
+  if (local_planner_.isGoalReached()){
+    //ROS_INFO("reach");
+    std::cout << "reach!!" << std::endl;
+    twist_pub_.publish(cmd_vel);
+    nav_state_ = NavState::STANDBY;
   }
-  return true;
+  else{
+    local_planner_.computeVelocityCommands(cmd_vel);
+    twist_pub_.publish(cmd_vel);
+  }
 }
 
-
+/*----------------------------------------
+* timerCallback()
+*
+-----------------------------------------*/
 void RobotNavi::timerCallback(const ros::TimerEvent& e){
   if (nav_state_ == NavState::WAIT_PLAN){
     ROS_INFO("PLAN");
 
+    // start MakePlan()
+    #ifdef USE_ORG_H
     geometry_msgs::PoseStamped source_pose;
     //source_pose.header.frame_id="dtw_robot1/base_link";
     source_pose.header.frame_id="base_footprint";
@@ -324,6 +356,16 @@ void RobotNavi::timerCallback(const ros::TimerEvent& e){
       nav_state_ = NavState::STANDBY;
       return;
     }
+    #else
+
+      if(MakePlan()!=true){
+        nav_state_ = NavState::STANDBY;
+        return;       
+      }
+      last_x_ = target_pose_.pose.position.x;
+      last_y_ = target_pose_.pose.position.y;
+    #endif
+
     local_planner_.setPlan(last_global_plan_);
     geometry_msgs::Twist cmd_vel;
     if (local_planner_.isGoalReached()){
@@ -335,22 +377,73 @@ void RobotNavi::timerCallback(const ros::TimerEvent& e){
     local_planner_.computeVelocityCommands(cmd_vel);
     twist_pub_.publish(cmd_vel);
     nav_state_ = NavState::MOVING;
+    moving_cnt_=0;
+    moving_err_cnt_=0;
+
   }
+  // 移動中です。
   else if(nav_state_ == NavState::MOVING){
-    ROS_INFO_THROTTLE(2.0, "MOVING");
-    geometry_msgs::Twist cmd_vel;
-    // ここの判定がシビアすぎか?
-    if (local_planner_.isGoalReached()){
-      ROS_INFO("reach");
-      twist_pub_.publish(cmd_vel);
-      nav_state_ = NavState::STANDBY;
-      return;
-    }
-    local_planner_.computeVelocityCommands(cmd_vel);
-    twist_pub_.publish(cmd_vel);
+    //ROS_INFO_THROTTLE(2.0, "MOVING");
+    moving_proc();
   }
 }
 
+/*----------------------------------------
+* get_tf()
+*
+-----------------------------------------*/
+bool RobotNavi::get_tf(){
+  std::cout << "get_tf()" << std::endl;
+
+  geometry_msgs::PoseStamped source_pose;
+  //source_pose.header.frame_id="dtw_robot1/base_link";
+  source_pose.header.frame_id="base_footprint";
+  source_pose.header.stamp=ros::Time(0);
+  source_pose.pose.orientation.w=1.0;
+
+  //geometry_msgs::PoseStamped target_pose;
+  //std::string target_frame="dtw_robot1/map";
+  std::string target_frame="map";
+  try{
+    tf_.waitForTransform(source_pose.header.frame_id, target_frame, ros::Time(0), ros::Duration(1.0));
+    // 現在位置を得る  -> target_pose_
+    tf_.transformPose(target_frame, source_pose, target_pose_);
+    //ROS_INFO("x:%+5.2f, y:%+5.2f,z:%+5.2f",target_pose_.pose.position.x,target_pose_.pose.position.y,target_pose_.pose.position.z);
+  }
+  catch(...){
+    ROS_INFO("tf error");
+    return false;
+  }
+
+  return true;
+
+}
+
+/*----------------------------------------
+* MakePlan()
+*
+-----------------------------------------*/
+bool RobotNavi::MakePlan(){
+  std::cout << "MakePlan()" << std::endl;
+
+  if(get_tf()!=true){
+    return false;
+  }
+
+  geometry_msgs::PoseStamped start = target_pose_;   // 現在位置 / start position
+
+  //std::cout << "last_pose_.header.frame_id=" << last_pose_.header.frame_id << std::endl;
+  //std::cout <<  "last_pose_.header.stamp=" << last_pose_.header.stamp << std::endl;
+  std::cout << "last_pose_.pose.position.x,y,z=" << last_pose_.pose.position.x <<","<< last_pose_.pose.position.y <<","<< last_pose_.pose.position.z << std::endl;
+  std::cout << "last_pose_.pose.orientation.x,y,z,w=" << last_pose_.pose.orientation.x <<","<< last_pose_.pose.orientation.y 
+      <<","<< last_pose_.pose.orientation.z <<","<< last_pose_.pose.orientation.w << std::endl;
+
+  if (!global_planner_.makePlan(start, last_pose_, last_global_plan_)){
+    ROS_WARN("global plan fail");
+    return false;
+  }
+  return true;
+}
 //int main(int argc, char** argv){
 //  ros::init(argc, argv, "robot_navigation");
 //  

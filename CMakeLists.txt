@@ -4,6 +4,8 @@ project(turtlebot3_navi_my)
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 add_compile_options(-std=c++11)
+#set(CMAKE_CXX_FLAGS "-Warray-bounds -g3")
+
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -17,6 +19,10 @@ find_package(catkin REQUIRED COMPONENTS
   base_local_planner
   navfn
 )
+
+# Find OpenCV package
+find_package( OpenCV REQUIRED )
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -123,7 +129,9 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
+
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -133,9 +141,22 @@ add_library(robot_drive
   src/robot_drive.cpp
 )
 
+add_library(robot_driveMB
+  src/robot_driveMB.cpp
+)
+
 add_library(robot_navi
   src/robot_navi.cpp
 )
+
+add_library(multi_goals
+  src/multi_goals.cpp
+)
+
+add_library(com_lib
+  src/com_lib.cpp
+)
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -149,6 +170,15 @@ add_library(robot_navi
 #add_executable(drive_base src/drive_base.cpp)
 add_executable(multi_goals4_cmd_vel src/multi_goals4_cmd_vel.cpp)
 add_executable(${PROJECT_NAME}_move_navigation src/move_navigation.cpp)
+add_executable(${PROJECT_NAME}_map_builder src/map_builder.cpp)
+
+
+add_compile_options(-DUSE_MOVE_BASE)
+add_executable(multi_goals4_move_base 
+  src/multi_goals4_move_base.cpp 
+  src/multi_goals.cpp
+  src/robot_driveMB.cpp
+  )
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -174,8 +204,11 @@ add_executable(${PROJECT_NAME}_move_navigation src/move_navigation.cpp)
 
 target_link_libraries(multi_goals4_cmd_vel
   ${catkin_LIBRARIES}
+  multi_goals
   robot_drive
   robot_navi
+  com_lib
+  ${OpenCV_LIBS}
   #${PROJECT_NAME}
 )
 
@@ -184,6 +217,22 @@ target_link_libraries(${PROJECT_NAME}_move_navigation
   #${PROJECT_NAME}
 )
 
+target_link_libraries(${PROJECT_NAME}_map_builder
+  ${catkin_LIBRARIES}
+  multi_goals
+  robot_drive
+  robot_navi
+  com_lib
+  ${OpenCV_LIBS}
+  #${PROJECT_NAME}
+)
+
+target_link_libraries(multi_goals4_move_base
+  ${catkin_LIBRARIES}
+  #robot_driveMB
+  ${OpenCV_LIBS}
+  #${PROJECT_NAME}
+)
 
 
 #############

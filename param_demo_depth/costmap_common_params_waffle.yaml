@@ -25,13 +25,19 @@ scan: {sensor_frame: base_scan, data_type: LaserScan, topic: scan, marking: true
 
 # assuming receiving a cloud from rtabmap_ros/obstacles_detection node
 point_cloud_sensor: {
-  sensor_frame: camera_rgb_optical_frame,
+  sensor_frame: camera_link,
   data_type: PointCloud2, 
-  topic: /camera/depth/points, 
+  topic: /cloudXYZ, 
   #expected_update_rate: 1.5, 
   expected_update_rate: 2.0, 
   marking: true, 
   clearing: true,
   min_obstacle_height: 0.05,
   max_obstacle_height: 1.0}
+
+
+#      sensor_frame: camera_link
+#      data_type: PointCloud2 
+#      #topic: planner_cloud 
+#      topic: /cloudXYZ
 
