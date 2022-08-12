@@ -32,6 +32,17 @@ void condense_Gpoint(std::vector<Gpoint> *gp){
     std::cout << "#2 gp->size()=" << gp->size() << std::endl;
 }
 
+/*-------------------------
+* class BlobFinder
+* find_Gpoint()
+--------------------------*/
+bool BlobFinder::check_Border(float x,float y){
+    if(x > border_def.top_l.x || x < border_def.bot_r.x)
+        return false;
+    if(y > border_def.top_l.y || y < border_def.bot_r.y)
+        return false;
+    return true;
+}
 
 /*-------------------------
 * class BlobFinder
@@ -426,6 +437,12 @@ void BlobFinder::check(cv::Mat mat_map,Yaml &yaml,float cur_x,float cur_y){
 
         for(int i = 0;i < g_points_.size();i++){
             Gpoint gp = g_points_[i];
+            // ボーダーチェック
+            if(check_Border(gp.x,gp.y)!=true){
+                std::cout <<"border check NG"<< std::endl;
+                continue;
+            }
+            // ブラックポイントチェック
             if(find_Gpoint(gp.x,gp.y,g_points_black)==true){
                 std::cout <<"g_points_black fined"<< std::endl;
                 continue;
@@ -706,7 +723,7 @@ void GetMap::get(){
 
         std::cout << "free_thresh=" << free_thresh << std::endl;
 
-        grid_.init(map->info,_line_w,map->data);
+        //grid_.init(map->info,_line_w,map->data);
 
         //conv_fmt2(map);
         saveMap(map);
@@ -1000,12 +1017,15 @@ void MultiGoals::auto_map(){
         off=0.0;
         get_map.get();
 
+
+        std::cout << "auto_map() #6 call drive.get_tf(2)" << std::endl;
         drive.get_tf(2);
 
         tf::Vector3 cur_origin = drive.base_tf.getOrigin();
         float cur_x = cur_origin.getX();
         float cur_y = cur_origin.getY();
 
+        std::cout << "auto_map() #7 call blobFinder_.check()" << std::endl;
         // Find Next Unkonown Blob
         blobFinder_.check(get_map.mat_map_,get_map.yaml_,cur_x,cur_y);
 
@@ -1180,6 +1200,8 @@ mloop(self)
             67 -> set dumper ON
             68 -> set dumper OFF
             69 -> save local cost map
+            70 -> set border top-left
+            71 -> set border bottom-right
             99 -> end
 */
 void MultiGoals::mloop(){
@@ -1270,6 +1292,18 @@ void MultiGoals::mloop(){
             case 69:
                 std::cout << "save local cost map" << std::endl;
                 drive.navi_map_save();
+                break;
+
+            case 70:    // set border top-left
+                std::cout << "set border top-left" << std::endl;
+                blobFinder_.border_def.top_l.x=_goalList[goalId].x;
+                blobFinder_.border_def.top_l.y=_goalList[goalId].y;
+                break;
+
+            case 71:    // set border bottom-right
+                std::cout << "set border bottom-right" << std::endl;
+                blobFinder_.border_def.bot_r.x= _goalList[goalId].x;
+                blobFinder_.border_def.bot_r.y= _goalList[goalId].y;
                 break;
 
             case 99:

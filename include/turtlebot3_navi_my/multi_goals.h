@@ -98,10 +98,16 @@ public:
     //std::list<Gpoint> g_points1_list;
     //std::list<Gpoint> g_points2_list;
 
+    // ロボットの行動範囲 / ボーダー定義
+    // top-left (+x,+y) / bottom-right(-x,-y) [M]
+    BorderBox border_def={{10.0,10.0},        //  top-left(+x,+y)
+                         {-10.0,-10.0}};      //  bottom-right(-x,-y)
+
     BlobFinder(){}
 
     void sort_blob(float cur_x,float cur_y);
     void check(cv::Mat mat_map,Yaml &yaml,float cur_x,float cur_y);
+    bool check_Border(float x,float y);
     bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp);
 
 };
@@ -161,7 +167,7 @@ private:
     double org_x,org_y;
     //int x_size,y_size; 
 
-    Grid grid_;
+    //Grid grid_;
 
     bool init_ok=false;
 

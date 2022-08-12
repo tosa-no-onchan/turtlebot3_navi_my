@@ -13,7 +13,21 @@
 #define RADIANS_F   57.29577951308232    // [deg/rad]
 #endif
 
+/*-----------------------
+Point
+------------------------*/
+typedef struct{
+    float x;
+    float y;
+} Point;
 
+/*-----------------------
+BorderBox
+------------------------*/
+typedef struct{
+    Point top_l;    // top-left
+    Point bot_r;    // bottom-right
+} BorderBox;
 /*-----------------------
 Yaml
 ------------------------*/
