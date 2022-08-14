@@ -6,7 +6,7 @@ multi_goals.h
 #ifndef MULTI_GOALS_H
 #define MULTI_GOALS_H
 
-
+#include <math.h>
 #include <cstdio>
 #include <vector>
 #include <list>
@@ -109,7 +109,6 @@ public:
     void check(cv::Mat mat_map,Yaml &yaml,float cur_x,float cur_y);
     bool check_Border(float x,float y);
     bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp);
-
 };
 
 class Grid{
@@ -174,6 +173,7 @@ private:
 public:
 
     cv::Mat mat_map_;
+    cv::Mat mat_bin_map_;   // map 障害物　2値化
     Yaml yaml_;
 
     GetMap(){}
@@ -193,6 +193,8 @@ public:
     void conv_fmt2(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
 
     void saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
+
+    void check_collision(float x,float y,float &ox,float &oy);
 
     #ifdef XXXX_X
     void conv_dot2grid(self,x,y);

@@ -485,7 +485,6 @@ void BlobFinder::check(cv::Mat mat_map,Yaml &yaml,float cur_x,float cur_y){
     return;
 }
 
-
 /*-------------------------
 * class Grid
 --------------------------*/
@@ -728,6 +727,16 @@ void GetMap::get(){
         //conv_fmt2(map);
         saveMap(map);
 
+
+        //2. 障害物を、2値画像 and 反転します。 add by nishi 2022.8.13
+        //int thresh = 120;
+        //int thresh = 2;
+        int thresh = 10;        // 障害物の値 0-100 / 未知領域:128  / 自由領域:255
+        //threshold(gry, img_dst, thresh, 255, cv::THRESH_BINARY);
+        // 障害物 < 10 だけを、白にします。
+        cv::threshold(mat_map_, mat_bin_map_, thresh, 255, cv::THRESH_BINARY_INV);
+
+
         std::cout << "GetMap ok" << std::endl;
 
         // BlobFinder call
@@ -827,6 +836,102 @@ free_thresh: 0.196
     //saved_map_ = true;
 
 }
+
+/*-------------------------
+* class GetMap
+* check_collision()
+--------------------------*/
+void GetMap::check_collision(float x,float y,float &ox,float &oy){
+    ox=x;
+    oy=y;
+
+    cv::Point center_p; // 円の中心位置
+    int r =5;      // 円の半径  30 -> 1.5[M]      7 ->  0.35[M]  5->0.25[M]
+
+    cv::Mat result,result2,mask;
+
+    //x0 = (x_g + 0.5) * (double)line_w_ * yaml.resolution + yaml.origin[0];
+    //y0 = (y_g + 0.5) * (double)line_w_ * yaml.resolution + yaml.origin[1];
+
+    // 基本座標を、Mat map 座標に変換 
+    int px = (int)((x - yaml_.origin[0]) / yaml_.resolution);
+    int py = (int)((y - yaml_.origin[1]) / yaml_.resolution);
+
+    //ロボットの移動先を、マスクの中心にします。
+    center_p.x = px;
+    center_p.y = py;
+
+    // Mask画像 を作成
+    mask = cv::Mat::zeros(mat_bin_map_.rows, mat_bin_map_.cols, CV_8UC1);
+
+    // ロボットの移動先を中心にした、半径r の円を描きます。
+    cv::circle(mask, center_p, r, cv::Scalar(255),-1);
+
+    // 障害物 2値化画像に 円のマスクを実施
+    mat_bin_map_.copyTo(result2,mask);
+
+    // 白色領域の面積(ピクセル数)を計算する
+    int white_cnt = cv::countNonZero(result2);
+
+    // 障害物と接しています。
+    if(white_cnt > 0){
+
+        std::cout << "white_cnt=" << white_cnt << std::endl;
+
+        // 4. 見つかった障害物の重心を求めます。
+        cv::Moments m = cv::moments(result2,true);
+        // 重心
+        double x_g = m.m10 / m.m00;
+        double y_g = m.m01 / m.m00;
+
+        std::cout << "x_g=" << x_g <<" y_g="<< y_g << std::endl;
+
+        // map 重心を、基本座標にします。
+        float x_gb = ((float)x_g + 0.5) * yaml_.resolution + yaml_.origin[0];
+        float y_gb = ((float)y_g + 0.5) * yaml_.resolution + yaml_.origin[1];
+        x_gb = round_my<float>(x_gb,3);
+        y_gb = round_my<float>(y_gb,3);
+
+        x = round_my<float>(x,3);
+        y = round_my<float>(y,3);
+
+
+        // 5. 重心とロボットの移動先 を通る直線を求めて、その直線上を、重心から遠ざかる方向に、
+        // ロボットの移動先を 5[cm]移動させます。
+
+        // 5.1 (x_gb,y_gb) から、 (x,y) の角度[rad] を求める
+        // 自分からの目的地の方角
+        float off_target_x = x - x_gb;
+        float off_target_y = y - y_gb;
+
+        //同一地点
+        if(fabsf(off_target_x) == 0.0 && fabsf(off_target_y) ==0.0){
+            return;
+        }
+
+        float theta_r = std::atan2(off_target_y,off_target_x);   //  [ragian]
+
+        float dx,dy;
+        if(white_cnt < 10){
+            // 5.2  (x,y) から、(x_gb,y_gb) とは逆方向に 5[cm] ずらす。
+            dx = std::cos(theta_r) * 0.05;
+            dy = std::sin(theta_r) * 0.05;
+        }
+        else{
+            // 5.2  (x,y) から、(x_gb,y_gb) とは逆方向に 10[cm] ずらす。
+            dx = std::cos(theta_r) * 0.1;
+            dy = std::sin(theta_r) * 0.1;
+        }
+
+        ox=x+dx;
+        oy=y+dy;
+
+        std::cout << "ox=" << ox <<" oy="<< oy << std::endl;
+
+    }
+
+}
+
 
 /*
 * conv_fmt2(nav_msgs::OccupancyGrid_ map_msg)
@@ -1058,10 +1163,18 @@ void MultiGoals::auto_map(){
         while(j > 0){
             j--;
             if(g_ponts_ptr->at(j).dist > 0.3){
-                drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
+
+                float ox,oy;
+                // 此処で、走査先の障害物との距離をチェック
+                get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy);
+
+                //drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
+                drive.comp_dad(ox,oy,dist, r_yaw, r_yaw_off);
+
                 // Navi move
                 //drive.navi_move(blobFinder_.abs_x_+off,blobFinder_.abs_y_+off,r_yaw);
-                if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
+                //if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
+                if(drive.navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){
                     std::cout << ">> derive.navi_move() error end"<< std::endl;
                     std::cout << ">> black point appeend"<< std::endl;
                     blobFinder_.g_points_black.push_back(g_ponts_ptr->at(j));
