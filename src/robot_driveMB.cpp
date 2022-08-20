@@ -230,7 +230,9 @@ void RobotDriveMB::exec_pub(float x,float y,float r_yaw,bool rotate_f){
 
                 cur_dist = round_my<float>(cur_dist,3);
                 //if(cur_dist <= 0.005){
-                if(cur_dist <= 0.01){
+                //if(cur_dist <= 0.01){
+                //if(cur_dist <= 0.03){       // changed by nishi 2022.8.17
+                if(cur_dist <= 0.04){       // changed by nishi 2022.8.17
                     moving_err_cnt++;
                     std::cout << "not moving (" << moving_err_cnt << ")" << std::endl;
                 }

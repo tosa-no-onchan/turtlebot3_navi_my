@@ -58,13 +58,113 @@ multi_goals.h
 
 #define COLOR_1 40
 
-//#define USE_90_ADJUST
+#define G_POINTS_MAX 20
+
 
 int compare_int(const void *a, const void *b);
 bool compare_Gpoint_dist_min(Gpoint &s1,Gpoint &s2);
 bool compare_Gpoint_dist_max(Gpoint &s1,Gpoint &s2);
+void condense_Gpoint(std::vector<Gpoint> *gp);
+bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp);
+//void gridToWorld(int gx, int gy, float& wx, float& wy,Yaml& yaml);
+void gridToWorld(int gx, int gy, float& wx, float& wy,MapM& mapm);
+//bool worldToGrid(float wx, float wy,int& gx,int& gy,Yaml& yaml);
+bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm);
 
+/*----------------------------
+- class AnchorFinder 
+----------------------------*/
+class AnchorFinder{
+private:
+    bool view_f=false;
+    bool view_f_m=false;
+    int  line_w_ = 5;  // ラインの幅 -> grid size [dot]  0.05[m] * 5 = 25[cm]
 
+    // blob 重心
+    double x_g;
+    double y_g;
+
+    cv::Mat img_lab_;
+
+    // Map
+    //Yaml yaml_;
+    MapM mapm_;
+
+    // 25[cm] Grid
+    //Yaml grid_yaml_;
+    MapM grid_mapm_;
+    // grid ブロック table サイズ
+    int size_x_;
+    int size_y_;
+
+    // 50[cm] Block
+    cv::Mat blk_;
+    //Yaml blk_yaml_;
+    MapM blk_mapm_;
+
+    bool blk_f_=false;
+    //int blk_size_;   // blk_ 1 block size [cm] / 1dot = 50[cm]
+    //int blk_w_;      // blk_  width
+    //int blk_h_;      // blk_ height
+
+public:
+    // ロボットの第一候補位置(基本座標)
+    double abs_x_;
+    double abs_y_;
+    double yaw_;
+
+    int point_n_;   // ラベル総数
+
+    u_char block_mode = 0;  // 走査ブロクモード 0: 全て対象 1: ブロック1 が対象 2: ブロック2 が対象
+    float block_line_x = 0.0; // ブロック分け X軸 ライン
+
+    std::vector<Gpoint> g_points_;
+    std::vector<Gpoint> g_points1;
+    std::vector<Gpoint> g_points2;
+
+    std::vector<Gpoint> g_points_black;
+
+    int anchor_;
+
+    //std::list<Gpoint> g_points_list;
+    //std::list<Gpoint> g_points1_list;
+    //std::list<Gpoint> g_points2_list;
+
+    // ロボットの行動範囲 / ボーダー定義
+    // top-left (+x,+y) / bottom-right(-x,-y) [M]
+    BorderBox border_def={{10.525,10.525},        //  top-left(+x,+y)
+                         {-10.525,-10.525}};      //  bottom-right(-x,-y)
+
+    AnchorFinder(){}
+    ~AnchorFinder(){
+        if(blk_f_ == true){
+            //delete[] blk_;
+            blk_f_=false;
+        }
+    }
+    void init();
+    void release_blk(){
+        if(blk_f_ == true){
+            //delete[] blk_;
+            blk_f_=false;
+        }
+    }
+
+    void sort_blob(float cur_x,float cur_y);
+    void check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y);
+    void anchoring(cv::Mat &mat_blob2,float cur_x,float cur_y);
+    bool anchor_put(int gx,int gy,float cur_x,float cur_y);
+    bool check_Border(float x,float y);
+    void mark_blk_world(float wx,float wy);
+    void mark_blk(int bx,int by);
+    //void gridToWorld(int gx, int gy, float& wx, float& wy);
+    //void worldToBlock(float wx, float wy,int& bx,int& by);
+    void save_blk();
+};
+
+/*----------------------------
+- class BlobFinder
+----------------------------*/
 class BlobFinder{
 private:
     bool view_f=false;
@@ -106,11 +206,14 @@ public:
     BlobFinder(){}
 
     void sort_blob(float cur_x,float cur_y);
-    void check(cv::Mat mat_map,Yaml &yaml,float cur_x,float cur_y);
+    //void check(cv::Mat mat_map,Yaml &yaml,float cur_x,float cur_y);
+    void check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y);
     bool check_Border(float x,float y);
-    bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp);
 };
 
+/*----------------------------
+- class Grid
+----------------------------*/
 class Grid{
 private:
     u_int32_t width_;
@@ -145,6 +248,9 @@ public:
     }
 };
 
+/*----------------------------
+- class GetMap
+----------------------------*/
 class GetMap
 {
 private:
@@ -173,8 +279,10 @@ private:
 public:
 
     cv::Mat mat_map_;
-    cv::Mat mat_bin_map_;   // map 障害物　2値化
-    Yaml yaml_;
+    cv::Mat mat_bin_map_;   // map 障害物の　2値化
+    cv::Mat mat_bin_free_map_;  // map 非障害物の 2値化
+    //Yaml yaml_;
+    MapM mapm_;
 
     GetMap(){}
 
@@ -194,7 +302,7 @@ public:
 
     void saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
 
-    void check_collision(float x,float y,float &ox,float &oy);
+    void check_collision(float x,float y,float &ox,float &oy,int func=0);
 
     #ifdef XXXX_X
     void conv_dot2grid(self,x,y);
@@ -221,9 +329,9 @@ public:
 };
 
 
-/*
-* class MultiGoals
-*/
+/*----------------------------
+- class MultiGoals
+----------------------------*/
 class MultiGoals
 {
 private:
@@ -246,6 +354,7 @@ private:
     tf::Vector3 cur_pos;
 
     BlobFinder blobFinder_;
+    AnchorFinder anchorFinder_;
 
 public:
 
@@ -265,6 +374,8 @@ public:
     void init(ros::NodeHandle &nh);
 
     void auto_map();
+
+    void auto_map_anchor();
 
     /*
     mloop_ex(GoalList *goalList)

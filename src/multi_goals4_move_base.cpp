@@ -50,6 +50,21 @@ GoalList turtlebot3_auto_map[] ={
             {99,0.0,0.0, 0.0},        // end
 };
 
+GoalList turtlebot3_auto_map_achor[] ={
+            //{60, 0.0, 0.0, 0.0},      // course correct ON
+            //{64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON
+            {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
+            {2, 0.0, 0.0, 90.0},      // rotate 90
+            {2, 0.0, 0.0, 180.0},     // rotate 180
+            {2, 0.0, 0.0, 270.0},     // rotate 270
+            {2, 0.0, 0.0, 0.0},       // rotate 360
+            //{10,0.0,1.0,90.0},         // navi move
+            //{10,0.0,-1.0,-90.0},         // navi move
+            {31,0.0,0.0, 0.0},        // Auto map builder of anchor
+            {99,0.0,0.0, 0.0},        // end
+};
 
 int main(int argc, char **argv){
     //ros::init(argc, argv, "set_goal");
@@ -63,7 +78,8 @@ int main(int argc, char **argv){
     ros::Rate rate(1);   //  1[Hz]
 
     //mg_ex.mloop_ex(turtlebot3_house);
-    mg_ex.mloop_ex(turtlebot3_auto_map);
+    //mg_ex.mloop_ex(turtlebot3_auto_map);
+    mg_ex.mloop_ex(turtlebot3_auto_map_achor);
 
     ros::spinOnce();
 

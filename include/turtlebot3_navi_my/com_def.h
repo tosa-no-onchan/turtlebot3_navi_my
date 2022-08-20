@@ -25,16 +25,29 @@ typedef struct{
 BorderBox
 ------------------------*/
 typedef struct{
-    Point top_l;    // top-left
-    Point bot_r;    // bottom-right
+    Point top_r;    // top-right
+    Point bot_l;    // bottom-left
 } BorderBox;
 /*-----------------------
-Yaml
+MapM
+http://docs.ros.org/en/indigo/api/nav_msgs/html/msg/MapMetaData.html
 ------------------------*/
 typedef struct{
     float resolution;
-    float origin[3];    // [0.000000, 0.000000, 0.000000]    
-} Yaml;
+    int width;      // Map image width   add by nishi 2022.8.18
+    int height;     // Map image height  add by nishi 2022.8.18
+    float origin[3];    // [x:0.000000, y:0.000000, yaw:0.000000]
+} MapM;
+
+/*-----------------------
+Yaml
+------------------------*/
+//typedef struct{
+//    float resolution;
+//    float origin[3];    // [x:0.000000, y:0.000000, yaw:0.000000]
+//    int img_width;      // Map image width   add by nishi 2022.8.18
+//    int img_height;     // Map image height  add by nishi 2022.8.18
+//} Yaml;
 
 /*------------------------------------------------
  GoalList
@@ -73,6 +86,8 @@ typedef struct {
 
 
 typedef struct {
+    int xi;
+    int yi;
     float x;
     float y;
     float dist;
