@@ -1,0 +1,37 @@
+# burger_robo_navi_local_planner.yaml
+local_planner:
+  #max_vel_x: 0.15
+  max_vel_x: 0.1
+  #min_vel_x: 0.05
+  min_vel_x: -0.01
+  #max_vel_theta: 2.0
+  max_vel_theta: 0.15
+  #min_in_place_vel_theta: 0.4
+  min_in_place_vel_theta: 0.001
+  max_rotational_vel: 0.5
+  #acc_lim_theta: 3.2
+  acc_lim_theta: 0.4 
+  #acc_lim_x: 2.5
+  acc_lim_x: 0.4
+  holonomic_robot: false
+  meter_scoring: true
+  # Forward Simulation Parameters
+  sim_time: 3.0
+  controller_frequency: 10.0
+  # Goal Tolerance Parametes
+  yaw_goal_tolerance: 3.0
+  # Trajectory Scoring Parameters
+  #pdist_scale : 0.6 
+  path_distance_bias : 0.6
+  #path_distance_bias : 1.0
+  #gdist_scale : 0.2
+  goal_distance_bias : 0.2
+  #occdist_scale: 0.1
+  #occdist_scale: 0.2
+  #occdist_scale: 0.3
+  occdist_scale: 1.0
+
+#global_planner:
+  #neutral_cost: 100
+  #outline_map: true
+

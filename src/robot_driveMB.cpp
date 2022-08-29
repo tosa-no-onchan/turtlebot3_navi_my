@@ -17,7 +17,9 @@ $ rosrun turtlebot3_navi_my drive_base
 #include "turtlebot3_navi_my/robot_driveMB.h"
 
 #ifdef TEST_MOVE_NISI_1
-void RobotDriveMB::goalCallback(const move_base_msgs::MoveBaseActionResult msg){
+//void RobotDriveMB::goalCallback(const move_base_msgs::MoveBaseActionResult msg){
+void RobotDriveMB::navResultCallback(const move_base_msgs::MoveBaseActionResult msg){
+
     //if data.status.status == 3: # reached
     //    now_xy=self.get_odom()
     //    self.sts=2
@@ -73,8 +75,7 @@ void RobotDriveMB::goalCallback(const move_base_msgs::MoveBaseActionResult msg){
             id_=9;
             break;
         }
-    }    
-
+    }
 }
 #endif
 
@@ -96,6 +97,7 @@ void RobotDriveMB::navStatusCallBack(const actionlib_msgs::GoalStatusArray::Cons
     if (!status->status_list.empty()){
         actionlib_msgs::GoalStatus goalStatus = status->status_list[0];
         status_id = goalStatus.status;
+        //std::cout << "MB2 status->status_list.size()="<< status->status_list.size() << std::endl;
     }
 
     if(id_==1){
@@ -153,14 +155,16 @@ void RobotDriveMB::init(ros::NodeHandle &nh,bool navi_use){
 
     pub_ = nh_.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal", 1);
 
+
     #ifdef TEST_MOVE_NISI_1
-        goal_sub_ = nh_.subscribe("move_base/result", 10, &RobotDriveMB::goalCallback, this);
+        //goal_sub_ = nh_.subscribe("move_base/result", 10, &RobotDriveMB::goalCallback, this);
+        goal_sub_ = nh_.subscribe("move_base/result", 10, &RobotDriveMB::navResultCallback, this);
         //move_base/result (move_base_msgs/MoveBaseActionResult) 
     #endif
     #ifdef TEST_MOVE_NISI_2
         //goal_sub_ = nh_.subscribe("move_base/result", 10, &DriveMB::goalCallback, this);
         //ros::Subscriber move_base_status_sub;
-        //goal_sub_ = nh_.subscribe<actionlib_msgs::GoalStatusArray>("/move_base/status", 10, &DriveMB::navStatusCallBack);
+        //goal_sub_ = nh_.subscribe<actionlib_msgs::GoalStatusArray>("/move_base/status", 10, &RobotDriveMB::navStatusCallBack);
         goal_sub2_ = nh_.subscribe("/move_base/status", 10, &RobotDriveMB::navStatusCallBack,this);
     #endif
 

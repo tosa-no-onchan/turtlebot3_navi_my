@@ -58,18 +58,100 @@ multi_goals.h
 
 #define COLOR_1 40
 
-#define G_POINTS_MAX 20
-
+#define G_POINTS_MAX 70
+#define G_POINTS_MAX1_2 50
 
 int compare_int(const void *a, const void *b);
 bool compare_Gpoint_dist_min(Gpoint &s1,Gpoint &s2);
 bool compare_Gpoint_dist_max(Gpoint &s1,Gpoint &s2);
 void condense_Gpoint(std::vector<Gpoint> *gp);
 bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp);
+#ifdef USE_CHECK_COLL
+void check_collision(float x,float y,float &ox,float &oy,cv::Mat& mat_bin_map,MapM& mapm,int func);
+#endif
 //void gridToWorld(int gx, int gy, float& wx, float& wy,Yaml& yaml);
 void gridToWorld(int gx, int gy, float& wx, float& wy,MapM& mapm);
 //bool worldToGrid(float wx, float wy,int& gx,int& gy,Yaml& yaml);
 bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm);
+
+/*----------------------------
+- class GetMap
+----------------------------*/
+class GetMap
+{
+private:
+    ros::NodeHandle nh_;
+
+    ros::Subscriber _sub;
+
+    int _free_thresh;
+
+    int _line_w;
+    int _car_r;
+    bool _match_rviz;
+
+    std::string _map_frame;
+
+    nav_msgs::MapMetaData map_info;
+    float resolution;
+    int free_thresh;
+    double org_x,org_y;
+    //int x_size,y_size; 
+
+    //Grid grid_;
+
+    bool init_ok=false;
+
+public:
+
+    cv::Mat mat_map_;
+    cv::Mat mat_bin_map_;   // map 障害物の　2値化
+    cv::Mat mat_bin_free_map_;  // map 非障害物の 2値化
+    //Yaml yaml_;
+    MapM mapm_;
+
+    GetMap(){}
+
+    void init(ros::NodeHandle &nh,std::string map_frame="map");
+ 
+    /*
+    * https://answers.ros.org/question/293890/how-to-use-waitformessage-properly/
+    * http://docs.ros.org/en/lunar/api/nav_msgs/html/msg/OccupancyGrid.html
+    */
+    void get();
+
+    /*
+    * conv_fmt2(nav_msgs::OccupancyGrid_ map_msg)
+    */
+    void conv_fmt2(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
+
+    void saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
+
+    void check_collision(float x,float y,float &ox,float &oy,int func=0);
+
+    #ifdef XXXX_X
+    void conv_dot2grid(self,x,y);
+    /*
+    convert Grid to Meter World
+    */
+    void conv_grid2meter(self,gx,gy,f_or_l);
+    /*
+    Rviz と同じ図形 にした場合。
+    左上: M(+x,+y)    右上: M(-x,+y)
+    左下: M(+x,-y)    右下: M(-x,-y)
+    */
+    void conv_grid2meter_m_p(self,gx,gy,f_or_l);
+    /*
+    Map データの図形 : y =  x の線対称の図形(x,y の入れ替え)
+    左上: M(-x,-y)    右上: M(-x,+y)
+    左下: M(+x,-y)    右下: M(+x,+y)
+    */
+    void conv_grid2meter_m_m(self,gx,gy,f_or_l);
+
+    void get_rotation_matrix(self,rad);
+    void np_resize(self,m_grid,req_size);
+    #endif
+};
 
 /*----------------------------
 - class AnchorFinder 
@@ -83,6 +165,8 @@ private:
     // blob 重心
     double x_g;
     double y_g;
+
+    GetMap *getmap_;
 
     cv::Mat img_lab_;
 
@@ -151,12 +235,13 @@ public:
     }
 
     void sort_blob(float cur_x,float cur_y);
-    void check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y);
+    //void check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y);
+    void check(GetMap *getmap,float cur_x,float cur_y);
     void anchoring(cv::Mat &mat_blob2,float cur_x,float cur_y);
     bool anchor_put(int gx,int gy,float cur_x,float cur_y);
     bool check_Border(float x,float y);
     void mark_blk_world(float wx,float wy);
-    void mark_blk(int bx,int by);
+    void mark_blk(int bx,int by,u_int8_t mark=255);
     //void gridToWorld(int gx, int gy, float& wx, float& wy);
     //void worldToBlock(float wx, float wy,int& bx,int& by);
     void save_blk();
@@ -247,87 +332,6 @@ public:
         }
     }
 };
-
-/*----------------------------
-- class GetMap
-----------------------------*/
-class GetMap
-{
-private:
-    ros::NodeHandle nh_;
-
-    ros::Subscriber _sub;
-
-    int _free_thresh;
-
-    int _line_w;
-    int _car_r;
-    bool _match_rviz;
-
-    std::string _map_frame;
-
-    nav_msgs::MapMetaData map_info;
-    float resolution;
-    int free_thresh;
-    double org_x,org_y;
-    //int x_size,y_size; 
-
-    //Grid grid_;
-
-    bool init_ok=false;
-
-public:
-
-    cv::Mat mat_map_;
-    cv::Mat mat_bin_map_;   // map 障害物の　2値化
-    cv::Mat mat_bin_free_map_;  // map 非障害物の 2値化
-    //Yaml yaml_;
-    MapM mapm_;
-
-    GetMap(){}
-
-    void init(ros::NodeHandle &nh,std::string map_frame="map");
- 
-    /*
-    * https://answers.ros.org/question/293890/how-to-use-waitformessage-properly/
-    * http://docs.ros.org/en/lunar/api/nav_msgs/html/msg/OccupancyGrid.html
-    */
-    void get();
-
-
-    /*
-    * conv_fmt2(nav_msgs::OccupancyGrid_ map_msg)
-    */
-    void conv_fmt2(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
-
-    void saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
-
-    void check_collision(float x,float y,float &ox,float &oy,int func=0);
-
-    #ifdef XXXX_X
-    void conv_dot2grid(self,x,y);
-    /*
-    convert Grid to Meter World
-    */
-    void conv_grid2meter(self,gx,gy,f_or_l);
-    /*
-    Rviz と同じ図形 にした場合。
-    左上: M(+x,+y)    右上: M(-x,+y)
-    左下: M(+x,-y)    右下: M(-x,-y)
-    */
-    void conv_grid2meter_m_p(self,gx,gy,f_or_l);
-    /*
-    Map データの図形 : y =  x の線対称の図形(x,y の入れ替え)
-    左上: M(-x,-y)    右上: M(-x,+y)
-    左下: M(+x,-y)    右下: M(+x,+y)
-    */
-    void conv_grid2meter_m_m(self,gx,gy,f_or_l);
-
-    void get_rotation_matrix(self,rad);
-    void np_resize(self,m_grid,req_size);
-    #endif
-};
-
 
 /*----------------------------
 - class MultiGoals

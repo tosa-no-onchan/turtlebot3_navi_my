@@ -13,6 +13,214 @@ bool compare_Gpoint_dist_max(Gpoint &s1,Gpoint &s2){
     return s1.dist > s2.dist;
 }
 
+
+void condense_Gpoint(std::vector<Gpoint> *gp){
+    int size=gp->size();
+    std::cout << "#1 gp->size()=" << gp->size() << std::endl;
+    std::vector<Gpoint> gp_w;
+    gp_w.reserve(size);
+    //Gpoint gpx;
+    for(int i=0;i<size;i++){
+        gp_w.push_back(gp->at(i));
+    }
+    gp->clear();
+    gp->reserve(size);
+    for(int i=0;i<size;i++){
+        gp->push_back(gp_w.at(i));
+    }
+    //gp->resize(size);
+    //gp->shrink_to_fit();
+    std::cout << "#2 gp->size()=" << gp->size() << std::endl;
+}
+
+/*-------------------------
+* find_Gpoint()
+--------------------------*/
+bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp){
+    for (int i=0;i<gp.size();i++){
+        if(gp.at(i).x == x && gp.at(i).y == y){
+            return true;
+        }
+    }
+    return false;
+}
+#ifdef USE_CHECK_COLL
+/*-------------------------
+* check_collision()
+* float x: 基本座標 x
+* float y: 基本座標 y
+* float &ox: 補正された基本座標 x
+* float &oy: 補正された基本座標 x
+* 障害物から適切な距離を求める
+*  func=0
+*    障害物の2値画像を用いて、障害物の重心から離れる
+*    cv::Mat& mat_bin_map : 障害物を 2値化した cv:::Mat
+*  func=1
+*    非障害物 2値画像を用いて、非障害物の重心の方へ近づく
+*    cv::Mat& mat_bin_map : 非障害物を 2値化した cv:::Mat
+--------------------------*/
+void check_collision(float x,float y,float &ox,float &oy,cv::Mat& mat_bin_map,MapM& mapm,int func){
+    ox=x;
+    oy=y;
+
+    cv::Point center_p; // 円の中心位置
+    int r =5;      // 円の半径  30 -> 1.5[M]      7 ->  0.35[M]  5->0.25[M]
+    if(func!=0){
+        r = 7;
+    }
+    cv::Mat result,result2,mask;
+
+    //x0 = (x_g + 0.5) * (double)line_w_ * yaml.resolution + yaml.origin[0];
+    //y0 = (y_g + 0.5) * (double)line_w_ * yaml.resolution + yaml.origin[1];
+
+    // 基本座標を、Mat map 座標に変換 
+    int px = (int)((x - mapm.origin[0]) / mapm.resolution);
+    int py = (int)((y - mapm.origin[1]) / mapm.resolution);
+
+    //ロボットの移動先を、マスクの中心にします。
+    center_p.x = px;
+    center_p.y = py;
+
+    // Mask画像 を作成
+    //mask = cv::Mat::zeros(mat_bin_map_.rows, mat_bin_map_.cols, CV_8UC1);
+    mask = cv::Mat::zeros(mapm.height, mapm.width, CV_8UC1);
+
+    // ロボットの移動先を中心にした、半径r の円を描きます。
+    cv::circle(mask, center_p, r, cv::Scalar(255),-1);
+
+    // 障害物から離れる処理
+    if(func==0){
+        // 障害物 2値化画像に 円のマスクを実施
+        mat_bin_map.copyTo(result2,mask);
+
+        // 白色領域の面積(ピクセル数)を計算する
+        int white_cnt = cv::countNonZero(result2);
+
+        // 障害物と接しています。
+        if(white_cnt > 0){
+
+            std::cout << "white_cnt=" << white_cnt << std::endl;
+
+            // 4. 見つかった障害物の重心を求めます。
+            cv::Moments m = cv::moments(result2,true);
+            // 重心
+            double x_g = m.m10 / m.m00;
+            double y_g = m.m01 / m.m00;
+
+            std::cout << "x_g=" << x_g <<" y_g="<< y_g << std::endl;
+
+            // map 重心を、基本座標にします。
+            float x_gb = ((float)x_g + 0.5) * mapm.resolution + mapm.origin[0];
+            float y_gb = ((float)y_g + 0.5) * mapm.resolution + mapm.origin[1];
+            x_gb = round_my<float>(x_gb,3);
+            y_gb = round_my<float>(y_gb,3);
+
+            x = round_my<float>(x,3);
+            y = round_my<float>(y,3);
+
+            // 5. 重心とロボットの移動先 を通る直線を求めて、その直線上を、重心から遠ざかる方向に、
+            // ロボットの移動先を 5[cm]移動させます。
+
+            // 5.1 (x_gb,y_gb) から、 (x,y) の角度[rad] を求める
+            // 自分からの目的地の方角
+            float off_target_x = x - x_gb;
+            float off_target_y = y - y_gb;
+
+            //同一地点
+            if(fabsf(off_target_x) == 0.0 && fabsf(off_target_y) ==0.0){
+                // ここは、将来、非障害物の2値化と Mask を取って、今度は、その重心方向に
+                // ロボットの移動先を N[cm]移動させます。
+                return;
+            }
+
+            float theta_r = std::atan2(off_target_y,off_target_x);   //  [ragian]
+
+            float dx,dy;
+            if(white_cnt < 10){
+                // 5.2  (x,y) から、(x_gb,y_gb) とは逆方向に 10[cm] ずらす。
+                dx = std::cos(theta_r) * 0.1;
+                dy = std::sin(theta_r) * 0.1;
+            }
+            else{
+                // 5.2  (x,y) から、(x_gb,y_gb) とは逆方向に 20[cm] ずらす。
+                dx = std::cos(theta_r) * 0.2;
+                dy = std::sin(theta_r) * 0.2;
+            }
+
+            ox=x+dx;
+            oy=y+dy;
+
+            std::cout << "ox=" << ox <<" oy="<< oy << std::endl;
+        }
+    }
+    // 非障害物へ近づく処理
+    else{
+        // 非障害物 2値化画像に 円のマスクを実施
+        mat_bin_map.copyTo(result2,mask);
+
+        // 白色領域の面積(ピクセル数)を計算する
+        int white_cnt = cv::countNonZero(result2);
+
+        // 非障害物と接しています。
+        if(white_cnt > 0){
+
+            std::cout << "white_cnt=" << white_cnt << std::endl;
+
+            // 4. 見つかった非障害物の重心を求めます。
+            cv::Moments m = cv::moments(result2,true);
+            // 重心
+            double x_g = m.m10 / m.m00;
+            double y_g = m.m01 / m.m00;
+
+            std::cout << "x_g=" << x_g <<" y_g="<< y_g << std::endl;
+
+            // map 重心を、基本座標にします。
+            float x_gb = ((float)x_g + 0.5) * mapm.resolution + mapm.origin[0];
+            float y_gb = ((float)y_g + 0.5) * mapm.resolution + mapm.origin[1];
+            x_gb = round_my<float>(x_gb,3);
+            y_gb = round_my<float>(y_gb,3);
+
+            x = round_my<float>(x,3);
+            y = round_my<float>(y,3);
+
+            // 5. 重心とロボットの移動先 を通る直線を求めて、その直線上を、非障害物の重心に近づく方向に、
+            // ロボットの移動先を 30-15[cm]移動させます。
+
+            // 5.1 (x,y) から (x_gb,y_gb) の角度[rad] を求める
+            // 自分からの目的地の方角
+            float off_target_x = x_gb - x;
+            float off_target_y = y_gb - y;
+
+            //同一地点
+            if(fabsf(off_target_x) == 0.0 && fabsf(off_target_y) ==0.0){
+                // ここは、将来、障害物の2値化画像とのMask を取って、今度は、その重心方向から逆に
+                // ロボットの移動先を N[cm]移動させます。
+                return;
+            }
+
+            float theta_r = std::atan2(off_target_y,off_target_x);   //  [ragian]
+
+            float dx,dy;
+            if(white_cnt < 10){
+                // 5.2  (x,y) から、(x_gb,y_gb) の方へ 35[cm] ずらす。
+                dx = std::cos(theta_r) * 0.35;
+                dy = std::sin(theta_r) * 0.35;
+            }
+            else{
+                // 5.2  (x,y) から、(x_gb,y_gb) の方へ 25[cm] ずらす。
+                dx = std::cos(theta_r) * 0.25;
+                dy = std::sin(theta_r) * 0.25;
+            }
+
+            ox=x+dx;
+            oy=y+dy;
+
+            std::cout << "ox=" << ox <<" oy="<< oy << std::endl;
+        }
+    }
+}
+#endif
+
 void gridToWorld(int gx, int gy, float& wx, float& wy,MapM& mapm)
 {
     //wx = ((float)gx + 0.5) * yaml.resolution + yaml.origin[0];
@@ -57,37 +265,6 @@ bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm)
 //}
 //------------------------------------
 
-
-void condense_Gpoint(std::vector<Gpoint> *gp){
-    int size=gp->size();
-    std::cout << "#1 gp->size()=" << gp->size() << std::endl;
-    std::vector<Gpoint> gp_w;
-    gp_w.reserve(size);
-    //Gpoint gpx;
-    for(int i=0;i<size;i++){
-        gp_w.push_back(gp->at(i));
-    }
-    gp->clear();
-    gp->reserve(size);
-    for(int i=0;i<size;i++){
-        gp->push_back(gp_w.at(i));
-    }
-    //gp->resize(size);
-    //gp->shrink_to_fit();
-    std::cout << "#2 gp->size()=" << gp->size() << std::endl;
-}
-
-/*-------------------------
-* find_Gpoint()
---------------------------*/
-bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp){
-    for (int i=0;i<gp.size();i++){
-        if(gp.at(i).x == x && gp.at(i).y == y){
-            return true;
-        }
-    }
-    return false;
-}
 /*-------------------------
 * class AnchorFinder
 * init()
@@ -95,32 +272,30 @@ bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp){
 * 1blk : 50[cm] x 50[cm]  -> 1[dot] = 50[cm]
 --------------------------*/
 void AnchorFinder::init(){
-    blk_mapm_.resolution = 0.5;         // 1dot = 0.5[M]
+    blk_mapm_.resolution = 0.25;         // 1dot = 0.25[M]
     blk_mapm_.origin[0] = border_def.bot_l.x;        // x = -10.525
     blk_mapm_.origin[1] = border_def.bot_l.y;        // y = -10.525
     blk_mapm_.origin[2] = 0.0;                      // yaw
-    int blk_size = int(blk_mapm_.resolution*100.0);               // 1[dot] = 50[cm]
+    int blk_size = int(blk_mapm_.resolution*100.0);               // 1[dot] = 25[cm]
     float w = (border_def.top_r.x + std::fabs(border_def.bot_l.x)) / blk_mapm_.resolution;    // 42.1
     float h = (border_def.top_r.y + std::fabs(border_def.bot_l.y)) / blk_mapm_.resolution;    // 42.1
     //float ceil(float x); 
-    //blk_w_ = (int)ceil(w);    // 43[dot]
-    //blk_h_ = (int)ceil(h);    // 43[dot]
-    blk_mapm_.width = (int)ceil(w);      // 43[dot]
-    blk_mapm_.height = (int)ceil(h);      // 43[dot]
+    //blk_w_ = (int)ceil(w);    // 85[dot]
+    //blk_h_ = (int)ceil(h);    // 85[dot]
+    blk_mapm_.width = (int)ceil(w);      // 85[dot]
+    blk_mapm_.height = (int)ceil(h);      // 85[dot]
 
     //std::cout << "blk_h_=" << blk_h_ << std::endl;
     //std::cout << "blk_w_=" << blk_w_ << std::endl;
 
     //blk_ = cv::Mat::zeros(y,x,CV_8U);
-    blk_ = cv::Mat::zeros(blk_mapm_.height,blk_mapm_.width,CV_8U);     //  43 x 43
+    blk_ = cv::Mat::zeros(blk_mapm_.height,blk_mapm_.width,CV_8U);     //  85 x 85
     blk_f_=true;
 
     std::cout << "AnchorFinder::init() img_width="  << blk_mapm_.width << " ,img_height=" << blk_mapm_.height << std::endl;
 
     //std::exit(0);
-
 }
-
 /*-------------------------
 * class AnchorFinder
 * check_Border()
@@ -132,7 +307,6 @@ bool AnchorFinder::check_Border(float x,float y){
         return false;
     return true;
 }
-
 /*-------------------------
 * class AnchorFinder
 * mark_blk_world(float x,float y)
@@ -151,25 +325,18 @@ void AnchorFinder::mark_blk_world(float wx,float wy){
 
     if(blk_w_ == 0 || blk_h_==0){
         std::cout << "mark_blk_world() error #1 blk_w_="  << blk_w_ << " ,blk_h_=" << blk_h_ << std::endl;
-
         //std::exit(0);
-
     }
-
     if(bx > blk_w_ || by > blk_h_){
-
         std::cout << "mark_blk_world() error #2 wx="  << wx << " ,wy=" << wy << std::endl;
         std::cout << " blk_w_="  << blk_w_ << " ,blk_h_=" << blk_h_ << std::endl;
         std::cout << " bx="  << bx << " ,by=" << by << std::endl;
-
         //while(1){ }
-
     }
     else{
         blk_.data[by * blk_w_ +bx]=255;
     }
 }
-
 /*-------------------------
 * class AnchorFinder
 * mark_blk(int bx,int by)
@@ -177,7 +344,7 @@ void AnchorFinder::mark_blk_world(float wx,float wy){
 * int by: Block Y
 * blk_ に、使用済をセット
 --------------------------*/
-void AnchorFinder::mark_blk(int bx,int by){
+void AnchorFinder::mark_blk(int bx,int by,u_int8_t mark){
     if(blk_mapm_.width == 0 || blk_mapm_.height == 0){
         std::cout << "mark_blk() error #1 blk_mapm_.width="  << blk_mapm_.width << " ,blk_mapm_.height=" << blk_mapm_.height << std::endl;
         std::cout << "call  std::exit(0)" << std::endl;
@@ -190,7 +357,7 @@ void AnchorFinder::mark_blk(int bx,int by){
         std::cout << " bx="  << bx << " ,by=" << by << std::endl;
     }
     else{
-        blk_.data[by * blk_mapm_.width +bx]=255;
+        blk_.data[by * blk_mapm_.width +bx]=mark;
     }
 }
 
@@ -238,22 +405,26 @@ void AnchorFinder::sort_blob(float cur_x,float cur_y){
 /*-------------------------
 * class AnchorFinder
 * check()
-* cv::Mat mat_map : /map の Mat 
-* MapM &mapm : Map の message  / nav_msgs/MapMetaData Message
+* GetMap* getmap
 * float cur_x : ロボットの位置 World point X (基本座標)
 * float cur_y : ロボットの位置 World point Y (基本座標)
 --------------------------*/
-void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
+//void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
+void AnchorFinder::check(GetMap* getmap,float cur_x,float cur_y){
+
     cv::Mat bin_img;
     //cv::namedWindow("gry", cv::WINDOW_NORMAL);
     //cv::namedWindow("thres", cv::WINDOW_NORMAL);
     //cv::namedWindow("reverse", cv::WINDOW_NORMAL);
 
-    mapm_=mapm;             // map Yaml
+    getmap_=getmap;
 
-    grid_mapm_=mapm;       // Grid Yaml
-    grid_mapm_.resolution=mapm.resolution * (float)line_w_;     // 0.25  1[dot] -> 0.25[M]
+    //mapm_=mapm;             // map Yaml
+    mapm_=getmap->mapm_;             // map Yaml
 
+    //grid_mapm_=mapm;       // Grid Yaml
+    grid_mapm_=getmap->mapm_;       // Grid Yaml
+    grid_mapm_.resolution=mapm_.resolution * (float)line_w_;     // 0.25  1[dot] -> 0.25[M]
 
     if(view_f_m){
         //cv::namedWindow("img", cv::WINDOW_AUTOSIZE);
@@ -268,7 +439,6 @@ void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
         cv::namedWindow("block", cv::WINDOW_NORMAL);
         //cv::namedWindow("label", cv::WINDOW_NORMAL);
     }
-
 
     //rgb = cv::imread("aaa.png");
     //cv::cvtColor(rgb, gry, cv::COLOR_BGR2GRAY);
@@ -285,12 +455,12 @@ void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     //return 0;
 
     //2. 障害物を、2値画像 and 反転します。
-	//int thresh = 120;
-	//int thresh = 2;
-	int thresh = 10;        // 障害物の値 0-100 / 未知領域:128  / 自由領域:255
+	//int thresh = 10;        // 障害物の値 0-100 / 未知領域:128  / 自由領域:255
 	//threshold(gry, img_dst, thresh, 255, cv::THRESH_BINARY);
     // 障害物 < 10 だけを、白にします。
-	cv::threshold(mat_map, bin_img, thresh, 255, cv::THRESH_BINARY_INV);
+	//cv::threshold(mat_map, bin_img, thresh, 255, cv::THRESH_BINARY_INV);
+    // soft copy
+    bin_img=getmap->mat_bin_map_;
 
     //cv::imshow("BinReverse", bin_img);
 
@@ -351,7 +521,6 @@ void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
 
     //cv::imshow("block", block);
 
-
     //----------------------
     // 4. 上でマークされたブロックをブロブ分割(ラベリング)します。
     // 今回は、Labeling.h を使います。
@@ -381,11 +550,9 @@ void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
 
     std::cout << "point_n_=" << point_n_ << std::endl;
 
-
     //------------------------
     // 5. アンカーを全て求めてみます。
     //-----------------------
-
     Gpoint g_point;
     if(g_points_.empty() != true){
         g_points_.clear();
@@ -415,6 +582,13 @@ void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     }
 
     if(block_mode==0){
+        // g_points_ が当初予定件数を超えています。
+        if(g_points_.size() >= G_POINTS_MAX){
+            std::cout <<"g_points_ execced G_POINTS_MAX size()=" << g_points_.size() << std::endl;
+            std::cout <<"take condense g_points_" << std::endl;
+            // g_points1 をコンデンスします。
+            condense_Gpoint(&g_points_);
+        }
         // dist でソート 大きい順
         std::sort(g_points_.begin(),g_points_.end(),compare_Gpoint_dist_max);
     }
@@ -451,8 +625,14 @@ void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
         if(block_mode==1){
             std::cout << "sort(g_points1)" << std::endl;
             std::cout << "g_points1.size()=" << g_points1.size() << std::endl;
+            // g_points1 が当初予定件数を超えています。
+            if(g_points1.size() >= G_POINTS_MAX1_2){
+                std::cout <<"g_points1.size() execced G_POINTS_MAX1_2 size=" << g_points1.size() << std::endl;
+                std::cout <<"take condense g_points1" << std::endl;
+                // g_points1 をコンデンスします。
+                condense_Gpoint(&g_points1);
+            }
             // dist でソート 大きい順
-            //condense_Gpoint(&g_points1);
             std::sort(g_points1.begin(),g_points1.end(),compare_Gpoint_dist_max);
 
             std::cout << "end sort(g_points1)" << std::endl;
@@ -460,7 +640,13 @@ void AnchorFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
         else{
             std::cout <<"sort(g_points2)"<< std::endl;
             std::cout <<"g_points2.size()="<< g_points2.size() << std::endl;
-            //condense_Gpoint(&g_points2);
+            // g_points2 が当初予定件数を超えています。
+            if(g_points2.size() >= G_POINTS_MAX1_2){
+                std::cout <<"g_points2.size() execced G_POINTS_MAX1_2 size=" << g_points2.size() << std::endl;
+                std::cout <<"take condense g_points2" << std::endl;
+                // g_points2 をコンデンスします。
+                condense_Gpoint(&g_points2);
+            }
             std::sort(g_points2.begin(),g_points2.end(),compare_Gpoint_dist_max);
 
             std::cout << "end sort(g_points2)" << std::endl;
@@ -530,8 +716,9 @@ void AnchorFinder::anchoring(cv::Mat &mat_blob2,float cur_x,float cur_y){
                 pre_x = now_x;
                 pre_y = now_y;
                 perrimeter++;
-                // 10Grid 毎に 処理
-                if((perrimeter%10)==0){
+                // 8 Grid 毎に 処理
+                //if((perrimeter%10)==0){
+                if((perrimeter%8)==0){
                     // 今の場所を アンカーとして、g_points_ と blk_ へ登録する。
                     anchor_put(pre_x, pre_y, cur_x, cur_y);
                 }
@@ -556,10 +743,15 @@ void AnchorFinder::anchoring(cv::Mat &mat_blob2,float cur_x,float cur_y){
 --------------------------*/
 bool AnchorFinder::anchor_put(int gx,int gy,float cur_x,float cur_y){
     Gpoint g_point;
-    float wx,wy;
+    float wx0,wy0,wx,wy;
     float off_x,off_y;
-    // Grid to World
-    gridToWorld(gx, gy, wx, wy,grid_mapm_);
+
+    // Grid to World(wx0,wy0)
+    gridToWorld(gx, gy, wx0, wy0,grid_mapm_);
+
+    // wx0,wy0 の 障害物チェック
+    // 非障害物へ近づく補正
+    getmap_->check_collision(wx0,wy0,wx,wy,1);
 
     // アンカーの場所が、未処理のブロックかチェック
     int bx,by;
@@ -586,9 +778,6 @@ bool AnchorFinder::anchor_put(int gx,int gy,float cur_x,float cur_y){
 
         anchor_++;
         std::cout <<"anchor_="<< anchor_ << std::endl;
-        if(anchor_ >= G_POINTS_MAX){
-            std::cout <<"anchor_put()  execced G_POINTS_MAX anchor=" << anchor_ << std::endl;
-        }
         g_points_.push_back(g_point);
     }
     return true;
@@ -1246,8 +1435,6 @@ void GetMap::get(){
         std::cout << "map->info=" << map->info << std::endl;
         free_thresh = int(0.196 * 255);
 
-
-
         std::cout << "map->info.width=" << map->info.width << std::endl;         // 225
         std::cout << "map->info.height=" << map->info.height << std::endl;       // 141
 
@@ -1270,7 +1457,6 @@ void GetMap::get(){
         //conv_fmt2(map);
         saveMap(map);
 
-
         //2. 障害物を、2値画像 and 反転します。 add by nishi 2022.8.13
         //int thresh = 120;
         //int thresh = 2;
@@ -1279,7 +1465,6 @@ void GetMap::get(){
         cv::threshold(mat_map_, mat_bin_map_, thresh, 255, cv::THRESH_BINARY_INV);
         // 非障害物 >= 10 だけを、白にします。
     	cv::threshold(mat_map_, mat_bin_free_map_, thresh, 255, cv::THRESH_BINARY);
-
 
         std::cout << "GetMap ok" << std::endl;
 
@@ -1344,11 +1529,9 @@ void GetMap::saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::alloc
 
     fclose(out);
 
-
     std::string mapmetadatafile = mapname_ + ".yaml";
     ROS_INFO("Writing map occupancy data to %s", mapmetadatafile.c_str());
     FILE* yaml_fp = fopen(mapmetadatafile.c_str(), "w");
- 
  
     /*
 resolution: 0.100000
@@ -1357,7 +1540,6 @@ origin: [0.000000, 0.000000, 0.000000]
 negate: 0
 occupied_thresh: 0.65
 free_thresh: 0.196
-
     */
 
     geometry_msgs::Quaternion orientation = map->info.origin.orientation;
@@ -1378,7 +1560,6 @@ free_thresh: 0.196
     mapm_.width = map->info.width;
     mapm_.height = map->info.height;
 
-
     fprintf(yaml_fp, "image: %s\nresolution: %f\norigin: [%f, %f, %f]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n\n",
             mapdatafile.c_str(), map->info.resolution, map->info.origin.position.x, map->info.origin.position.y, yaw);
 
@@ -1386,7 +1567,6 @@ free_thresh: 0.196
 
     //ROS_INFO("Done\n");
     //saved_map_ = true;
-
 }
 
 /*-------------------------
@@ -1407,7 +1587,6 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
     if(func!=0){
         r = 7;
     }
-
     cv::Mat result,result2,mask;
 
     //x0 = (x_g + 0.5) * (double)line_w_ * yaml.resolution + yaml.origin[0];
@@ -1422,14 +1601,14 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
     center_p.y = py;
 
     // Mask画像 を作成
-    mask = cv::Mat::zeros(mat_bin_map_.rows, mat_bin_map_.cols, CV_8UC1);
+    //mask = cv::Mat::zeros(mat_bin_map_.rows, mat_bin_map_.cols, CV_8UC1);
+    mask = cv::Mat::zeros(mapm_.height, mapm_.width, CV_8UC1);
 
     // ロボットの移動先を中心にした、半径r の円を描きます。
     cv::circle(mask, center_p, r, cv::Scalar(255),-1);
 
     // 障害物から離れる処理
     if(func==0){
-
         // 障害物 2値化画像に 円のマスクを実施
         mat_bin_map_.copyTo(result2,mask);
 
@@ -1457,7 +1636,6 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
 
             x = round_my<float>(x,3);
             y = round_my<float>(y,3);
-
 
             // 5. 重心とロボットの移動先 を通る直線を求めて、その直線上を、重心から遠ざかる方向に、
             // ロボットの移動先を 5[cm]移動させます。
@@ -1543,14 +1721,14 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
 
             float dx,dy;
             if(white_cnt < 10){
-                // 5.2  (x,y) から、(x_gb,y_gb) の方へ 35[cm] ずらす。
-                dx = std::cos(theta_r) * 0.35;
-                dy = std::sin(theta_r) * 0.35;
+                // 5.2  (x,y) から、(x_gb,y_gb) の方へ 40[cm] ずらす。
+                dx = std::cos(theta_r) * 0.40;
+                dy = std::sin(theta_r) * 0.40;
             }
             else{
-                // 5.2  (x,y) から、(x_gb,y_gb) の方へ 20[cm] ずらす。
-                dx = std::cos(theta_r) * 0.20;
-                dy = std::sin(theta_r) * 0.20;
+                // 5.2  (x,y) から、(x_gb,y_gb) の方へ 30[cm] ずらす。
+                dx = std::cos(theta_r) * 0.30;
+                dy = std::sin(theta_r) * 0.30;
             }
 
             ox=x+dx;
@@ -1866,9 +2044,9 @@ void MultiGoals::auto_map_anchor(){
     if(blobFinder_.g_points_black.empty() != true){
         anchorFinder_.g_points_black.clear();
     }
-    anchorFinder_.g_points1.reserve(50);
-    anchorFinder_.g_points2.reserve(50);
-    anchorFinder_.g_points_black.reserve(50);
+    anchorFinder_.g_points1.reserve(G_POINTS_MAX1_2);
+    anchorFinder_.g_points2.reserve(G_POINTS_MAX1_2);
+    anchorFinder_.g_points_black.reserve(G_POINTS_MAX1_2);
 
     // AnchorFinder::blk_ の初期化 
     anchorFinder_.init();
@@ -1887,8 +2065,8 @@ void MultiGoals::auto_map_anchor(){
         float cur_y = cur_origin.getY();    // World point(基本座標)
 
         std::cout << "auto_map_anchor() #2 call anchorFinder_.check()" << std::endl;
-        // Find Next Unkonown Blob
-        anchorFinder_.check(get_map.mat_map_,get_map.mapm_,cur_x,cur_y);
+        // Find Next All Anchors
+        anchorFinder_.check(&get_map,cur_x,cur_y);
 
         switch(anchorFinder_.block_mode){
             case 0:
@@ -1915,25 +2093,28 @@ void MultiGoals::auto_map_anchor(){
 
         int j = g_ponts_ptr->size();
         int l=0;
-        // 今回の Map 上の、blob を全て回ります。
+        // 今回の Map 上の、anchors を全て回ります。
         while(j > 0){
             j--;
-            if(g_ponts_ptr->at(j).dist > 0.3){
+            u_int8_t mark=255;
+            if(g_ponts_ptr->at(j).dist > 0.25){
 
-                float ox,oy;
+                //float ox,oy;
                 // 此処で、走査先の非障害物との距離をチェック
-                get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy,1);
+                //get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy,1);
 
-                //drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
-                drive.comp_dad(ox,oy,dist, r_yaw, r_yaw_off);
+                drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
+                //drive.comp_dad(ox,oy,dist, r_yaw, r_yaw_off);
 
                 // Navi move
                 //drive.navi_move(blobFinder_.abs_x_+off,blobFinder_.abs_y_+off,r_yaw);
-                //if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
-                if(drive.navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){
+                std::cout << ">> Next, goes to x="<< g_ponts_ptr->at(j).x+off << " ,y="<< g_ponts_ptr->at(j).y+off << std::endl;
+                if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
+                //if(drive.navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){
                     std::cout << ">> derive.navi_move() error end"<< std::endl;
                     //std::cout << ">> black point appeend"<< std::endl;
                     //anchorFinder_.g_points_black.push_back(g_ponts_ptr->at(j));
+                    mark=128;
                 }
                 std::cout << ">> Auto Map Anchor inner loop "<< l << " end"<< std::endl;
             }
@@ -1941,7 +2122,7 @@ void MultiGoals::auto_map_anchor(){
                 std::cout << ">> Auto Map Anchor inner loop "<< l << " pass"<< std::endl;
             }
             // 走査済を設定
-            anchorFinder_.mark_blk(g_ponts_ptr->at(j).xi,g_ponts_ptr->at(j).yi);
+            anchorFinder_.mark_blk(g_ponts_ptr->at(j).xi,g_ponts_ptr->at(j).yi,mark);
 
             //末尾を削除
             g_ponts_ptr->pop_back();

@@ -13,6 +13,7 @@
     #include <move_base_msgs/MoveBaseActionResult.h>
 #endif
 
+// https://www.rubydoc.info/gems/rosruby_msgs/0.0.4/Actionlib_msgs/GoalStatusArray
 #ifdef TEST_MOVE_NISI_2
     #include <actionlib_msgs/GoalStatusArray.h>
 #endif
@@ -30,6 +31,7 @@
 #include "com_def.h"
 
 #include <tf/LinearMath/Matrix3x3.h>
+
 
 /*
 * class RobotDriveMB
@@ -78,7 +80,8 @@ public:
 
     #ifdef TEST_MOVE_NISI_1
         //move_base/result (move_base_msgs/MoveBaseActionResult) 
-        void goalCallback(const move_base_msgs::MoveBaseActionResult msg);
+        //void goalCallback(const move_base_msgs::MoveBaseActionResult msg);
+        void navResultCallback(const move_base_msgs::MoveBaseActionResult msg);
     #endif
     #ifdef TEST_MOVE_NISI_2
         // move_base/status (actionlib_msgs/GoalStatusArray) 

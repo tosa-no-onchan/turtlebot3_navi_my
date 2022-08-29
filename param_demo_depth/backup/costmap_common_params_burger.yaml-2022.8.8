@@ -1,0 +1,48 @@
+#obstacle_range: 3.0
+# changed by nishi
+obstacle_range: 0.31
+raytrace_range: 3.5
+
+#footprint: [[-0.105, -0.105], [-0.105, 0.105], [0.041, 0.105], [0.041, -0.105]]
+#changed by nishi
+#footprint: [[-0.110, -0.090], [-0.110, 0.090], [0.041, 0.090], [0.041, -0.090]]
+# burger size R=132
+footprint: [[-0.098, -0.089], [-0.098, 0.089], [0.041, 0.089], [0.041, -0.089]]
+
+#robot_radius: 0.105
+
+#inflation_radius: 1.0
+# changed by nishi
+inflation_radius: 0.17
+cost_scaling_factor: 3.0
+
+map_type: costmap
+#observation_sources: scan
+#scan: {sensor_frame: base_scan, data_type: LaserScan, topic: scan, marking: true, clearing: true}
+# test by nishi
+observation_sources: point_cloud_snsor
+#point_cloud_snsor: {sensor_frame: camera_link, data_type: PointCloud2, topic: camera/depth/points, marking: true, clearing: true}
+
+
+# assuming receiving a cloud from rtabmap_ros/obstacles_detection node
+point_cloud_sensor:
+  sensor_frame: camera_link,
+  data_type: PointCloud2, 
+  #topic: planner_cloud, 
+  #topic: /cloudXYZ,
+  topic: cloudXYZ,
+  #expected_update_rate: 0.5, 
+  expected_update_rate: 1.0, 
+  marking: true, 
+  clearing: true,
+  min_obstacle_height: 0.1,
+  #min_obstacle_height: 0.3,
+  #max_obstacle_height: 1.0
+  max_obstacle_height: 0.7
+  
+
+#      sensor_frame: camera_link
+#      data_type: PointCloud2 
+#      #topic: planner_cloud 
+#      topic: /cloudXYZ
+
