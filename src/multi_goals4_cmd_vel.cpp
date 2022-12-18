@@ -12,20 +12,24 @@ $ catkin_make --pkg turtlebot3_navi_my
 $ rosrun turtlebot3_navi_my multi_goals4_cmd_vel
 */
 
+#include <memory>
+#include "rclcpp/rclcpp.hpp"
+
+
 #include <iostream>
 
-#include <ros/ros.h>
-#include <ros/topic.h>
-#include <geometry_msgs/Twist.h>
-#include <tf/transform_listener.h>
-#include "std_srvs/Empty.h"
+//#include <ros/ros.h>
+//#include <ros/topic.h>
+//#include <geometry_msgs/Twist.h>
+//#include <tf/transform_listener.h>
+//#include "std_srvs/Empty.h"
 #include <unistd.h>
 
 //#include <math.h>
 
-#include "turtlebot3_navi_my/multi_goals.h"
+#include "turtlebot3_navi_my/multi_goals.hpp"
 
-#include <nav_msgs/OccupancyGrid.h>
+//#include <nav_msgs/OccupancyGrid.h>
 //from nav_msgs.msg import OccupancyGrid,Odometry
 
 // https://progsennin.com/c-initstructarray/221/
@@ -49,7 +53,7 @@ GoalList goallist[] ={
 
             //{50,0.0,0.0, 0.0},      // set Navigation mode
             //{22,0.0,0.0, 0.0},      // get map
-            {99,0.0,0.0, 0.0},      // end
+            //{99,0.0,0.0, 0.0},      // end
 
             {0,1.0,0.0, 0.0},      // go (1.0,0.0) and rotate 0
             {2,1.0,0.0, 90.0},     // rotate 90
@@ -57,6 +61,7 @@ GoalList goallist[] ={
             {2,1.0,0.0, 270.0},    // rotate 270
             {2,1.0,0.0, 360.0},    // rotate 360
             //{2,0.0,0.0, 0.0},
+            //{99,0.0,0.0, 0.0},      // end
 
             {0,2.0,0.0, 0.0},      // go (2.0,0.0) and rotate 0
             {2,2.0,0.0, 90.0},     // rotate 90
@@ -67,6 +72,7 @@ GoalList goallist[] ={
 
             {0,2.0,0.0, 270.0},    // go (2.0,0.0) and rotate 270
             {2,2.0,0.0, -180.0},   // rotate -180
+            {99,0.0,0.0, 0.0},      // end
 
             //{50,0.0,0.0, 0.0},     // set Navigation mode
 
@@ -94,33 +100,39 @@ GoalList turtlebot3_house[] ={
             {60, 0.0, 0.0, 0.0},      // course correct ON
             {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            {67, 0.0, 0.0, 0.0},      // set dumper ON
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON
             {0, 0.0, 0.0, 0.0},         // go (0.0,0.0) and rotate 0
-            {2, 0.0, 0.0, 90.0},        // rotate 90
-            {2, 0.0, 0.0, 180.0},       // rotate 180
-            {2, 0.0, 0.0, 270.0},       // rotate 270
-            {2, 0.0, 0.0, 360},         // rotate 360
+            //{2, 0.0, 0.0, 90.0},        // rotate 90
+            //{2, 0.0, 0.0, 180.0},       // rotate 180
+            //{2, 0.0, 0.0, 270.0},       // rotate 270
+            //{2, 0.0, 0.0, 360},         // rotate 360
             //{0,0.0, -1.5, 270.0},      // go (0.0,-1.5) and rotate 270
 
-            {50,0.0,0.0, 0.0},          // set Navigation mode
+            //{50,0.0,0.0, 0.0},          // set Navigation mode
             //{22,0.0,0.0, 0.0},        // get map
             //{99,0.0,0.0, 0.0},          // end
 
-            {0,1.0, 0.0, 0.0},      // go (1.0,0.0) and rotate 0
+            {1,1.0, 0.0, 0.0},      // go (1.0,0.0)
             //{69,0.0, 0.0, 0.0},     // save local cost map
             //{99,0.0,0.0, 0.0},      // end
-            {2,1.0,0.0, 90.0},     // rotate 90
-            {2,1.0,0.0, 180.0},    // rotate 180
-            {2,1.0,0.0, 270.0},    // rotate 270
-            {2,1.0,0.0, 360.0},    // rotate 360
+            //{2,1.0,0.0, 90.0},     // rotate 90
+            //{2,1.0,0.0, 180.0},    // rotate 180
+            //{2,1.0,0.0, 270.0},    // rotate 270
+            //{2,1.0,0.0, 360.0},    // rotate 360
             //{2,0.0,0.0, 0.0},
 
-            {0,2.0,0.0, 0.0},      // go (2.0,0.0) and rotate 0
+            {1,2.0,0.0, 0.0},      // go (2.0,0.0) 
             {2,2.0,0.0, 90.0},     // rotate 90
 
-            {0,2.0,0.4, 90.0},     // go (2.0,0.4) and rotate 90
-            {2,2.0,0.4, 180.0},    // rotate 180
-            {2,2.0,0.4, 270.0},    // rotate 270
+            {1,2.0,1.5, 90.0},     // go (2.0,2.0) and rotate 90
+            {1,2.0,3.0, 90.0},     // go (2.0,4.0) and rotate 90
+
+            {2,2.0,3.0, 180.0},    // rotate 180
+            {1,0.0,3.5, 180.0},     // go (4.0,4.0) 
+
+            {1,-1.0,3.5, 180.0},     // go (4.0,4.0) 
+            {2,-1.0,3.5, 270.0},    // rotate 270
+            {99,0.0,0.0, 0.0},
 
             {0,2.0,0.0, 270.0},    // go (2.0,0.0) and rotate 270
             {2,2.0,0.0, -180.0},   // rotate -180
@@ -338,9 +350,17 @@ GoalList2 m_rotate_2[] ={{0, 0, -0},
 
 int main(int argc, char** argv)
 {
+    using namespace std::chrono_literals;
+
+    std::cout << "start " << std::endl;
+
     //init the ROS node
-    ros::init(argc, argv, "muliti_goals4");
-    ros::NodeHandle nh;
+    rclcpp::init(argc, argv);
+    //ros::init(argc, argv, "muliti_goals4");
+
+    std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("muliti_goals4");
+
+    //ros::NodeHandle nh;
     //ros::NodeHandle nh("~");
 
     //rosparam
@@ -358,16 +378,18 @@ int main(int argc, char** argv)
     //navi.init(nh);
 
     MultiGoals mg_ex;
-    mg_ex.init(nh);
+    //mg_ex.init(nh);
+    mg_ex.init(node);
 
-    ros::Rate rate(1);   //  1[Hz]
+    //ros::Rate rate(1);   //  1[Hz]
+    //rclcpp::WallRate rate(1);
     //for(int i=0;i<10;i++){
     //    ros::spinOnce();
     //    rate.sleep();
     //}
 
-    mg_ex.mloop_ex(goallist);
-    //mg_ex.mloop_ex(turtlebot3_house);
+    //mg_ex.mloop_ex(goallist);
+    mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(goallist2);
     //mg_ex.mloop_ex2(m_rotate_2);
 
@@ -377,10 +399,14 @@ int main(int argc, char** argv)
     //std::cout <<"cost = "<< std::hex << (unsigned int)cost << std::endl;
 
     //ros::Rate rate(1);   //  1[Hz]
-    rate.sleep();
-
+    rclcpp::WallRate loop(1);
+    while(rclcpp::ok()){
+        //rclcpp::spin(std::make_shared<RobotDrive>());
+        //get_tf.get(2);
+        std::cout << "loop" << std::endl;
+        loop.sleep();
+    }
     //std::exit(0);
-    ros::spin();
+    rclcpp::shutdown();
     return 0;
-    
 }

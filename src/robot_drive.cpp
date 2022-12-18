@@ -1,61 +1,59 @@
 /*
-robot_drive.cpp
-https://wiki.ros.org/pr2_controllers/Tutorials/Using%20the%20base%20controller%20with%20odometry%20and%20transform%20information
-
-https://www.k-cube.co.jp/wakaba/server/func/math_h.html
-
-https://answers.ros.org/question/50113/transform-quaternion/
-
-build
-$ catkin_make --pkg turtlebot3_navi_my
-
-$ rosrun turtlebot3_navi_my drive_base
+* ROS2
+* robot_drive.cpp
+*
+* https://github.com/ros2/turtlebot2_demo/blob/master/turtlebot2_follower/src/follower.cpp
+* https://github.com/ros2/turtlebot2_demo/blob/master/turtlebot2_drivers/src/dumb_teleop.cpp
+* https://zenn.dev/uchidaryo/articles/ros2-programming-6
 */
 
-#include "turtlebot3_navi_my/robot_drive.h"
+#include "turtlebot3_navi_my/robot_drive.hpp"
+
+#include "geometry_msgs/msg/twist.hpp"
+
+using std::placeholders::_1;
+
+using namespace std::chrono_literals;
 
 //! ROS node initialization
-void RobotDrive::init(ros::NodeHandle &nh, bool navi_use)
+void RobotDrive::init(std::shared_ptr<rclcpp::Node> node,bool navi_use)
 {
-  nh_ = nh;
+    node_=node;
 
-  getTF_.init(nh);
+    getTF_.init(node);
 
-  if (navi_use==true){
-    navi_.init(nh,2);
-  }
+    if (navi_use==true){
+    //    navi_.init(nh,2);
+    }
+
+    //set up the publisher for the cmd_vel topic
+    //_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    _pub = node_->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
 
 
-  //set up the publisher for the cmd_vel topic
-  _pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    //printf("%s",_pub);
+    //std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::Twist_<std::allocator<void> >
 
+    _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
+    _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
 
-  _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.x =0.0;
-  _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
+    _course_correct=false;
+    _after_correct_wait=false;
+    _go_curve=false;
+    _dumper=false;
 
-  _course_correct=false;
-  _after_correct_wait=false;
-  _go_curve=false;
-  _dumper=false;
+    int i=3;
+    //ros::Rate rate(50.0); // [Hz]
+    rclcpp::WallRate rate(50.0);
 
-  //wait for the listener to get the first message
-  //listener_.waitForTransform("base_footprint","odom", ros::Time(0), ros::Duration(1.0));
-  //listener_.waitForTransform("base_footprint","map", ros::Time(0), ros::Duration(1.0));
-  //listener_.waitForTransform("map","base_footprint", ros::Time(0), ros::Duration(1.0));
-  //sleep(1);
-
-  int i=3;
-  ros::Rate rate(50.0); // [Hz]
-
-  while(i >= 0){
-      getTF_.get();
-      rate.sleep();
-      _pub.publish(_vel_msg);
-      i-=1;
-  }
-
+    while(i >= 0){
+        getTF_.get();
+        rate.sleep();
+        //_pub.publish(_vel_msg);
+        _pub->publish(_vel_msg);
+        i-=1;
+    }
 }
-
 
 /*
 move()
@@ -65,7 +63,8 @@ move()
 */
 void RobotDrive::move(float dist,float d_yaw){
     get_tf();
-    tf::Vector3 start_origin = base_tf.getOrigin();
+    //tf::Vector3 start_origin = base_tf.getOrigin();
+    tf2::Vector3 start_origin = base_tf.getOrigin();
 
     float start_x = start_origin.getX();
     float start_y = start_origin.getY();
@@ -92,7 +91,7 @@ void RobotDrive::move_abs(float x,float y,float d_yaw){
 
 /*
 comp_dad() : compute distanse and direction
- 目的地までの距離と方角を計算する。
+目的地までの距離と方角を計算する。
     float x:
     float y:
     float &dist:
@@ -105,7 +104,8 @@ void RobotDrive::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_ya
     r_yaw=0.0;
     r_yaw_off=0.0;
 
-    tf::Vector3 cur_origin = base_tf.getOrigin();
+    //tf::Vector3 cur_origin = base_tf.getOrigin();
+    tf2::Vector3 cur_origin = base_tf.getOrigin();
 
     float cur_x = cur_origin.getX();
     float cur_y = cur_origin.getY();
@@ -136,7 +136,7 @@ void RobotDrive::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_ya
             if (r_theta_off > 0.0)
                 r_theta_off -= 360.0/RADIANS_F;
             else
-               r_theta_off +=  360.0/RADIANS_F;
+            r_theta_off +=  360.0/RADIANS_F;
         }
 
         //if (r_theta_off > 180.0/RADIANS_F)
@@ -157,18 +157,19 @@ void RobotDrive::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_ya
 * void get_tf(int func)
 */
 void RobotDrive::get_tf(int func){
-  getTF_.get(func);
+    getTF_.get(func);
 
-  base_tf=getTF_.base_tf;
+    base_tf=getTF_.base_tf;
 
-  if (func==2){
-    _rx=getTF_._rx;
-    _ry=getTF_._ry;
-    _rz=getTF_._rz;
-    if(log_level>=3)
-        std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
-  }
+    if (func==2){
+        _rx=getTF_._rx;
+        _ry=getTF_._ry;
+        _rz=getTF_._rz;
+        if(log_level>=3)
+            std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
+    }
 }
+
 
 /*
 go_abs(x,y,isForward=True,speed=0.05)
@@ -192,10 +193,12 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
     _vel_msg.angular.y = 0.0;
     _vel_msg.angular.z = 0.0;
 
-    ros::Rate rate(30.0);   // 30[Hz]
+    //ros::Rate rate(30.0);   // 30[Hz]
+    rclcpp::WallRate rate(30.0);
 
     get_tf();
-    tf::Vector3 start_origin = base_tf.getOrigin();
+    //tf::Vector3 start_origin = base_tf.getOrigin();
+    tf2::Vector3 start_origin = base_tf.getOrigin();
 
     //float x = translation.getX();
 
@@ -218,46 +221,50 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
 
     //Loop to move the turtle in an specified distance
     while(current_distance < start_distance){
-      //std::cout << "pub cmd_vel" << std::endl;
-      //Publish the velocity
-      _pub.publish(_vel_msg);
+        //std::cout << "pub cmd_vel" << std::endl;
+        //Publish the velocity
+        //_pub.publish(_vel_msg);
+        _pub->publish(_vel_msg);
 
-      rate.sleep();
+        rate.sleep();
 
-      get_tf(0);
+        get_tf(0);
 
-      tf::Vector3 cur_origin = base_tf.getOrigin();
+        //tf::Vector3 cur_origin = base_tf.getOrigin();
+        tf2::Vector3 cur_origin = base_tf.getOrigin();
 
-      //std::cout << "_x, _y,_z =" << cur_translation.getX() <<", "
-      //  << cur_translation.getY() << " , " << cur_translation.getZ() << std::endl;
+        //std::cout << "_x, _y,_z =" << cur_translation.getX() <<", "
+        //  << cur_translation.getY() << " , " << cur_translation.getZ() << std::endl;
 
-      float cur_x = cur_origin.getX();
-      float cur_y = cur_origin.getY();
+        float cur_x = cur_origin.getX();
+        float cur_y = cur_origin.getY();
 
-      off_x = cur_x - start_x;
-      off_y = cur_y - start_y;
-      off_z=0.0;
+        off_x = cur_x - start_x;
+        off_y = cur_y - start_y;
+        off_z=0.0;
 
-      current_distance = std::sqrt(off_x*off_x+off_y*off_y+off_z*off_z);
+        current_distance = std::sqrt(off_x*off_x+off_y*off_y+off_z*off_z);
 
-      // dumper ON
-      if(_dumper==true){
-          cost=navi_.check_cost(cur_x,cur_y);
-          if(cost>0){
+        // dumper ON
+        if(_dumper==true){
+            cost=0;
+            //cost=navi_.check_cost(cur_x,cur_y);
+            if(cost>0){
                 std::cout << "cost=" << (unsigned int)cost << std::endl;
                 _vel_msg.linear.x = 0.0;
                 // Force the robot to stop
-                _pub.publish(_vel_msg);
+                //_pub.publish(_vel_msg);
+                _pub->publish(_vel_msg);
                 //while(1){
                 //    rate.sleep();
                 //}
                 return;
-          }
-      }
+            }
+        }
 
 
-      i+=1;
-      if (i > 5){
+        i+=1;
+        if (i > 5){
 
         // 自分からの目的地の方角
         float off_target_x = x - cur_x;
@@ -276,7 +283,7 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
                 theta_ar += 360.0/RADIANS_F;
         }
         std::cout << "_dz=" << round_my<double>(_rz*RADIANS_F,3) <<" theta_d=" << round_my<float>(theta_r*RADIANS_F,3)
-          << " theta_ad=" << round_my<float>(theta_ar*RADIANS_F,3) << std::endl;
+            << " theta_ad=" << round_my<float>(theta_ar*RADIANS_F,3) << std::endl;
 
         if (ex_f == true)
             std::exit(0);
@@ -296,7 +303,7 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
                         std::cout << "after_correct_wait" << std::endl;
                         get_tf(2);
                         std::cout << "dx,dy,dz=" << round_my<double>(_rx,3) <<"," << round_my<double>(_ry,3) << ","
-                          << round_my<double>(_rz,3) << std::endl;
+                            << round_my<double>(_rz,3) << std::endl;
                         while(1)
                             rate.sleep();
                     }
@@ -305,14 +312,16 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
         }
         std::cout << "current_distance=" << round_my<float>(current_distance,3) << std::endl;
         i=0;
-      }    
-      ros::spinOnce();
+        }    
+        //ros::spinOnce();
+        rclcpp::spin_some(node_);
     }
     std::cout << "stop" << std::endl;
     // After the loop, stops the robot
     _vel_msg.linear.x = 0.0;
     // Force the robot to stop
-    _pub.publish(_vel_msg);
+    //_pub.publish(_vel_msg);
+    _pub->publish(_vel_msg);
 }
 
 /*
@@ -328,7 +337,7 @@ void RobotDrive::rotate_abs(float stop_dz,float speed){
     int turn_plus;
     //geometry_msgs::Twist _vel_msg;
 
-    _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.x =0.0;
+    _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
     _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
 
     std::cout << "start rotate_abs stop_dz=" << stop_dz << std::endl;
@@ -407,13 +416,14 @@ void RobotDrive::rotate_abs(float stop_dz,float speed){
     //sys.exit()
 
     // stop_rz を目指す
-    // rate = rospy.Rate(30)   # 30 [Hz]
-    ros::Rate rate(40);   // 40 [Hz]
+    //ros::Rate rate(40);   // 40 [Hz]
+    rclcpp::WallRate rate(40);
     float rz_min = 10.0;
     bool ok_f = false;
     int lp_cnt=0;
     while(1){
-        _pub.publish(_vel_msg);
+        //_pub.publish(_vel_msg);
+        _pub->publish(_vel_msg);
 
         get_tf(2);
         lp_cnt++;
@@ -429,13 +439,13 @@ void RobotDrive::rotate_abs(float stop_dz,float speed){
         }
         // 目的の角度です。
         if (abs(_rz - stop_rz) <= rz_dlt){
-          //  std::cout << "ok just" << std::endl;
-          //  break;
-          // 目的の角度です。
-          if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
+        //  std::cout << "ok just" << std::endl;
+        //  break;
+        // 目的の角度です。
+        if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
             std::cout << "ok just" << std::endl;
             break;
-          }
+        }
         }
         //rz_off = abs(abs(stop_rz) - abs(self.rz))
         float rz_off = stop_rz - _rz;
@@ -460,12 +470,14 @@ void RobotDrive::rotate_abs(float stop_dz,float speed){
             }
         }
         rate.sleep();
-        ros::spinOnce();
+        //ros::spinOnce();
+        rclcpp::spin_some(node_);
     }
     std::cout << "stop" << std::endl;
     _vel_msg.angular.z = 0.0;   // [rad]
     //Force the robot to stop
-    _pub.publish(_vel_msg);
+    //_pub.publish(_vel_msg);
+    _pub->publish(_vel_msg);
     rate.sleep();
 
     get_tf(2);
@@ -528,14 +540,16 @@ void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
     }
 
     // stop_rz を目指す
-    ros::Rate rate(40);   // 40 [Hz]
+    //ros::Rate rate(40);   // 40 [Hz]
+    rclcpp::WallRate rate(40);
     float rz_min = 10.0;
     bool ok_f = false;
 
     int lp_cnt=0;
 
     while(1){
-        _pub.publish(_vel_msg);
+        //_pub.publish(_vel_msg);
+        _pub->publish(_vel_msg);
 
         get_tf(2);
         lp_cnt++;
@@ -551,13 +565,13 @@ void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
         }
         // 目的の角度です。
         if (abs(stop_rz - _rz) <= rz_dlt){
-          //std::cout << "ok just" << std::endl;
-          //break;
-          // 目的の角度です。
-          if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
+        //std::cout << "ok just" << std::endl;
+        //break;
+        // 目的の角度です。
+        if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
             std::cout << "ok just" << std::endl;
             break;
-          }
+        }
         }
 
         float rz_off = stop_rz - _rz;
@@ -583,13 +597,15 @@ void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
             }
         }
         rate.sleep();
-        ros::spinOnce();
+        //ros::spinOnce();
+        rclcpp::spin_some(node_);
     }
 
     std::cout << "stop" << std::endl;
     _vel_msg.angular.z = 0.0; // [rad]
     // Force the robot to stop
-    _pub.publish(_vel_msg);
+    //_pub.publish(_vel_msg);
+    _pub->publish(_vel_msg);
     rate.sleep();
 
     get_tf(2);
@@ -598,97 +614,111 @@ void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
 //! Drive forward a specified distance based on odometry information
 bool RobotDrive::driveForwardOdom(double distance)
 {
-  
-  //we will record transforms here
-  tf::StampedTransform start_transform;
-  //tf::StampedTransform current_transform;
 
-  get_tf(2);
-  start_transform = base_tf;
-  
-  //we will be sending commands of type "twist"
-  geometry_msgs::Twist base_cmd;
-  //the command will be to go forward at 0.25 m/s
-  base_cmd.linear.y = base_cmd.angular.z = 0;
-  base_cmd.linear.x = 0.25;
-  
-  ros::Rate rate(10.0);
-  bool done = false;
-  while (!done && nh_.ok())
-  {
-    //send the drive command
-    _pub.publish(base_cmd);
-    rate.sleep();
+    //we will record transforms here
+    //tf::StampedTransform start_transform;
+    tf2::Stamped<tf2::Transform> start_transform;
+    //tf::StampedTransform current_transform;
+
     get_tf(2);
+    start_transform = base_tf;
 
-    //see how far we've traveled
-    tf::Transform relative_transform = start_transform.inverse() * base_tf;
-    double dist_moved = relative_transform.getOrigin().length();
+    //we will be sending commands of type "twist"
+    //geometry_msgs::Twist base_cmd;
+    geometry_msgs::msg::Twist base_cmd;
+    //the command will be to go forward at 0.25 m/s
+    base_cmd.linear.y = base_cmd.angular.z = 0;
+    base_cmd.linear.x = 0.25;
 
-    if(dist_moved > distance) done = true;
-  }
-  if (done) return true;
-  return false;
+    //ros::Rate rate(10.0);
+    rclcpp::WallRate rate(10.0);
+    bool done = false;
+    while (!done && rclcpp::ok())
+    {
+        //send the drive command
+        //_pub.publish(base_cmd);
+        _pub->publish(base_cmd);
+        rate.sleep();
+        get_tf(2);
+
+        //see how far we've traveled
+        //tf::Transform relative_transform = start_transform.inverse() * base_tf;
+        tf2::Transform relative_transform = start_transform.inverse() * base_tf;
+
+        double dist_moved = relative_transform.getOrigin().length();
+
+        if(dist_moved > distance) done = true;
+    }
+    if (done) return true;
+    return false;
 }
 
 bool RobotDrive::turnOdom(bool clockwise, double radians)
 {
-  while(radians < 0) radians += 2*M_PI;
-  while(radians > 2*M_PI) radians -= 2*M_PI;
-  
-  //we will record transforms here
-  tf::StampedTransform start_transform;
-  //tf::StampedTransform current_transform;
+    while(radians < 0) radians += 2*M_PI;
+    while(radians > 2*M_PI) radians -= 2*M_PI;
 
-  //record the starting transform from the odometry to the base frame
-  get_tf(2);
-  start_transform = base_tf;
-  
-  //we will be sending commands of type "twist"
-  geometry_msgs::Twist base_cmd;
-  //the command will be to turn at 0.75 rad/s -> 42.97 degrees/s
-  base_cmd.linear.x = 0.0;
-  base_cmd.linear.y = 0.0;
-  //base_cmd.angular.z = 0.75;
-  base_cmd.angular.z = 5.0/RADIANS_F;
+    //we will record transforms here
+    //tf::StampedTransform start_transform;
+    tf2::Stamped<tf2::Transform> start_transform;
 
-  if (clockwise) 
-    base_cmd.angular.z = -base_cmd.angular.z;
-  
-  //the axis we want to be rotating by
-  tf::Vector3 desired_turn_axis(0,0,1);
+    //tf::StampedTransform current_transform;
 
-  if (!clockwise) 
-    desired_turn_axis = -desired_turn_axis;
-  
-  ros::Rate rate(10.0);
-  bool done = false;
-  while (!done && nh_.ok())
-  {
-    //send the drive command
-    _pub.publish(base_cmd);
-    rate.sleep();
-
+    //record the starting transform from the odometry to the base frame
     get_tf(2);
+    start_transform = base_tf;
 
-    tf::Transform relative_transform = start_transform.inverse() * base_tf;
-    
-    tf::Vector3 actual_turn_axis = relative_transform.getRotation().getAxis();
-    double angle_turned = relative_transform.getRotation().getAngle();
-    //if ( fabs(angle_turned) < 1.0e-2) continue;
-    if ( fabs(angle_turned) < 0.01) continue;
+    //we will be sending commands of type "twist"
+    //geometry_msgs::Twist base_cmd;
+    geometry_msgs::msg::Twist base_cmd;
+    //the command will be to turn at 0.75 rad/s -> 42.97 degrees/s
+    base_cmd.linear.x = 0.0;
+    base_cmd.linear.y = 0.0;
+    //base_cmd.angular.z = 0.75;
+    base_cmd.angular.z = 5.0/RADIANS_F;
 
-    if ( actual_turn_axis.dot( desired_turn_axis ) < 0 ) 
-      angle_turned = 2 * M_PI - angle_turned;
+    if (clockwise) 
+        base_cmd.angular.z = -base_cmd.angular.z;
 
-    if (angle_turned > radians) 
-      done = true;
-  }
-  if (done) return true;
-  return false;
+    //the axis we want to be rotating by
+    //tf::Vector3 desired_turn_axis(0,0,1);
+    tf2::Vector3 desired_turn_axis(0,0,1);
+
+    if (!clockwise) 
+        desired_turn_axis = -desired_turn_axis;
+
+    //ros::Rate rate(10.0);
+    rclcpp::WallRate rate(10.0);
+
+
+    bool done = false;
+    while (!done && rclcpp::ok())
+    {
+        //send the drive command
+        //_pub.publish(base_cmd);
+        _pub->publish(base_cmd);
+        rate.sleep();
+
+        get_tf(2);
+
+        //tf::Transform relative_transform = start_transform.inverse() * base_tf;
+        tf2::Transform relative_transform = start_transform.inverse() * base_tf;
+
+        //tf::Vector3 actual_turn_axis = relative_transform.getRotation().getAxis();
+        tf2::Vector3 actual_turn_axis = relative_transform.getRotation().getAxis();
+        double angle_turned = relative_transform.getRotation().getAngle();
+        //if ( fabs(angle_turned) < 1.0e-2) continue;
+        if ( fabs(angle_turned) < 0.01) continue;
+
+        if ( actual_turn_axis.dot( desired_turn_axis ) < 0 ) 
+        angle_turned = 2 * M_PI - angle_turned;
+
+        if (angle_turned > radians) 
+        done = true;
+    }
+    if (done) return true;
+    return false;
 }
-
-
 
 /*-----------------------
 - robot_navi call routine
@@ -703,7 +733,7 @@ bool RobotDrive::navi_move(float x,float y,float r_yaw,float r_yaw_off){
     if(r_yaw_off != 0.0){
         rotate_off(r_yaw_off*RADIANS_F);
     }
-    navi_.move(x,y,r_yaw);
+    //navi_.move(x,y,r_yaw);
     return true;
 }
 
@@ -711,5 +741,9 @@ bool RobotDrive::navi_move(float x,float y,float r_yaw,float r_yaw_off){
 navi_map_save()
 */
 void RobotDrive::navi_map_save(){
-    navi_.map_save();
+    //navi_.map_save();
 }
+
+
+
+

@@ -1,44 +1,43 @@
 /*
-drive_base.cpp
-https://wiki.ros.org/pr2_controllers/Tutorials/Using%20the%20base%20controller%20with%20odometry%20and%20transform%20information
-
-https://www.k-cube.co.jp/wakaba/server/func/math_h.html
-
-https://answers.ros.org/question/50113/transform-quaternion/
-
-build
-$ catkin_make --pkg turtlebot3_navi_my
-
-$ rosrun turtlebot3_navi_my drive_base
+* ROS2
+* drive_base.cpp
+*
+* https://github.com/ros2/turtlebot2_demo/blob/master/turtlebot2_follower/src/follower.cpp
+* https://github.com/ros2/turtlebot2_demo/blob/master/turtlebot2_drivers/src/dumb_teleop.cpp
+* https://zenn.dev/uchidaryo/articles/ros2-programming-6
 */
+#include <memory>
 
-#include <iostream>
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/string.hpp"
 
-#include <ros/ros.h>
-#include <geometry_msgs/Twist.h>
-#include <tf/transform_listener.h>
 
-#include <unistd.h>
+#include "geometry_msgs/msg/twist.hpp"
+//#include "geometry_msgs/msg/twist.hpp"
 
-//#include <math.h>
+#include <rclcpp/publisher_options.hpp>
 
-#include "turtlebot3_navi_my/robot_drive.h"
+#include "turtlebot3_navi_my/robot_drive.hpp"
+//#include "turtlebot3_navi_my/robot_driveNAV2.hpp"
 
-int main(int argc, char** argv)
+
+int main(int argc, char * argv[])
 {
-  //init the ROS node
-  ros::init(argc, argv, "robot_driver");
-  ros::NodeHandle nh;
+
+  using namespace std::chrono_literals;
+
+  rclcpp::init(argc, argv);
+  //rclcpp::spin(std::make_shared<RobotDrive>());
+
+  std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("drive_base");
 
   RobotDrive drive;
+  //RobotDriveNAV2 drive;
 
-  drive.init(nh);
-  //driver.driveForwardOdom(0.5);
-  //driver.turnOdom(true, 0.01);
+  drive.init(node,false);
 
   int test_id=1;
 
-  //Testing our function
   if (test_id==1){
     drive._course_correct=true;
     drive.go_abs(1.0,0.0);
@@ -86,8 +85,14 @@ int main(int argc, char** argv)
 
   }
 
-  ros::Rate rate(1);   //  1[Hz]
-  rate.sleep();
+  rclcpp::WallRate loop(1);
+  while(rclcpp::ok()){
+    //rclcpp::spin(std::make_shared<RobotDrive>());
+    //get_tf.get(2);
+    std::cout << "loop" << std::endl;
+    loop.sleep();
+  }
 
-  std::exit(0);
+  rclcpp::shutdown();
+  return 0;
 }
