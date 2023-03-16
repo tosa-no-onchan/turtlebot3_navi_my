@@ -1,4 +1,4 @@
-## turtlebot3_navi_my for Ros2 foxy  
+## turtlebot3_navi_my for Ros2 galactic  
   
   for [foxbot_core3_2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  
   ROS2 Turtlebot3 、 自作 Turtlebot3(foxbot_core3_r2.ino) を、 /cmd_vel 、 navigation2 を使って  
