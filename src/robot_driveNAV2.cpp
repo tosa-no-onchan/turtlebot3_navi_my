@@ -38,19 +38,23 @@ void RobotDriveNAV2::navResultCallback(const GoalHandleNavigateToPose::WrappedRe
     switch (result.code) {
       case rclcpp_action::ResultCode::SUCCEEDED:
         RCLCPP_INFO(node_->get_logger(), "Success!!!");
-        id_=2;
+        //id_=2;
+        id_=NAV_ARRIVE;
         break;
       case rclcpp_action::ResultCode::ABORTED:
         RCLCPP_ERROR(node_->get_logger(), "Goal was aborted");
-        id_=4;
+        //id_=4;
+        id_=NAV_ABORTED;
         return;
       case rclcpp_action::ResultCode::CANCELED:
         RCLCPP_ERROR(node_->get_logger(), "Goal was canceled");
-        id_=9;
+        //id_=9;
+        id_=NAV_CANCELD;
         return;
       default:
         RCLCPP_ERROR(node_->get_logger(), "Unknown result code");
-        id_=9;
+        //id_=9;
+        id_=NAV_UNKNOWN;
         return;
     }
 }
@@ -67,8 +71,9 @@ void RobotDriveNAV2::feedbackCallback(GoalHandleNavigateToPose::SharedPtr pose,c
 /*
 * void get_tf(int func)
 */
-void RobotDriveNAV2::get_tf(int func){
-    getTF_.get(func);
+bool RobotDriveNAV2::get_tf(int func){
+    bool rc;
+    rc=getTF_.get(func);
 
     base_tf=getTF_.base_tf;
 
@@ -79,6 +84,7 @@ void RobotDriveNAV2::get_tf(int func){
         if(log_level>=3)
             std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
     }
+    return rc;
 }
 
 //void RobotDriveNAV2::init(ros::NodeHandle &nh,bool navi_use){
@@ -87,6 +93,9 @@ void RobotDriveNAV2::init(std::shared_ptr<rclcpp::Node> node,bool navi_use){
 
     rclcpp::WallRate rate(1);
     std::cout << "RobotDriveNAV2::init():#1 " << std::endl;
+
+    heartBeat_.init(node_);     // add by nishi 2023.3.8
+    rate.sleep();
 
     getTF_.init(node_);
 
@@ -141,7 +150,6 @@ void RobotDriveNAV2::exec_pub(float x,float y,float r_yaw,bool rotate_f){
     q.setRPY(0.0, 0.0, r_yaw);        // q.setRPY( 0, 0, 0 );  // Create this quaternion from roll/pitch/yaw (in radians)
     q=q.normalize();
 
-
     std::chrono::milliseconds server_timeout_(10);
 
     //std::cout << "x: " << q.getX() << " y: " << q.getY() << 
@@ -186,12 +194,11 @@ void RobotDriveNAV2::exec_pub(float x,float y,float r_yaw,bool rotate_f){
         return;
     }
 
-
     //ros::Rate rate(50.0); // [Hz]
     rclcpp::WallRate rate(50.0);
 
     //pub_.publish(goal_point);
-    id_=1;
+    id_=NAV_NAVIGATE;   // =1;
 
     int i=0;
     int moving_cnt =0;
@@ -200,113 +207,168 @@ void RobotDriveNAV2::exec_pub(float x,float y,float r_yaw,bool rotate_f){
     float last_x=0.0;
     float last_y=0.0;
 
-    while(1){
+    bool tf_act;
+    int cnt=0;
+    int cancel_cnt=0;
+
+    rclcpp::Time tf_chk_t = node_->now();
+    rclcpp::Time move_chk_t = node_->now();
+    //uint32_t nsec_dur = 1000000000 / 2; // 2[hz]
+    double sec_dur_tf = 0.25;       // 0.25[sec]
+    double sec_dur_move = 3.0;      // 3[sec]
+
+    while(id_ < NAV_ARRIVE){
         rate.sleep();
         //ros::spinOnce();
         rclcpp::spin_some(node_);
 
-        if(id_ >= 2)
-            break;
+        switch (id_) {
+            case NAV_NAVIGATE:
+            {
+                cnt++;
+                rclcpp::Time cur_t = node_->now();
+                rclcpp::Duration elapsed = cur_t - tf_chk_t;
+                // check tf topic alive add by nishi 2023.3.6
+                if(elapsed.seconds() >= sec_dur_tf){
+                    tf_act=get_tf();
+                    if(tf_act != true){
+                        // ここで、 heart beat を止めて、 tf が回復するまで待つモードへ移行する。
+                        std::cout << "tf lost !!!!" << std::endl;
+                        heartBeat_.set_on_off(false);
+                        id_=NAV_TF_WAIT;
 
-        moving_cnt ++;
-        if(rotate_f==false){
-            if(moving_cnt > 150){
-                get_tf();
-                //tf::Vector3 cur_origin = base_tf.getOrigin();
-                tf2::Vector3 cur_origin = base_tf.getOrigin();
-                float x = cur_origin.getX();
-                float y = cur_origin.getY();
+                        //cancel_goal(goal_handle_);
+                        //id_=10;
+                        //id_=NAV_CANCELD_REQ;
 
-                float off_x = x -  last_x;
-                float off_y = y -  last_y;
-
-                float cur_dist = std::sqrt(off_x*off_x+off_y*off_y);
-
-                last_x=x;
-                last_y=y;
-
-                cur_dist = round_my<float>(cur_dist,3);
-                //if(cur_dist <= 0.005){
-                //if(cur_dist <= 0.01){
-                //if(cur_dist <= 0.03){       // changed by nishi 2022.8.17
-                if(cur_dist <= 0.04){       // changed by nishi 2022.8.17
-                    moving_err_cnt++;
-                    std::cout << "not moving (" << moving_err_cnt << ")" << std::endl;
-                }
-                else{
-                    moving_err_cnt=0;
-                    std::cout << "moving" << std::endl;
-                }
-
-                if(moving_err_cnt >= 16){
-                    std::cout << "not moving exceed limits" << std::endl;
-                    /*
-                    * cancel
-                    *   async_cancel_goal(
-                    *       typename GoalHandle::SharedPtr goal_handle,
-                    *       CancelCallback cancel_callback = nullptr)
-                    *       client_ptr_->async_cancel_goal(goal_handle_);
-                    *
-                    * Sample
-                    *  navigation2/nav2_util/test/test_actions.cpp
-                    */
-                    std::cout << "call client_ptr_->async_cancel_goal()" << std::endl;
-                    //auto cancel_response = client_ptr_->async_cancel_goal(goal_handle_.get());
-                    auto cancel_response = client_ptr_->async_cancel_goal(goal_handle_.get(),cancel_callbacks_);
-                    if (rclcpp::spin_until_future_complete(node_, cancel_response, server_timeout_) != rclcpp::FutureReturnCode::SUCCESS)
-                    {
-                        RCLCPP_ERROR(node_->get_logger(), "Failed to cancel async_cancel_goal()");
-                        //return;
-                        //std::cout << "client_ptr_->async_cancel_goal() OK" << std::endl;
+                        break;
                     }
-                    // Check cancelled
-                    if (goal_handle_.get()->get_status() == rclcpp_action::GoalStatus::STATUS_CANCELING){
-                        std::cout << "cancelling OK" << std::endl;
+                    tf_chk_t = node_->now();
+                }
+
+                rclcpp::Duration elapsed2 = cur_t - move_chk_t;
+                if(elapsed2.seconds() >= sec_dur_move){
+                    moving_cnt ++;
+                    move_chk_t = node_->now();
+                    if(rotate_f==false){
+                        tf_act=get_tf();
+                        //tf::Vector3 cur_origin = base_tf.getOrigin();
+                        tf2::Vector3 cur_origin = base_tf.getOrigin();
+                        float x = cur_origin.getX();
+                        float y = cur_origin.getY();
+
+                        float off_x = x -  last_x;
+                        float off_y = y -  last_y;
+
+                        float cur_dist = std::sqrt(off_x*off_x+off_y*off_y);
+
+                        last_x=x;
+                        last_y=y;
+
+                        cur_dist = round_my<float>(cur_dist,3);
+                        //if(cur_dist <= 0.005){
+                        //if(cur_dist <= 0.01){
+                        //if(cur_dist <= 0.03){       // changed by nishi 2022.8.17
+                        if(cur_dist <= 0.04){       // changed by nishi 2022.8.17
+                            moving_err_cnt++;
+                            std::cout << "not moving (" << moving_err_cnt << ")" << std::endl;
+                        }
+                        else{
+                            moving_err_cnt=0;
+                            std::cout << "moving" << std::endl;
+                        }
+
+                        if(moving_err_cnt >= 16){
+                            std::cout << "not moving exceed limits" << std::endl;
+                            // cancel req
+                            cancel_goal(goal_handle_);
+                            //id_=10;
+                            id_=NAV_CANCELD_REQ;
+                        }
+                        moving_cnt=0;
                     }
                     else{
-                        std::cout << "cancelling NG" << std::endl;
+                        std::cout << "rotate wait"<< std::endl;
+                        if(moving_cnt > 19){      // 3[sec] * 20 = 60[sec]
+                            std::cout << "move_base exceed rotate time"<< std::endl;
+                            // cnacel req
+                            cancel_goal(goal_handle_);
+                            //id_=10;
+                            id_=NAV_CANCELD_REQ;
+                        }
                     }
-                    id_=10;
+                }
+            }
+            break;
+
+            case NAV_TF_WAIT:
+                tf_act=get_tf();
+                if(tf_act == true){
+                    std::cout << "tf act !!!!" << std::endl;
+                    heartBeat_.set_on_off(true);
+                    if(id_==NAV_TF_WAIT){
+                        id_=NAV_NAVIGATE;
+                    }
                 }
 
-                moving_cnt=0;
-            }
-        }
-        else{
-            if((moving_cnt % 150) == 0){
-                std::cout << "rotate wait"<< std::endl;
-            }
-            //if(moving_cnt > 1500){    // 10 loops
-            if(moving_cnt > 2400){      // 16 loops changed by nishi 2022.9.4
-                std::cout << "move_base exceed rotate count"<< std::endl;
-                // cnacel 
-                //auto cancel_callbacks =std::bind(&RobotDriveNAV2::cancel_callback, this, _1);
-                auto cancel_response = client_ptr_->async_cancel_goal(goal_handle_.get(),cancel_callbacks_);
-                if (rclcpp::spin_until_future_complete(node_, cancel_response, server_timeout_) != rclcpp::FutureReturnCode::SUCCESS)
-                {
-                    RCLCPP_ERROR(node_->get_logger(), "Failed to cancel async_cancel_goal()");
-                    //return;
-                    //std::cout << "client_ptr_->async_cancel_goal() OK" << std::endl;
-                }
-                // Check cancelled
-                if (goal_handle_.get()->get_status() == rclcpp_action::GoalStatus::STATUS_CANCELING){
-                    std::cout << "cancelling OK" << std::endl;
-                }
-                else{
-                    std::cout << "cancelling NG" << std::endl;
-                }
+            break;
 
-                id_=10;
-            }
+            case NAV_CANCELD_REQ:
+                // cnancelling
+                cancel_cnt++;
+                if(cancel_cnt > 50){
+                    id_=NAV_ERROR;
+                }
+            break;
+
+            default:
+            break;
         }
     }
-    if(id_==2){
+    //if(id_==2){
+    if(id_==NAV_ARRIVE){
         std::cout << "move_base arrive"<< std::endl;
     }
-    else if(id_>= 3){
+    //else if(id_>= 3){
+    else if(id_>= NAV_ERROR){
         std::cout << "move_base error"<< std::endl;
     }
+    heartBeat_.set_on_off(true);
 
+}
+
+
+/*
+cancel_goaal()
+*/
+void RobotDriveNAV2::cancel_goal(std::shared_future<std::shared_ptr<rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>>>goal_handle ){
+    /*
+    * cancel
+    *   async_cancel_goal(
+    *       typename GoalHandle::SharedPtr goal_handle,
+    *       CancelCallback cancel_callback = nullptr)
+    *       client_ptr_->async_cancel_goal(goal_handle_);
+    *
+    * Sample
+    *  navigation2/nav2_util/test/test_actions.cpp
+    */
+    std::chrono::milliseconds server_timeout_(10);
+    std::cout << "call client_ptr_->async_cancel_goal()" << std::endl;
+    //auto cancel_response = client_ptr_->async_cancel_goal(goal_handle_.get());
+    auto cancel_response = client_ptr_->async_cancel_goal(goal_handle.get(),cancel_callbacks_);
+    if (rclcpp::spin_until_future_complete(node_, cancel_response, server_timeout_) != rclcpp::FutureReturnCode::SUCCESS)
+    {
+        RCLCPP_ERROR(node_->get_logger(), "Failed to cancel async_cancel_goal()");
+        //return;
+        //std::cout << "client_ptr_->async_cancel_goal() OK" << std::endl;
+    }
+    // Check cancelled
+    if (goal_handle.get()->get_status() == rclcpp_action::GoalStatus::STATUS_CANCELING){
+        std::cout << "cancelling OK" << std::endl;
+    }
+    else{
+        std::cout << "cancelling NG" << std::endl;
+    }
 }
 
 /*

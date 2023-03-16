@@ -65,6 +65,7 @@ public:
 
   //RobotNavi navi_;
   GetTF getTF_;
+  HeartBeat heartBeat_;   // add by nishi 2023.3.8
 
   double _rx, _ry, _rz;
   bool _course_correct;

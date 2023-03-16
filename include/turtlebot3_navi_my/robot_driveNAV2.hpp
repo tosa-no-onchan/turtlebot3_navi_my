@@ -55,7 +55,6 @@
 * class RobotDriveNAV2
 *   move_base Version
 */
-
 class RobotDriveNAV2{
 
 public:
@@ -86,8 +85,9 @@ public:
     //void init(ros::NodeHandle &nh,bool navi_use=false);
     void init(std::shared_ptr<rclcpp::Node> node,bool navi_use=false);
 
-    void get_tf(int func=0);
+    bool get_tf(int func=0);
     void exec_pub(float x,float y,float r_yaw,bool rotate_f=false);
+    void cancel_goal(std::shared_future<std::shared_ptr<rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>>>goal_handle );
 
     #ifdef TEST_MOVE_NISI_1
         void cancel_callback(CancelResponse::SharedPtr result);
@@ -177,6 +177,7 @@ private:
     //ros::NodeHandle nh_;
     std::shared_ptr<rclcpp::Node> node_;
     GetTF getTF_;
+    HeartBeat heartBeat_;   // add by nishi 2023.3.8
 
     //ros::Publisher pub_;
     std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> pub_;
@@ -194,7 +195,23 @@ private:
 
     u_char log_level=1;
 
-    int id_=0;      // 0: idle  1: navigate 2:arrive  4>=:error
+    //int id_=0;      // 0: idle  1: navigate 2:arrive  4>=:error
+
+    enum drive_sts {
+        // ---- loop status
+        NAV_IDLE,       // 0
+        NAV_NAVIGATE,   // 1
+        NAV_CANCELD_REQ,
+        NAV_TF_WAIT,
+        // ---- exit status
+        NAV_ARRIVE,     // 2
+        NAV_ERROR,      // 3
+        NAV_ABORTED,    // 4
+        NAV_CANCELD,    // 9
+        NAV_UNKNOWN,    // 9
+        NAV_ERROR10    // 10
+    };
+    drive_sts id_;
 
     //bool rotate_f;
 

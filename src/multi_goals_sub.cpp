@@ -43,6 +43,15 @@ void GetMap::get(){
         //printf("%s",map_msg);  // コンパイルエラーで、型が判る
         //boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>>
 
+        // ros2 版は、? 無い。自分で作れとの事。 by nishi 2023.2.7
+        // https://answers.ros.org/question/378693/waitformessage-ros2-equivalent/
+        //  getLatestMsg() が、近い?
+        // https://github.com/ros2/rclcpp/issues/1953
+        // 
+        //   rclcpp/rclcpp/include/rclcpp/wait_for_message.hpp  <-- これが、今あるみたい。
+        //    https://github.com/ros2/rclcpp/blob/8e6a6fb32d8d6a818b483660e326f2c5313b64ae/rclcpp/include/rclcpp/wait_for_message.hpp#L78-L94
+        //    https://qiita.com/buran5884/items/9ee9b1608716233a9873
+        //
         map = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>(_map_frame,nh_,ros::Duration(1.0));
         //std::cout << "map_msg->header" << map_msg->header << std::endl; 
         //std::cout << "map_msg->info" << map_msg->info << std::endl;

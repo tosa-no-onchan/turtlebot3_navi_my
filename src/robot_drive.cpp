@@ -20,6 +20,10 @@ void RobotDrive::init(std::shared_ptr<rclcpp::Node> node,bool navi_use)
 {
     node_=node;
 
+    rclcpp::WallRate rate0(1);
+    heartBeat_.init(node_);     // add by nishi 2023.3.8
+    rate0.sleep();
+
     getTF_.init(node);
 
     if (navi_use==true){
