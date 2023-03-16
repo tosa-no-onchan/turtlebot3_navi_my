@@ -1,6 +1,6 @@
 ## turtlebot3_navi_my for Ros2 galactic  
   
-  for [foxbot_core3_2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  
+  for [foxbot_core3_r2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  
   ROS2 Turtlebot3 、 自作 Turtlebot3(foxbot_core3_r2.ino) を、 /cmd_vel 、 navigation2 を使って  
   動かす事ができる、 c++ プログラム。  
   
@@ -30,3 +30,9 @@
 
     2) navigation2  
     mulit_goals4_nav2.cpp の GoalList goallist[] で、指定する。  
+
+#### 4. update  
+2023.3.16  
+
+    1) foxbot_core3_r2 の herat beat に対応しました。  
+    
