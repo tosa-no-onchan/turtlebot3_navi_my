@@ -36,3 +36,7 @@
 
     1) foxbot_core3_r2 の herat beat に対応しました。  
     
+2024.2.26  
+
+    1) humble に対応しました。  
+    
