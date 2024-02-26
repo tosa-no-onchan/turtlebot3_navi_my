@@ -417,7 +417,7 @@ void AnchorFinder::sort_blob(float cur_x,float cur_y){
 * float cur_x : ロボットの位置 World point X (基本座標)
 * float cur_y : ロボットの位置 World point Y (基本座標)
 --------------------------*/
-#ifdef USE_FUTURE_GET_MAP
+#if defined(USE_FUTURE_GET_MAP)
 void AnchorFinder::check(GetMap* getmap,float cur_x,float cur_y){
 
     cv::Mat bin_img;
@@ -761,8 +761,8 @@ bool AnchorFinder::anchor_put(int gx,int gy,float cur_x,float cur_y){
 
     // wx0,wy0 の 障害物チェック
     // 非障害物へ近づく補正
-    #ifdef USE_FUTURE_GET_MAP
-    getmap_->check_collision(wx0,wy0,wx,wy,1);
+    #if defined(USE_FUTURE_GET_MAP)
+        getmap_->check_collision(wx0,wy0,wx,wy,1);
     #endif
 
     // アンカーの場所が、未処理のブロックかチェック
@@ -860,7 +860,7 @@ void BlobFinder::sort_blob(float cur_x,float cur_y){
 * class BlobFinder
 * check()
 --------------------------*/
-#ifdef USE_FUTURE_GET_MAP
+#if defined(USE_FUTURE_GET_MAP)
 void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     cv::Mat rgb, gry, thres,reverse,neg,dst2;
     //cv::namedWindow("gry", cv::WINDOW_NORMAL);
@@ -1243,12 +1243,15 @@ void MultiGoals::init(std::shared_ptr<rclcpp::Node> node){
 
     //nh_=nh;
     node_=node;
+
+	get_map_func_ = node_->declare_parameter<int>("get_map_func", get_map_func_);
+
     //navi.init(nh,2);
     //drive.init(nh,true);
     drive.init(node,true);
 
-    #ifdef USE_FUTURE_GET_MAP
-    get_map.init(node);
+    #if defined(USE_FUTURE_GET_MAP)
+        get_map.init(node,get_map_func_);
     #endif
 
     std::cout << "MultiGoals::init():#2 " << std::endl;
@@ -1294,8 +1297,8 @@ void MultiGoals::auto_map(){
 
     for(int lc=0; lc < 100 ;lc++){
         off=0.0;
-        #ifdef USE_FUTURE_GET_MAP
-        get_map.get();
+        #if defined(USE_FUTURE_GET_MAP)
+            get_map.get();
         #endif
 
         std::cout << "auto_map() #6 call drive.get_tf(2)" << std::endl;
@@ -1308,8 +1311,8 @@ void MultiGoals::auto_map(){
 
         std::cout << "auto_map() #7 call blobFinder_.check()" << std::endl;
         // Find Next Unkonown Blob
-        #ifdef USE_FUTURE_GET_MAP
-        blobFinder_.check(get_map.mat_map_,get_map.mapm_,cur_x,cur_y);
+        #if defined(USE_FUTURE_GET_MAP)
+            blobFinder_.check(get_map.mat_map_,get_map.mapm_,cur_x,cur_y);
         #endif
 
         switch(blobFinder_.block_mode){
@@ -1344,8 +1347,8 @@ void MultiGoals::auto_map(){
 
                 float ox,oy;
                 // 此処で、走査先の障害物との距離をチェック
-                #ifdef USE_FUTURE_GET_MAP
-                get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy);
+                #if defined(USE_FUTURE_GET_MAP)
+                    get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy);
                 #endif
 
                 //drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
@@ -1431,8 +1434,8 @@ void MultiGoals::auto_map_anchor(){
     for(int lc=0; lc < 100 ;lc++){
         off=0.0;
 
-        #ifdef USE_FUTURE_GET_MAP
-        get_map.get();
+        #if defined(USE_FUTURE_GET_MAP)
+            get_map.get();
         #endif
 
         std::cout << "auto_map_anchor() #1 call drive.get_tf(2)" << std::endl;
@@ -1445,8 +1448,8 @@ void MultiGoals::auto_map_anchor(){
 
         std::cout << "auto_map_anchor() #2 call anchorFinder_.check()" << std::endl;
         // Find Next All Anchors
-        #ifdef USE_FUTURE_GET_MAP
-        anchorFinder_.check(&get_map,cur_x,cur_y);
+        #if defined(USE_FUTURE_GET_MAP)
+            anchorFinder_.check(&get_map,cur_x,cur_y);
         #endif
 
         switch(anchorFinder_.block_mode){
@@ -1664,8 +1667,8 @@ void MultiGoals::mloop(){
                 sleep(1);
                 break;
             case 22:
-                #ifdef USE_FUTURE_GET_MAP
-                get_map.get();
+                #if defined(USE_FUTURE_GET_MAP)
+                    get_map.get();
                 #endif
                 break;
             case 30:        // auto map build

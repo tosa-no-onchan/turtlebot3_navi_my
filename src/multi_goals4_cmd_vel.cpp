@@ -358,7 +358,7 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
     //ros::init(argc, argv, "muliti_goals4");
 
-    std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("muliti_goals4");
+    std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("muliti_goals4",rclcpp::NodeOptions{});
 
     //ros::NodeHandle nh;
     //ros::NodeHandle nh("~");
@@ -388,8 +388,8 @@ int main(int argc, char** argv)
     //    rate.sleep();
     //}
 
-    //mg_ex.mloop_ex(goallist);
-    mg_ex.mloop_ex(turtlebot3_house);
+    mg_ex.mloop_ex(goallist);
+    //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(goallist2);
     //mg_ex.mloop_ex2(m_rotate_2);
 

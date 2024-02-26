@@ -26,16 +26,18 @@
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+
 #include "tf2/exceptions.h"
+#include "tf2/transform_datatypes.h"
+
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include "com_def.hpp"
 
-#include "tf2/transform_datatypes.h"
-
+//#include "rclcpp/clock.hpp"
 
 /*
 * T round_my(T dt,int n)
@@ -57,17 +59,18 @@ class HeartBeat{
 public:
     HeartBeat(){}
     void init(std::shared_ptr<rclcpp::Node> node);
-    bool set_on_off(bool act_on=true){
+    void set_on_off(bool act_on=true){
         act_on_=act_on;
     }
 
+    bool act_on_;
+    //volatile bool act_on_;
 
 private:
     std::shared_ptr<rclcpp::Node> node_;
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_uint32_;
     u_int32_t no_;
-    bool act_on_;
 
     void timer_callback();
 
@@ -118,11 +121,13 @@ private:
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;        // http://docs.ros.org/en/jade/api/tf2_ros/html/c++/classtf2__ros_1_1Buffer.html
 
-    u_char log_level=3;
+    //u_char log_level=3;
+    u_char log_level=1;
 
     std::shared_ptr<rclcpp::Node> node_;
     rmw_qos_profile_t custom_qos_;
 
+    bool use_sim_time_ = false;
 
 };
 

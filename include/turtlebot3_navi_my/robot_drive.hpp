@@ -132,7 +132,8 @@ public:
       stop_dz(d_theta) : [deg] 基本座標上の角度
       speed :  5.0  [deg/s]
   */
-  void rotate_abs(float stop_dz,float speed=5.0);
+  //void rotate_abs(float stop_dz,float speed=5.0);
+  void rotate_abs(float stop_dz,float speed=8.0);
   /* 
   void rotate_off()
       d_theta : [deg] ロボット座標上の角度

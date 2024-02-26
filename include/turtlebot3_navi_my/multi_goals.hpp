@@ -29,7 +29,7 @@ multi_goals.hpp
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/transform_datatypes.h"
 
 
@@ -64,8 +64,15 @@ multi_goals.hpp
 #include "com_lib.hpp"
 #include "Labeling.hpp"
 
-
 #include <opencv2/opencv.hpp>
+
+#define USE_FUTURE_GET_MAP
+
+
+#if defined(USE_FUTURE_GET_MAP)
+    #include "multi_goals_sub.hpp"
+#endif
+
 //#define USE_MAP_SAVER 
 // map_server/map_saver の画像を使う時は、こちらを使って下さい。
 #ifdef USE_MAP_SAVER
@@ -111,8 +118,8 @@ private:
     double x_g;
     double y_g;
 
-    #ifdef USE_FUTURE_GET_MAP
-    GetMap *getmap_;
+    #if defined(USE_FUTURE_GET_MAP)
+        GetMap *getmap_;
     #endif
 
     cv::Mat img_lab_;
@@ -182,8 +189,8 @@ public:
     }
 
     void sort_blob(float cur_x,float cur_y);
-    #ifdef USE_FUTURE_GET_MAP
-    void check(GetMap *getmap,float cur_x,float cur_y);
+    #if defined(USE_FUTURE_GET_MAP)
+        void check(GetMap *getmap,float cur_x,float cur_y);
     #endif
 
     void anchoring(cv::Mat &mat_blob2,float cur_x,float cur_y);
@@ -240,8 +247,8 @@ public:
     BlobFinder(){}
 
     void sort_blob(float cur_x,float cur_y);
-    #ifdef USE_FUTURE_GET_MAP
-    void check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y);
+    #if defined(USE_FUTURE_GET_MAP)
+        void check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y);
     #endif
     bool check_Border(float x,float y);
 };
@@ -276,10 +283,12 @@ private:
     BlobFinder blobFinder_;
     AnchorFinder anchorFinder_;
 
+    int get_map_func_=0;
+
 public:
 
-    #ifdef USE_FUTURE_GET_MAP
-    GetMap get_map;
+    #if defined(USE_FUTURE_GET_MAP)
+        GetMap get_map;
     #endif
 
     //RobotNavi navi;

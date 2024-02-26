@@ -5,15 +5,20 @@
 
 #include "turtlebot3_navi_my/multi_goals_sub.hpp"
 
+//using namespace std::chrono_literals;
+
+using std::placeholders::_1;
+
 /*-------------------------
 * class GetMap
 --------------------------*/
 //void GetMap::init(ros::NodeHandle &nh,std::string map_frame)
-void GetMap::init(std::shared_ptr<rclcpp::Node> node,std::string map_frame="map")
+void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_frame)
 {
     //nh_ = nh;
     node_=node;
-    _map_frame = map_frame;
+    map_frame_ = map_frame;
+    func_=func;
 
     //_sub = nh.subscribe(_map_frame, 1);
     //self.map_info = None
@@ -23,7 +28,40 @@ void GetMap::init(std::shared_ptr<rclcpp::Node> node,std::string map_frame="map"
     _line_w = 5;  // ラインの幅 -> grid size [dot]  0.05[m] * 5 = 25[cm]
     _car_r = 4;    // ロボットの回転径 [dot]
     _match_rviz = true;      // True / Flase  -> Rviz の画像と同じにする / しない
+
+    // 'map' のパブリッシュ間隔は、rtabmap_ros/rtabmap の、map のパブリッシュ間隔に拠る。
+    // 定期的に出る場合もあれば、不定期に出る場合もある。
+
+    // map は、不定期に、publish されている場合は、 call back で、取得する。
+    if(func_==0){
+        subscript_ = node_->create_subscription<nav_msgs::msg::OccupancyGrid>(
+        map_frame, 10, std::bind(&GetMap::topic_callback, this, _1));
+    }
+
 }
+
+void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
+{
+    //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
+    std::cout << "GetMap::map_msg.header.frame_id=" << map_msg.header.frame_id << std::endl;
+
+    //std::cout << "map_msg.header" << map_msg.header << std::endl; 
+    //std::cout << "map_msg.info" << map_msg.info << std::endl;
+
+    //auto info = map_msg.info;
+    //auto data = map_msg.data;
+    //printf("%s",info);
+    //printf("%s",data);
+    if(map_ptr_cnt_==0){
+        map_ptr_=std::make_shared<nav_msgs::msg::OccupancyGrid>(map_msg);
+        map_ptr_cnt_=1;
+    }
+    else{
+        map_ptr_.reset();
+        map_ptr_=std::make_shared<nav_msgs::msg::OccupancyGrid>(map_msg);
+    }
+}
+
 
 /*
 * https://answers.ros.org/question/293890/how-to-use-waitformessage-properly/
@@ -35,43 +73,63 @@ void GetMap::init(std::shared_ptr<rclcpp::Node> node,std::string map_frame="map"
 */
 void GetMap::get(){
     int cnt=3;
-    //boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map=nullptr;
-    std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map=nullptr;
+    // for ROS
+    //std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map=nullptr;
+    // for ROS2
+    nav_msgs::msg::OccupancyGrid map;
+    bool is_successful = false;
 
-    while (map==nullptr && cnt >0){
-        // auto map_msg = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>("/map",nh_,ros::Duration(1.0));
-        //printf("%s",map_msg);  // コンパイルエラーで、型が判る
-        //boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>>
+    auto timeout = std::chrono::milliseconds(1000);
 
-        // ros2 版は、? 無い。自分で作れとの事。 by nishi 2023.2.7
-        // https://answers.ros.org/question/378693/waitformessage-ros2-equivalent/
-        //  getLatestMsg() が、近い?
-        // https://github.com/ros2/rclcpp/issues/1953
-        // 
-        //   rclcpp/rclcpp/include/rclcpp/wait_for_message.hpp  <-- これが、今あるみたい。
-        //    https://github.com/ros2/rclcpp/blob/8e6a6fb32d8d6a818b483660e326f2c5313b64ae/rclcpp/include/rclcpp/wait_for_message.hpp#L78-L94
-        //    https://qiita.com/buran5884/items/9ee9b1608716233a9873
-        //
-        map = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>(_map_frame,nh_,ros::Duration(1.0));
-        //std::cout << "map_msg->header" << map_msg->header << std::endl; 
-        //std::cout << "map_msg->info" << map_msg->info << std::endl;
-        cnt--;
+    // map が定期的に、publish されている場合。
+    if(func_ != 0){
+        while (is_successful==false && cnt >0){
+            // auto map_msg = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>("/map",nh_,ros::Duration(1.0));
+            //printf("%s",map_msg);  // コンパイルエラーで、型が判る
+            //boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>>
+
+            // ros2 版は、? 無い。自分で作れとの事。 by nishi 2023.2.7
+            // https://answers.ros.org/question/378693/waitformessage-ros2-equivalent/
+            //  getLatestMsg() が、近い?
+            // https://github.com/ros2/rclcpp/issues/1953
+            // 
+            //   rclcpp/rclcpp/include/rclcpp/wait_for_message.hpp  <-- これが、今あるみたい。
+            //    https://github.com/ros2/rclcpp/blob/8e6a6fb32d8d6a818b483660e326f2c5313b64ae/rclcpp/include/rclcpp/wait_for_message.hpp#L78-L94
+            //    https://qiita.com/buran5884/items/9ee9b1608716233a9873
+            //
+            // for ROS
+            //map = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>(_map_frame,nh_,ros::Duration(1.0));
+            // for ROS2
+            is_successful = rclcpp::wait_for_message<nav_msgs::msg::OccupancyGrid>(map, node_, map_frame_, timeout);
+
+            if(is_successful==true)
+                break;
+
+            //rate.sleep();
+            rclcpp::spin_some(node_);
+
+            cnt--;
+        }
+    }
+    // map は、不定期に、publish されている。
+    else if(map_ptr_cnt_!=0){
+        nav_msgs::msg::OccupancyGrid *map_dt=map_ptr_.get();
+        map = *map_dt;
+        is_successful = true;
     }
     
-    if (map != nullptr){
-        map_info = map->info;
-        std::cout << "map->info=" << map->info << std::endl;
+    if (is_successful == true){
         free_thresh = int(0.196 * 255);
 
-        std::cout << "map->info.width=" << map->info.width << std::endl;         // 225
-        std::cout << "map->info.height=" << map->info.height << std::endl;       // 141
+        std::cout << "map->info.width=" << map.info.width << std::endl;         // 225
+        std::cout << "map->info.height=" << map.info.height << std::endl;       // 141
 
-        resolution = map->info.resolution;
+        resolution = map.info.resolution;
         std::cout << "map->info.resolution=" << resolution << std::endl;        // 0.05
 
         // ロボット位置
-        org_x = map->info.origin.position.x;
-        org_y = map->info.origin.position.y;
+        org_x = map.info.origin.position.x;
+        org_y = map.info.origin.position.y;
         std::cout << "org_x=" << org_x << std::endl;
         std::cout << "org_y=" << org_y << std::endl;
 
@@ -102,7 +160,7 @@ void GetMap::get(){
  
     }
     else{
-        std::cout << "error" << std::endl;
+        std::cout << "GetMap::get(): 99 error" << std::endl;
     }
 }
 
@@ -114,25 +172,28 @@ void GetMap::get(){
 *
 */
 //void GetMap::saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map){
-void saveMap(std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map){
+void GetMap::saveMap(const nav_msgs::msg::OccupancyGrid &map){
     std::string mapname_ ="/home/nishi/map_builder";
     std::string mapdatafile = mapname_ + ".pgm";
     //ROS_INFO("Writing map occupancy data to %s", mapdatafile.c_str());
+    RCLCPP_INFO(node_->get_logger(), "Writing map occupancy data to %s", mapdatafile.c_str());
+
     FILE* out = fopen(mapdatafile.c_str(), "w");
     if (!out)
     {
-        ROS_ERROR("Couldn't save map file to %s", mapdatafile.c_str());
+        //ROS_ERROR("Couldn't save map file to %s", mapdatafile.c_str());
+        RCLCPP_ERROR(node_->get_logger(), "Couldn't save map file to %s", mapdatafile.c_str());
         return;
     }
 
-    mat_map_ = cv::Mat::zeros(map->info.height,map->info.width,CV_8U);
+    mat_map_ = cv::Mat::zeros(map.info.height,map.info.width,CV_8U);
 
     fprintf(out, "P5\n# CREATOR: Map_generator.cpp %.3f m/pix\n%d %d\n255\n",
-            map->info.resolution, map->info.width, map->info.height);
-    for(unsigned int y = 0; y < map->info.height; y++) {
-        for(unsigned int x = 0; x < map->info.width; x++) {
-            unsigned int i = x + (map->info.height - y - 1) * map->info.width;
-            if (map->data[i] == 0) { //occ [0,0.1)
+            map.info.resolution, map.info.width, map.info.height);
+    for(unsigned int y = 0; y < map.info.height; y++) {
+        for(unsigned int x = 0; x < map.info.width; x++) {
+            unsigned int i = x + (map.info.height - y - 1) * map.info.width;
+            if (map.data[i] == 0) { //occ [0,0.1)
                 //fputc(254, out);
                 //fputc(255, out);    // 0xff  white
                 fputc(FREE_AREA, out);
@@ -144,14 +205,14 @@ void saveMap(std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map){
             //else { //occ [0.1,0.65]
             //    fputc(205, out);
             //}
-            else if (map->data[i] < 0) {     // 未チェック領域
+            else if (map.data[i] < 0) {     // 未チェック領域
                 //fputc(128, out);
                 fputc(UNKNOWN_AREA, out);
                 mat_map_.data[i] = UNKNOWN_AREA;
             } 
             else{                       // 障害領域
-                fputc(100-map->data[i],out);
-                mat_map_.data[i] = 100-map->data[i];
+                fputc(100-map.data[i],out);
+                mat_map_.data[i] = 100-map.data[i];
             }
         }
     }
@@ -159,7 +220,10 @@ void saveMap(std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map){
     fclose(out);
 
     std::string mapmetadatafile = mapname_ + ".yaml";
-    ROS_INFO("Writing map occupancy data to %s", mapmetadatafile.c_str());
+
+    //ROS_INFO("Writing map occupancy data to %s", mapmetadatafile.c_str());
+    RCLCPP_INFO(node_->get_logger(), "Writing map occupancy data to %s", mapmetadatafile.c_str());
+
     FILE* yaml_fp = fopen(mapmetadatafile.c_str(), "w");
  
     /*
@@ -171,8 +235,14 @@ occupied_thresh: 0.65
 free_thresh: 0.196
     */
 
-    geometry_msgs::Quaternion orientation = map->info.origin.orientation;
-    tf::Matrix3x3 mat(tf::Quaternion(orientation.x, orientation.y, orientation.z, orientation.w));
+    //geometry_msgs::Quaternion orientation = map.info.origin.orientation;
+    // ROS2
+    // geometry_msgs/msg/Quaternion
+    geometry_msgs::msg::Quaternion orientation = map.info.origin.orientation;
+
+    //tf::Matrix3x3 mat(tf::Quaternion(orientation.x, orientation.y, orientation.z, orientation.w));
+    tf2::Matrix3x3 mat(tf2::Quaternion(orientation.x, orientation.y, orientation.z, orientation.w));
+
     double yaw, pitch, roll;
     mat.getEulerYPR(yaw, pitch, roll);
 
@@ -182,15 +252,15 @@ free_thresh: 0.196
     //yaml_.origin[2] = yaw;
     //yaml_.img_width = map->info.width;
     //yaml_.img_height = map->info.height;
-    mapm_.resolution=map->info.resolution;
-    mapm_.origin[0] = map->info.origin.position.x;
-    mapm_.origin[1] = map->info.origin.position.y;
+    mapm_.resolution=map.info.resolution;
+    mapm_.origin[0] = map.info.origin.position.x;
+    mapm_.origin[1] = map.info.origin.position.y;
     mapm_.origin[2] = yaw;
-    mapm_.width = map->info.width;
-    mapm_.height = map->info.height;
+    mapm_.width = map.info.width;
+    mapm_.height = map.info.height;
 
     fprintf(yaml_fp, "image: %s\nresolution: %f\norigin: [%f, %f, %f]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n\n",
-            mapdatafile.c_str(), map->info.resolution, map->info.origin.position.x, map->info.origin.position.y, yaw);
+            mapdatafile.c_str(), map.info.resolution, map.info.origin.position.x, map.info.origin.position.y, yaw);
 
     fclose(yaml_fp);
 
@@ -508,8 +578,8 @@ void GetMap::np_resize(self,m_grid,req_size){
 /*-------------------------
 * class Grid
 --------------------------*/
-void Grid::init(nav_msgs::MapMetaData map_info,int line_w,std::vector<int8_t> data){
-
+//void Grid::init(nav_msgs::MapMetaData map_info,int line_w,std::vector<int8_t> data){
+void Grid::init(nav_msgs::msg::MapMetaData map_info,int line_w,std::vector<int8_t> data){
     resolution_ = map_info.resolution;
 
     origin_x_ = map_info.origin.position.x;
@@ -616,7 +686,7 @@ void Grid::saveGrid(){
     FILE* out = fopen(mapdatafile.c_str(), "w");
     if (!out)
     {
-        ROS_ERROR("Couldn't save map file to %s", mapdatafile.c_str());
+        //ROS_ERROR("Couldn't save map file to %s", mapdatafile.c_str());
         return;
     }
 

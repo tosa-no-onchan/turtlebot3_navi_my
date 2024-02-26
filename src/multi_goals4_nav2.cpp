@@ -33,10 +33,24 @@ $ ros2 run turtlebot3_navi_my multi_goals4_nav2
 
 //#include <nav_msgs/OccupancyGrid.h>
 
+GoalList goallist0[] ={
+            //{60, 0.0, 0.0, 0.0},      // course correct ON
+            //{64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            {22,0.0,0.0, 0.0},      // get map
+            {21,0.0,0.0, 0.0},      // sleep
+            {22,0.0,0.0, 0.0},      // get map
+            {21,0.0,0.0, 0.0},      // sleep
+            {22,0.0,0.0, 0.0},      // get map
+            {21,0.0,0.0, 0.0},      // sleep
+            {99,0.0,0.0, 0.0}       // end
+        };
+
 GoalList goallist[] ={
             //{60, 0.0, 0.0, 0.0},      // course correct ON
             //{64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+
             //{67, 0.0, 0.0, 0.0},      // set dumper ON
             {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
             //{0, 0.0, 0.0, 90.0},   // go (0.0,0.0) and rotate 0
@@ -53,6 +67,10 @@ GoalList goallist[] ={
             //{99,0.0,0.0, 0.0},      // end
 
             {2, 0.0, 0.0, 90.0},  // rotate_abs 90
+
+            {22,0.0,0.0, 0.0},      // get map
+            //{99,0.0,0.0, 0.0},      // end
+
             {2, 0.0, 0.0, 180.0},  // rotate_abs 180
             {2, 0.0, 0.0, 270.0},  // rotate_abs 270
             {2, 0.0, 0.0, 360},   // rotate_abs 360
@@ -97,7 +115,7 @@ GoalList goallist[] ={
             {0,0.0,0.0, 180.0},    // (0.0,0.0) and rotate 180
             {2,0.0,0.0, 270.0},    // rotate 270
             {2,0.0,0.0, 360.0},    // rotate 360
-            //{22,0.0,0.0, 0.0},      // get map
+            {22,0.0,0.0, 0.0},      // get map
             {99,0.0,0.0, 0.0}       // end
             };
 
@@ -264,7 +282,7 @@ int main(int argc, char **argv){
     rclcpp::init(argc, argv);
 
     //ros::NodeHandle nh;
-    std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("muliti_goals4");
+    std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("muliti_goals4",rclcpp::NodeOptions{});
 
     loop.sleep();
 
@@ -275,6 +293,7 @@ int main(int argc, char **argv){
 
 
     mg_ex.mloop_ex(goallist);
+    //mg_ex.mloop_ex(goallist0);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(turtlebot3_house2);
     //mg_ex.mloop_ex(turtlebot3_auto_map);
