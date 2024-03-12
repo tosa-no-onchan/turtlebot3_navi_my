@@ -3,6 +3,8 @@
   for [foxbot_core3_r2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  
   ROS2 Gazebo Turtlebot3 、 自作 Turtlebot3(foxbot_core3_r2.ino) を、 /cmd_vel 、 navigation2 を使って  
   動かす事ができる、 c++ プログラム。  
+  Auto Map I : Rtabmap_ros with RGBD Camera で、部屋の中を勝手に動き回って、Map を作成する。  
+  Auto Map II : Rtabmap_ros with RGBD Camera で、部屋の中を勝手に動き回って、Map を作成する。  
   
 #### 1. How to install  
 
