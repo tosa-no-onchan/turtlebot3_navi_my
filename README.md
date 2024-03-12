@@ -5,15 +5,21 @@
   動かす事ができる、 c++ プログラム。  
 
   特に、Gazebo House , Turtlebot2 and Rtabmap_ros with RGBD Camera 環境があれば、簡単に下記テストができる。  
-  #### Auto Map I :  
+  #### Auto Map :  
   
     Rtabmap_ros with RGBD Camera で、部屋の中を勝手に動き回って、Map を作成する。  
     床の未走査エッジを自動検索して、動き回って、マップを作成します。  
+
+説明は、下記ページにあります。  
+[自作 Turtlebot3 自律走行に向けたプログラム。#11 AutoMap](http://www.netosa.com/blog/2022/07/-turtlebot3-11.html)  
     
   #### Auto Map II :  
   
     Rtabmap_ros with RGBD Camera で、部屋の中を勝手に動き回って、Map を作成する。  
     障害物のエッジを自動で動き回って、マップを作成します。  
+
+説明は、下記ページにあります。  
+[自作 Turtlebot3 自律走行に向けたプログラム。#12 AutoMap II](http://www.netosa.com/blog/2022/08/-turtlebot3-12.html)  
     
 実行は、下記ランチファイルの上部の説明を参照してください。  
 [turtlebot3_rgbd_sync.launch.py](https://github.com/tosa-no-onchan/rtabmap_ros_my/blob/main/launch/turtlebot3_rgbd_sync.launch.py)  
@@ -48,7 +54,7 @@
 
     2) navigation2  
     mulit_goals4_nav2.cpp の GoalList goallist[] で、指定する。  
-    Auto Map I  
+    Auto Map  
     mg_ex.mloop_ex(turtlebot3_auto_map);  
     Auto Map II  
     mg_ex.mloop_ex(turtlebot3_auto_map_achor);  
