@@ -8,12 +8,12 @@
   #### Auto Map I :  
   
     Rtabmap_ros with RGBD Camera で、部屋の中を勝手に動き回って、Map を作成する。  
-    床のエッジを自動検索して、動き回って、マップを作成します。  
+    床の未走査エッジを自動検索して、動き回って、マップを作成します。  
     
   #### Auto Map II :  
   
     Rtabmap_ros with RGBD Camera で、部屋の中を勝手に動き回って、Map を作成する。  
-    障害物の近くを自動で動き回って、マップを作成します。  
+    障害物のエッジを自動で動き回って、マップを作成します。  
     
 実行は、下記ランチファイルの上部の説明を参照してください。  
 [turtlebot3_rgbd_sync.launch.py](https://github.com/tosa-no-onchan/rtabmap_ros_my/blob/main/launch/turtlebot3_rgbd_sync.launch.py)  
