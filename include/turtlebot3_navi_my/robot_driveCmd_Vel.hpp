@@ -1,5 +1,5 @@
 /*
-* ROS2 robot_drive.hpp
+* ROS2 robot_driveCmd_Vel.hpp
 * https://wiki.ros.org/pr2_controllers/Tutorials/Using%20the%20base%20controller%20with%20odometry%20and%20transform%20information
 *
 * https://www.k-cube.co.jp/wakaba/server/func/math_h.html
@@ -12,8 +12,8 @@
 * $ rosrun turtlebot3_navi_my drive_base
 */
 
-#ifndef ROBOT_DRIVE_HPP
-#define ROBOT_DRIVE_HPP
+#ifndef ROBOT_DRIVE_CMD_VEL_HPP
+#define ROBOT_DRIVE_CMD_VEL_HPP
 
 //#include <iostream>
 
@@ -23,6 +23,7 @@
 
 //#include "turtlebot3_navi_my/robot_navi.hpp"
 #include "turtlebot3_navi_my/com_lib.hpp"
+#include "turtlebot3_navi_my/robot_driveCore.hpp"
 
 //#include <unistd.h>
 
@@ -56,35 +57,38 @@
 #define RADIANS_F   57.29577951308232    // [deg/rad]
 #endif
 
-class RobotDrive
+class RobotDriveCmd_Vel: public Robot_DriveCore
 {
 
 public:
-  //tf::StampedTransform base_tf;
-  tf2::Stamped<tf2::Transform> base_tf;
+  //tf2::Stamped<tf2::Transform> base_tf;
 
   //RobotNavi navi_;
-  GetTF getTF_;
+  //GetTF getTF_;
+  GetTF *getTF_;   // changed by nishi 2024.2.27
+
   HeartBeat heartBeat_;   // add by nishi 2023.3.8
 
-  double _rx, _ry, _rz;
-  bool _course_correct;
-  bool _after_correct_wait;
-  bool _go_curve;
-  bool _dumper;
+  //double _rx, _ry, _rz;
+  //bool _course_correct;
+  //bool _after_correct_wait;
+  //bool _go_curve;
+  //bool _dumper;
 
   //! ROS node initialization
-  RobotDrive(){}
+  RobotDriveCmd_Vel(){}
 
-  void init(std::shared_ptr<rclcpp::Node> node,bool navi_use=false);
+  void init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use=false);
 
   /*
   move()
   自分からの相対位置へ移動
-      dist: 自分からの距離
-      d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
+      float dist: 自分からの距離
+      float d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
+      bool func_f: false[deafult] d_yaw -> 基準座標での角度(今までの処理)
+                   true           d_yaw(+/-) -> ロボットからの角度
   */
-  void move(float dist,float d_yaw);
+  void move(float dist,float d_yaw,bool func_f=false);
 
   /*
   move_abs()
@@ -100,6 +104,7 @@ public:
       float y:
       float &dist:
       float &r_yaw:
+      float &r_yaw_off:
   */
   void comp_dad(float x,float y,float &dist, float &r_yaw, float &r_yaw_off);
 
@@ -118,9 +123,9 @@ public:
     }
   }
   /*
-  * void get_tf(int func)
+  * bool get_tf(int func)
   */
-  void get_tf(int func=0);
+  bool get_tf(int func=0);
   /*
   go_abs(x,y,isForward=True,speed=0.05)
   直進する。
@@ -133,13 +138,23 @@ public:
       speed :  5.0  [deg/s]
   */
   //void rotate_abs(float stop_dz,float speed=5.0);
-  void rotate_abs(float stop_dz,float speed=8.0);
+  //void rotate_abs(float stop_dz,float speed=8.0);
+
+  /*
+  rotate_abs()
+      stop_dz(d_theta) : [deg] 基本座標上の角度
+      rad_f : false -> deg / true -> radian
+      speed :  5.0  [deg/s]
+  */
+  void rotate_abs(float stop_dz,bool rad_f=false, float speed=15.0);
+
+
   /* 
   void rotate_off()
       d_theta : [deg] ロボット座標上の角度
       speed :  5.0  [deg/s]
   */
-  void rotate_off(float d_theta, float speed=5.0,bool go_curve=false);
+  void rotate_off(float d_theta, float speed=15.0,bool go_curve=false);
   //! Drive forward a specified distance based on odometry information
   bool driveForwardOdom(double distance);
   bool turnOdom(bool clockwise, double radians);

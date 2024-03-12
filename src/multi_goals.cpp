@@ -762,7 +762,7 @@ bool AnchorFinder::anchor_put(int gx,int gy,float cur_x,float cur_y){
     // wx0,wy0 の 障害物チェック
     // 非障害物へ近づく補正
     #if defined(USE_FUTURE_GET_MAP)
-        getmap_->check_collision(wx0,wy0,wx,wy,1);
+        getmap_->check_collision(wx0,wy0,wx,wy,robo_r_,1);  // changed by nishi 2024.3.1
     #endif
 
     // アンカーの場所が、未処理のブロックかチェック
@@ -1232,7 +1232,6 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
 #endif
 
 
-
 /*
 * class MultiGoals
 */
@@ -1248,7 +1247,28 @@ void MultiGoals::init(std::shared_ptr<rclcpp::Node> node){
 
     //navi.init(nh,2);
     //drive.init(nh,true);
-    drive.init(node,true);
+
+    //drive.init(node);                // changed by nishi 2024.2.27
+    #if defined(USE_MOVE_BASE)
+        //drive_=&drive_nav; 
+        // Sub1* sub1 = dynamic_cast<Sub1*>(new Base());  // ダウンキャスト
+        //drive_=dynamic_cast<Robot_DriveCore *>(new RobotDriveNAV2());     
+        drive_=dynamic_cast<Robot_DriveCore *>(&drive_nav);     
+
+        drive_nav.init(node,&getTF,true);   
+        drive_cmd.init(node_,&getTF,true);                // changed by nishi 2024.2.27
+        mode_f_origin=mode_f=1;    // 1: navigation2 mode
+    #else
+        //drive_=&drive_cmd;
+        //drive_=dynamic_cast<Robot_DriveCore *>(new RobotDriveCmd_Vel());     
+        drive_=dynamic_cast<Robot_DriveCore *>(&drive_cmd);     
+        drive_cmd.init(node_,&getTF,true);                // changed by nishi 2024.2.27
+        mode_f_origin=mode_f=0;       // 0:vmd_vel mode
+    #endif
+
+
+
+    std::cout << "MultiGoals::init():#1.1 mode_f="<< mode_f << std::endl;
 
     #if defined(USE_FUTURE_GET_MAP)
         get_map.init(node,get_map_func_);
@@ -1270,6 +1290,7 @@ void MultiGoals::init(std::shared_ptr<rclcpp::Node> node){
 }
 
 /*
+AutoMap I
 auto_map()
     Auto Map builder
 */
@@ -1279,7 +1300,6 @@ void MultiGoals::auto_map(){
     float off;
 
     std::vector<Gpoint> *g_ponts_ptr=nullptr;
-
 
     if(blobFinder_.g_points1.empty() != true){
         blobFinder_.g_points1.clear();
@@ -1294,7 +1314,6 @@ void MultiGoals::auto_map(){
     blobFinder_.g_points2.reserve(50);
     blobFinder_.g_points_black.reserve(50);
 
-
     for(int lc=0; lc < 100 ;lc++){
         off=0.0;
         #if defined(USE_FUTURE_GET_MAP)
@@ -1302,10 +1321,12 @@ void MultiGoals::auto_map(){
         #endif
 
         std::cout << "auto_map() #6 call drive.get_tf(2)" << std::endl;
-        drive.get_tf(2);
+        //drive.get_tf(2);      // changed by nishi 2024.2.28
+        drive_->get_tf(2);
 
-        //tf::Vector3 cur_origin = drive.base_tf.getOrigin();
-        tf2::Vector3 cur_origin = drive.base_tf.getOrigin();
+        //tf2::Vector3 cur_origin = drive.base_tf.getOrigin();
+        tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();    // changed by nishi 2024.2.28
+
         float cur_x = cur_origin.getX();
         float cur_y = cur_origin.getY();
 
@@ -1346,18 +1367,35 @@ void MultiGoals::auto_map(){
             if(g_ponts_ptr->at(j).dist > 0.3){
 
                 float ox,oy;
+
+                // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                obstacle_escape();
+
                 // 此処で、走査先の障害物との距離をチェック
+                // ここの距離に余裕が必要では?  by nishi 2024.3.1
                 #if defined(USE_FUTURE_GET_MAP)
-                    get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy);
+                    //get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy);
+                    get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy,blobFinder_.robo_r_);   // changed by nishi 2024.3.1
                 #endif
 
                 //drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
-                drive.comp_dad(ox,oy,dist, r_yaw, r_yaw_off);
+                //drive.comp_dad(ox,oy,dist, r_yaw, r_yaw_off);
+                drive_->comp_dad(ox,oy,dist, r_yaw, r_yaw_off); // changed by nishi 2024.2.28
 
                 // Navi move
+                std::cout << ">> auto_map() Next, goes to x="<< ox+off << " ,y="<< oy+off << std::endl;
+
+                #define USE_TEST_PLOT
+                #if defined(USE_TEST_PLOT)
+                    // plot してみる for Debug
+                    get_map.test_plot(ox+off,oy+off,r_yaw,r_yaw_off);
+                #endif
+
                 //drive.navi_move(blobFinder_.abs_x_+off,blobFinder_.abs_y_+off,r_yaw);
                 //if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
-                if(drive.navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){
+                //if(drive.navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){
+                if(drive_->navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){    // changed by nishi 2024.2.28
                     std::cout << ">> derive.navi_move() error end"<< std::endl;
                     std::cout << ">> black point appeend"<< std::endl;
                     blobFinder_.g_points_black.push_back(g_ponts_ptr->at(j));
@@ -1371,7 +1409,9 @@ void MultiGoals::auto_map(){
             g_ponts_ptr->pop_back();
 
             // ロボットの現在位置
-            cur_origin = drive.base_tf.getOrigin();
+            //cur_origin = drive.base_tf.getOrigin();
+            cur_origin = drive_->base_tf.getOrigin();   // changed by nishi 2024.2.28
+
             cur_x = cur_origin.getX();
             cur_y = cur_origin.getY();
             // ブロブを、ロボットの現在位置の近い順(降順)にする
@@ -1391,9 +1431,17 @@ void MultiGoals::auto_map(){
         //for(int k=0;k<4 ;k++){
         //   drive.rotate_off(d_yaw);
         //}
-        drive.rotate_off(30.0);
-        drive.rotate_off(-60.0);
-        drive.rotate_off(30.0);
+
+        // ここで、GetMap::check_obstacle() で、前方の障害物をチェックして、問題があれば、後ろを向かせる。add by nishi 2024.3.7
+        obstacle_escape();
+
+        // ここを、cmd_vel モードにしたらどう?  by nishi 2024.3.1
+        set_drive_mode(0);      // set cmd_vel mode
+        // 前方、60 をチェック
+        drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
+        drive_->rotate_off(-60.0);  // changed by nishi 2024.2.28
+        drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
+        set_drive_mode(1);      // set nav2 mode
 
     }
     std::cout << ">> End Auto Map" << std::endl;
@@ -1401,6 +1449,7 @@ void MultiGoals::auto_map(){
 
 
 /*
+AutoMap II
 auto_map_anchor
     Auto Map builder of Anchor
 
@@ -1439,10 +1488,13 @@ void MultiGoals::auto_map_anchor(){
         #endif
 
         std::cout << "auto_map_anchor() #1 call drive.get_tf(2)" << std::endl;
-        drive.get_tf(2);
+        //drive.get_tf(2);
+        drive_->get_tf(2);      // changed by nishi 2024.2.28
 
         //tf::Vector3 cur_origin = drive.base_tf.getOrigin();
-        tf2::Vector3 cur_origin = drive.base_tf.getOrigin();
+        //tf2::Vector3 cur_origin = drive.base_tf.getOrigin();
+        tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();  // changed by nishi 2024.2.28
+
         float cur_x = cur_origin.getX();    // World point(基本座標)
         float cur_y = cur_origin.getY();    // World point(基本座標)
 
@@ -1483,18 +1535,29 @@ void MultiGoals::auto_map_anchor(){
             u_int8_t mark=255;
             if(g_ponts_ptr->at(j).dist > 0.25){
 
+                // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                obstacle_escape();
+
                 //float ox,oy;
                 // 此処で、走査先の非障害物との距離をチェック
-                //get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy,1);
+                //get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy,7,1);
 
-                drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
-                //drive.comp_dad(ox,oy,dist, r_yaw, r_yaw_off);
+                //drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
+                drive_->comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off); // changed by nishi 2024.2.28
 
                 // Navi move
                 //drive.navi_move(blobFinder_.abs_x_+off,blobFinder_.abs_y_+off,r_yaw);
-                std::cout << ">> Next, goes to x="<< g_ponts_ptr->at(j).x+off << " ,y="<< g_ponts_ptr->at(j).y+off << std::endl;
-                if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
-                //if(drive.navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){
+                std::cout << ">> auto_map_anchor() Next, goes to x="<< g_ponts_ptr->at(j).x+off << " ,y="<< g_ponts_ptr->at(j).y+off << std::endl;
+
+                #define USE_TEST_PLOT2
+                #if defined(USE_TEST_PLOT2)
+                    // plot してみる for Debug
+                    get_map.test_plot(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off);
+                #endif
+
+                //if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
+                if(drive_->navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){    // changed by nishi 2024.2.28
                     std::cout << ">> derive.navi_move() error end"<< std::endl;
                     //std::cout << ">> black point appeend"<< std::endl;
                     //anchorFinder_.g_points_black.push_back(g_ponts_ptr->at(j));
@@ -1512,7 +1575,9 @@ void MultiGoals::auto_map_anchor(){
             g_ponts_ptr->pop_back();
 
             // ロボットの現在位置
-            cur_origin = drive.base_tf.getOrigin();
+            //cur_origin = drive.base_tf.getOrigin();
+            cur_origin = drive_->base_tf.getOrigin();   // changed by nishi 2024.2.28
+
             cur_x = cur_origin.getX();
             cur_y = cur_origin.getY();
             // ブロブを、ロボットの現在位置の近い順(降順)にする
@@ -1535,9 +1600,21 @@ void MultiGoals::auto_map_anchor(){
         //for(int k=0;k<4 ;k++){
         //   drive.rotate_off(d_yaw);
         //}
-        drive.rotate_off(30.0);
-        drive.rotate_off(-60.0);
-        drive.rotate_off(30.0);
+
+        // ここで、GetMap::check_obstacle() で、前方の障害物をチェックして、問題があれば、後ろを向かせる。add by nishi 2024.3.7
+        obstacle_escape();
+
+        // ここを、cmd_vel モードにしたらどう?  by nishi 2024.3.1
+        // 前方、60 をチェック
+        set_drive_mode(0);  // set cmd_vel mode
+        //drive.rotate_off(30.0);
+        drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
+        //drive.rotate_off(-60.0);
+        drive_->rotate_off(-60.0);  // changed by nishi 2024.2.28
+        //drive.rotate_off(30.0);
+        drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
+        set_drive_mode(1);  // set nav2 mode
+
     }
     anchorFinder_.release_blk();
     std::cout << ">> End Auto Map Anchor" << std::endl;
@@ -1565,6 +1642,206 @@ void MultiGoals::mloop_ex2(GoalList2 *goalList2){
     t_type=1;
     mloop();
 }
+
+
+/*
+* set_drive_mode(int func)
+* func: 0 -> cmd_vel, 1 -> navi2
+*/
+void MultiGoals::set_drive_mode(int func){
+    #if defined(USE_MOVE_BASE)
+        if(func==1){
+            if(mode_f_origin ==1 && mode_f==0){
+                drive_=dynamic_cast<Robot_DriveCore *>(&drive_nav);
+                mode_f=1;
+            }
+        }
+        else{
+            if(mode_f_origin ==1 && mode_f==1){
+                drive_=dynamic_cast<Robot_DriveCore *>(&drive_cmd);
+                mode_f=0;
+            }
+        }
+    #endif
+}
+
+/*
+* check_obstacle_backaround(float r_lng,int black_thresh)
+*  float r_lng: ロボットの周囲の半径[M]
+*  int black_thresh: black count の閾値
+*  ロボットの前方の障害物をチェックして、前方が塞がっていれば、後ろ向きにする。
+*/
+void MultiGoals::check_obstacle_backaround(float r_lng,int black_thresh){
+    get_map.get();
+    drive_->get_tf(2);  
+    tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();  // changed by nishi 2024.2.28
+
+    float cur_x_tmp = cur_origin.getX();    // World point(基本座標) [M]
+    float cur_y_tmp = cur_origin.getY();    // World point(基本座標) [M]
+    // ロボットの今の向き
+    std::cout << "drive->_rz*RADIANS_F: " << drive_->_rz*RADIANS_F <<std::endl;
+    // 前方チェック
+    int rcx= get_map.check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,0,black_thresh);
+    if(rcx!=0){
+        set_drive_mode(0);      // set cmd_vel mode
+        // 後ろを向かせる
+        drive_->rotate_off(90.0);   // changed by nishi 2024.3.7
+        drive_->rotate_off(90.0);   // changed by nishi 2024.3.7
+
+        // 再度前方チェックして、障害物がなければ、0.05[M] 前に移動
+
+        get_map.get();
+        drive_->get_tf(2);  
+        cur_origin = drive_->base_tf.getOrigin();  // changed by nishi 2024.2.28
+
+        cur_x_tmp = cur_origin.getX();    // World point(基本座標) [M]
+        cur_y_tmp = cur_origin.getY();    // World point(基本座標) [M]
+        // 前方チェック
+        rcx= get_map.check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,0,black_thresh);
+        if(rcx==0){
+            std::cout << "go forward 0.1[M]" <<std::endl;
+            drive_->move(0.1,drive_->_rz*RADIANS_F);
+        }
+        set_drive_mode(1);      // set nav2 mode
+
+    }
+    else{
+        //後ろをチェック
+        rcx= get_map.check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,2,black_thresh);
+        if(rcx!=0){
+            // 前に動かす
+            std::cout << "go forward 0.1[M]" <<std::endl;
+            set_drive_mode(0);      // set cmd_vel mode
+            drive_->move(0.1,drive_->_rz*RADIANS_F);
+            set_drive_mode(1);      // set nav2 mode
+        }
+
+    }
+}
+
+/*
+* obstacle_escape(float r_lng,int black_thresh,float move_l)
+*  float r_lng: ロボットの周囲の半径[M]
+*  int black_thresh: black count の閾値
+*  float move_l: 移動距離[M] =0.12
+*  ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。
+*/
+void MultiGoals::obstacle_escape(float r_lng,int black_thresh,float move_l){
+    bool all_black=true;
+    get_map.get();
+    drive_->get_tf(2);  
+    tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();  // changed by nishi 2024.2.28
+
+    float cur_x_tmp = cur_origin.getX();    // World point(基本座標) [M]
+    float cur_y_tmp = cur_origin.getY();    // World point(基本座標) [M]
+    // ロボットの今の向き
+    std::cout << "drive->_rz*RADIANS_F: " << drive_->_rz*RADIANS_F <<std::endl;
+
+    int black_counts[4];
+    int min_black_count=1000;
+    int min_black_idx=-1;
+    // 全方向をチェックします。
+    for(int i=0;i<4;i++){
+        black_counts[i]= get_map.check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,i,0);
+        if(black_counts[i] < min_black_count){
+            min_black_count=black_counts[i];
+            min_black_idx=i;
+        }
+    }
+
+    set_drive_mode(0);      // set cmd_vel mode
+
+    // 前方向は、障害物無し
+    if(black_counts[0] <= black_thresh){
+        std::cout << "stay forward" <<std::endl;
+        // 後ろ方向に障害物があります。
+        if(black_counts[2] > black_thresh){
+            // 前に、0.1[M] 動かす。
+            std::cout << "go forward 0.1[M]" <<std::endl;
+            drive_->move(move_l,0.0,true);
+        }
+        // 左右に障害物があります。
+        else if((black_counts[1] > 0 && black_counts[3] > 0) || (black_counts[1] > black_thresh) || (black_counts[3] > black_thresh)){
+            // 前に、0.1[M] 動かす。
+            std::cout << "go forward 0.1[M]" <<std::endl;
+            drive_->move(move_l,0.0,true);
+        }
+    }
+    // 後ろの障害物が、有りません。
+    else if(black_counts[2] <= black_thresh){
+        std::cout << "turn around backward" <<std::endl;
+        // 後ろを向かせ、0.1[M] 動かす。
+        // 後ろを向かせる
+        //drive_->rotate_off(90.0);
+        drive_->rotate_off(180.0);
+
+        std::cout << "go backward 0.1[M]" <<std::endl;
+        drive_->move(move_l,0.0,true);
+    }
+    // 左が、右より障害物が少ない
+    else if(black_counts[1] < black_counts[3]){
+        // 左が障害物が無い
+        if(black_counts[1] <= black_thresh){
+            std::cout << "turn left" <<std::endl;
+            //左へ向かせる。
+            drive_->rotate_off(90.0);
+            // 右が、障害物あり
+            if(black_counts[3] > black_thresh){
+                // 前に、0.1[M] 動かす。
+                std::cout << "go leftward 0.1[M]" <<std::endl;
+                drive_->move(move_l,0.0,true);
+            }
+        }
+    }
+    // 右が、障害物が無い
+    else if(black_counts[3] <= black_thresh){
+        std::cout << "turn right" <<std::endl;
+        //右へ向かせる。
+        drive_->rotate_off(-90.0);
+        // 左は、障害物がある。
+        if(black_counts[1] > black_thresh){
+            // 前に、0.1[M] 動かす。
+            std::cout << "go rightward 0.1[M]" <<std::endl;
+            drive_->move(move_l,0.0,true);
+        }
+    }
+    // すべてブラックです。
+    if(min_black_count > black_thresh){
+        std::cout << "all closed" <<std::endl;
+        // 実機だと、うごかすのは危険か?
+        // 一番空いている方へ移動させる。
+        switch(min_black_idx){
+            case 0: // 前方が空いている
+                // 前に、0.02[M] 動かす。
+                std::cout << " go forward 0.02[M]" <<std::endl;
+                drive_->move(0.02,0.0,true);
+            break;
+            case 1:
+                //左へ向かせる。
+                drive_->rotate_off(90.0);
+                // 前に、0.02[M] 動かす。
+                std::cout << " go leftward 0.02[M]" <<std::endl;
+                drive_->move(0.02,0.0,true);
+            break;
+            case 2:
+                // 後ろを向かせる
+                //drive_->rotate_off(90.0);
+                drive_->rotate_off(180.0);
+                std::cout << " go backward 0.02[M]" <<std::endl;
+                drive_->move(0.02,0.0,true);
+            break;
+            case 3:
+                //右へ向かせる。
+                drive_->rotate_off(-90.0);
+                // 前に、0.02[M] 動かす。
+                std::cout << " go rightward 0.02[M]" <<std::endl;
+                drive_->move(0.02,0.0,true);
+            break;
+        }
+    }
+    set_drive_mode(1);      // set nav2 mode
+}
+
 
 /*
 move(self,dist,deg)
@@ -1643,6 +1920,10 @@ mloop(self)
             69 -> save local cost map
             70 -> set border top-right
             71 -> set border bottom-left
+            72 -> set line_w_
+            73 -> set robo_r_
+            80 -> navigation2 mode
+            81 -> cmd_vel mode
             99 -> end
 */
 void MultiGoals::mloop(){
@@ -1668,7 +1949,42 @@ void MultiGoals::mloop(){
                 break;
             case 22:
                 #if defined(USE_FUTURE_GET_MAP)
-                    get_map.get();
+                    get_map.get(true);
+                    // 障害物の判定テストです。
+                    //#define TEST_KK_888
+                    #if defined(TEST_KK_888)
+                    {
+                        drive_->get_tf(2);      // changed by nishi 2024.2.28
+                        tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();  // changed by nishi 2024.2.28
+
+                        float cur_x = cur_origin.getX();    // World point(基本座標) [M]
+                        float cur_y = cur_origin.getY();    // World point(基本座標) [M]
+                        // ロボットの今の向き
+                        std::cout << "drive->_rz*RADIANS_F: " << drive_->_rz*RADIANS_F <<std::endl;
+                        // 前方チェック
+                        //int rcx= get_map.check_obstacle(cur_x,cur_y,drive_->_rz,0.60,0);
+                        // 右横チェック
+                        //int rcx= get_map.check_obstacle(cur_x,cur_y,drive_->_rz,0.60,3);
+                        // 後方チェック
+                        int rcx= get_map.check_obstacle(cur_x,cur_y,drive_->_rz,0.60,2);
+                    }
+                    #endif
+
+                    // GetMap::test_plot() テスト
+                    //#define TEST_KK_777
+                    #if defined(TEST_KK_777)
+                    {
+                        drive_->get_tf(2);      // changed by nishi 2024.2.28
+                        tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();  // changed by nishi 2024.2.28
+
+                        float cur_x = cur_origin.getX();    // World point(基本座標) [M]
+                        float cur_y = cur_origin.getY();    // World point(基本座標) [M]
+                        // ロボットの今の向き
+                        std::cout << "drive->_rz*RADIANS_F: " << drive_->_rz*RADIANS_F <<std::endl;
+                        get_map.test_plot(cur_x,cur_y,drive_->_rz,0.60);
+                    }
+                    #endif
+
                 #endif
                 break;
             case 30:        // auto map build
@@ -1683,33 +1999,39 @@ void MultiGoals::mloop(){
                 break;
             case 60:
                 // course correct ON
-                drive._course_correct = true;
+                //drive._course_correct = true;
+                drive_cmd._course_correct = true;     // changed by nishi 2024.2.28
                 std::cout << "course correct ON" << std::endl;
                 break;
             case 61:
                 // course correct OFF
-                drive._course_correct = false;
+                //drive._course_correct = false;
+                drive_cmd._course_correct = false;     // changed by nishi 2024.2.28
                 std::cout << "course correct OFF" << std::endl;
                 break;
             case 62:
                 // after_correct_wait ON
-                drive._after_correct_wait = true;
+                //drive._after_correct_wait = true;
+                drive_cmd._after_correct_wait = true; // changed by nishi 2024.2.28
                 std::cout << "after_correct_wait ON" << std::endl;
                 break;
             case 63:
                 // after_correct_wait OFF
-                drive._after_correct_wait = false;
+                //drive._after_correct_wait = false;
+                drive_cmd._after_correct_wait = false;    // changed by nishi 2024.2.28
                 std::cout << "after_correct_wait OFF" << std::endl;
                 break;
 
             case 64:
                 // go curve ON
-                drive._go_curve = true;
+                //drive._go_curve = true;
+                drive_cmd._go_curve = true;   // changed by nishi 2024.2.28
                 std::cout << "go curve ON" << std::endl;
                 break;
             case 65:
                 // go curve OFF
-                drive._go_curve = false;
+                //drive._go_curve = false;
+                drive_cmd._go_curve = false;   // changed by nishi 2024.2.28
                 std::cout << "go curve OFF" << std::endl;
                 break;
 
@@ -1718,10 +2040,11 @@ void MultiGoals::mloop(){
                 std::cout << "set current postion to start" << std::endl;
 
                 // tf map からのロボットの距離を求める。
-                //drive.get_tf();
-                drive.get_tf(2);    // tf-map z off 2022.11.15 by nishi
+                //drive.get_tf(2);    // tf-map z off 2022.11.15 by nishi
+                drive_->get_tf(2);    // tf-map z off 2022.11.15 by nishi
 
-                cur_pos = drive.base_tf.getOrigin();
+                //cur_pos = drive.base_tf.getOrigin();
+                cur_pos = drive_->base_tf.getOrigin();    // changed by nishi 2024.2.28
 
                 force_start_origin=true;
                 start_pos_x = cur_pos.getX();
@@ -1734,28 +2057,59 @@ void MultiGoals::mloop(){
 
             case 67:    // set dumper ON
                 std::cout << "set dumper ON" << std::endl;
-                drive._dumper=true;
+                //drive._dumper=true;
+                drive_cmd._dumper=true;     // changed by nhishi 2024.2.28
                 break;
 
             case 68:    // set dumper OFF
                 std::cout << "set dumper OFF" << std::endl;
-                drive._dumper=false;
+                //drive._dumper=false;
+                drive_cmd._dumper=false;     // changed by nhishi 2024.2.28
                 break;
             case 69:
                 std::cout << "save local cost map" << std::endl;
-                drive.navi_map_save();
+                //drive.navi_map_save();
+                drive_->navi_map_save(); // changed by nhishi 2024.2.28
                 break;
 
             case 70:    // set border top-right
                 std::cout << "set border top-right" << std::endl;
                 blobFinder_.border_def.top_r.x=_goalList[goalId].x;
                 blobFinder_.border_def.top_r.y=_goalList[goalId].y;
+
+                anchorFinder_.border_def.top_r.x=_goalList[goalId].x;
+                anchorFinder_.border_def.top_r.y=_goalList[goalId].y;
                 break;
 
             case 71:    // set border bottom-left
                 std::cout << "set border bottom-left" << std::endl;
                 blobFinder_.border_def.bot_l.x= _goalList[goalId].x;
                 blobFinder_.border_def.bot_l.y= _goalList[goalId].y;
+
+                anchorFinder_.border_def.bot_l.x= _goalList[goalId].x;
+                anchorFinder_.border_def.bot_l.y= _goalList[goalId].y;
+                break;
+
+            case 72:    // set line_w_
+                std::cout << "set line_w_" << std::endl;
+                blobFinder_.line_w_=(int)_goalList[goalId].x;
+                anchorFinder_.line_w_=(int)_goalList[goalId].x;
+                break;
+
+            case 73:    // set robo_r_
+                std::cout << "set robo_r_" << std::endl;
+                blobFinder_.robo_r_=(int)_goalList[goalId].x;
+                anchorFinder_.robo_r_=(int)_goalList[goalId].x;
+                break;
+
+            case 80:    // set navigation2 mode
+                std::cout << "set navigation2 mode" << std::endl;
+                set_drive_mode(1);
+                break;
+
+            case 81:    // set cmd_vel mode
+                std::cout << "set cmd_vel mode" << std::endl;
+                set_drive_mode(0);
                 break;
 
             case 99:
@@ -1782,30 +2136,36 @@ void MultiGoals::mloop_sub(){
             y += start_pos_y;
         }
         if (_goalList[goalId].func == 0){
-            drive.move_abs(x,y,d_yaw);
+            //drive.move_abs(x,y,d_yaw);
+            drive_->move_abs(x,y,d_yaw);    // changed by nishi 2024.2.28
             //self.goalMsg.pose.position.y = y;
             //self.goalMsg.pose.position.x = x;
         }
         else if (_goalList[goalId].func == 1){
-            drive.go_abs(x,y);
+            //drive.go_abs(x,y);
+            drive_->go_abs(x,y);            // changed by nishi 2024.2.28
             //self.goalMsg.pose.position.y = y;
             //self.goalMsg.pose.position.x = x;
         }
         else if (_goalList[goalId].func == 2){
-            drive.rotate_abs(d_yaw);
+            //drive.rotate_abs(d_yaw);
+            drive_->rotate_abs(d_yaw);      // changed by nishi 2024.2.28
         }
         else if (_goalList[goalId].func == 3){
-            drive.rotate_off(d_yaw);
+            //drive.rotate_off(d_yaw);
+            drive_->rotate_off(d_yaw);      // changed by nishi 2024.2.28
         }
         else if(_goalList[goalId].func == 10){
-            drive.navi_move(x,y,d_yaw/RADIANS_F);
+            //drive.navi_move(x,y,d_yaw/RADIANS_F);
+            drive_->navi_move(x,y,d_yaw/RADIANS_F); // changed by nishi 2024.2.28
         }
     }
     else{
         if(_goalList2[goalId].func != 10){
             dist = _goalList2[goalId].dist;
             d_yaw = _goalList2[goalId].d_yaw;
-            drive.move(dist,d_yaw);
+            //drive.move(dist,d_yaw);
+            drive_->move(dist,d_yaw,true);           // changed by nishi 2024.3.8
             //self.goalMsg.pose.position.y += dist * math.sin(math.radians(d_yaw));
             //self.goalMsg.pose.position.x += dist * math.cos(math.radians(d_yaw));
         }

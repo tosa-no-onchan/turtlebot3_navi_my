@@ -39,12 +39,12 @@ add_executable(multi_goals4_cmd_vel
   src/multi_goals4_cmd_vel.cpp 
   src/multi_goals.cpp
   src/multi_goals_sub.cpp 
-  src/robot_drive.cpp 
+  src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
 target_compile_options(multi_goals4_cmd_vel PRIVATE -Wno-unused-parameter)
 
 add_executable(drive_base src/drive_base.cpp 
-  src/robot_drive.cpp 
+  src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
 target_compile_options(drive_base PRIVATE -Wno-unused-parameter)
 
@@ -58,6 +58,7 @@ add_executable(multi_goals4_nav2 src/multi_goals4_nav2.cpp
   src/multi_goals.cpp 
   src/multi_goals_sub.cpp 
   src/robot_driveNAV2.cpp 
+  src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
 
 target_compile_options(multi_goals4_nav2 PRIVATE -DUSE_MOVE_BASE)

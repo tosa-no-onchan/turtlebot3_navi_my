@@ -11,6 +11,7 @@
 
 
 #include "turtlebot3_navi_my/com_lib.hpp"
+#include "turtlebot3_navi_my/robot_driveCore.hpp"
 
 #include <functional>
 #include <string>
@@ -55,11 +56,11 @@
 * class RobotDriveNAV2
 *   move_base Version
 */
-class RobotDriveNAV2{
+class RobotDriveNAV2:public Robot_DriveCore
+{
 
 public:
-    //tf::StampedTransform base_tf;
-    tf2::Stamped<tf2::Transform> base_tf;
+    //tf2::Stamped<tf2::Transform> base_tf;
 
     using NavigateToPose = nav2_msgs::action::NavigateToPose;
     using GoalHandleNavigateToPose = rclcpp_action::ClientGoalHandle<NavigateToPose>;
@@ -73,19 +74,18 @@ public:
 
     rclcpp_action::Client<NavigateToPose>::SharedPtr client_ptr_;
 
-    double _rx, _ry, _rz;
+    //double _rx, _ry, _rz;
 
-    bool _course_correct;       // dummy valable
-    bool _after_correct_wait;   // dummy valable
-    bool _go_curve;             // dummy valable
-    bool _dumper;               // dummy valable
+    //bool _course_correct;       // dummy valable
+    //bool _after_correct_wait;   // dummy valable
+    //bool _go_curve;             // dummy valable
+    //bool _dumper;               // dummy valable
 
 
     RobotDriveNAV2(){}
     //void init(ros::NodeHandle &nh,bool navi_use=false);
-    void init(std::shared_ptr<rclcpp::Node> node,bool navi_use=false);
+    void init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use=false);
 
-    bool get_tf(int func=0);
     void exec_pub(float x,float y,float r_yaw,bool rotate_f=false);
     void cancel_goal(std::shared_future<std::shared_ptr<rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>>>goal_handle );
 
@@ -100,14 +100,15 @@ public:
 
     #endif
 
-
     /*
     move()
     自分からの相対位置へ移動
-        dist: 自分からの距離
-        d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
+        float dist: 自分からの距離
+        float d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
+        bool func_f: false[deafult] d_yaw -> 基準座標での角度(今までの処理)
+                     true           d_yaw(+/-) -> ロボットからの角度
     */
-    void move(float dist,float d_yaw);
+    void move(float dist,float d_yaw,bool func_f=false);
 
     /*
     move_abs()
@@ -123,6 +124,7 @@ public:
         float y:
         float &dist:
         float &r_yaw:
+        float &r_yaw_off:
     */
     void comp_dad(float x,float y,float &dist, float &r_yaw, float &r_yaw_off);
 
@@ -145,6 +147,8 @@ public:
     /*
     * void get_tf(int func)
     */
+    bool get_tf(int func=0);
+    //bool get_tf(int func);
 
     /*
     go_abs(x,y,isForward=True,speed=0.05)
@@ -176,7 +180,9 @@ private:
     //! The node handle we'll be using
     //ros::NodeHandle nh_;
     std::shared_ptr<rclcpp::Node> node_;
-    GetTF getTF_;
+    //GetTF getTF_;
+    GetTF *getTF_; // changed by nishi 2024.2.27
+
     HeartBeat heartBeat_;   // add by nishi 2023.3.8
 
     //ros::Publisher pub_;

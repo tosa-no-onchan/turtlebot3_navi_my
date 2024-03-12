@@ -43,7 +43,9 @@ void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_fr
 void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
 {
     //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
-    std::cout << "GetMap::map_msg.header.frame_id=" << map_msg.header.frame_id << std::endl;
+    #if defined(USE_MAP_INT_TRACE)
+        std::cout << "GetMap::map_msg.header.frame_id=" << map_msg.header.frame_id << std::endl;
+    #endif
 
     //std::cout << "map_msg.header" << map_msg.header << std::endl; 
     //std::cout << "map_msg.info" << map_msg.info << std::endl;
@@ -71,7 +73,7 @@ void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
 * https://yomi322.hateblo.jp/entry/2012/04/17/223100
 * https://qiita.com/usagi/items/3563ddb01e4eb342485e
 */
-void GetMap::get(){
+void GetMap::get(bool save_f){
     int cnt=3;
     // for ROS
     //std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map=nullptr;
@@ -121,27 +123,27 @@ void GetMap::get(){
     if (is_successful == true){
         free_thresh = int(0.196 * 255);
 
-        std::cout << "map->info.width=" << map.info.width << std::endl;         // 225
-        std::cout << "map->info.height=" << map.info.height << std::endl;       // 141
+        std::cout << "map->info.width=" << map.info.width;         // 225
+        std::cout << " map->info.height=" << map.info.height;       // 141
 
         resolution = map.info.resolution;
-        std::cout << "map->info.resolution=" << resolution << std::endl;        // 0.05
+        std::cout << " map->info.resolution=" << resolution << std::endl;        // 0.05
 
         // ロボット位置
         org_x = map.info.origin.position.x;
         org_y = map.info.origin.position.y;
-        std::cout << "org_x=" << org_x << std::endl;
-        std::cout << "org_y=" << org_y << std::endl;
+        std::cout << " org_x=" << org_x;
+        std::cout << " org_y=" << org_y;
 
         //x_size = map->info.width / _line_w;
         //y_size = map->info.height / _line_w;
 
-        std::cout << "free_thresh=" << free_thresh << std::endl;
+        std::cout << " free_thresh=" << free_thresh << std::endl;
 
         //grid_.init(map->info,_line_w,map->data);
 
         //conv_fmt2(map);
-        saveMap(map);
+        saveMap(map,save_f);
 
         //2. 障害物を、2値画像 and 反転します。 add by nishi 2022.8.13
         //int thresh = 120;
@@ -172,31 +174,34 @@ void GetMap::get(){
 *
 */
 //void GetMap::saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map){
-void GetMap::saveMap(const nav_msgs::msg::OccupancyGrid &map){
+void GetMap::saveMap(const nav_msgs::msg::OccupancyGrid &map,bool save_f){
+    FILE* out;
+    FILE* yaml_fp;
     std::string mapname_ ="/home/nishi/map_builder";
     std::string mapdatafile = mapname_ + ".pgm";
-    //ROS_INFO("Writing map occupancy data to %s", mapdatafile.c_str());
-    RCLCPP_INFO(node_->get_logger(), "Writing map occupancy data to %s", mapdatafile.c_str());
-
-    FILE* out = fopen(mapdatafile.c_str(), "w");
-    if (!out)
-    {
-        //ROS_ERROR("Couldn't save map file to %s", mapdatafile.c_str());
-        RCLCPP_ERROR(node_->get_logger(), "Couldn't save map file to %s", mapdatafile.c_str());
-        return;
-    }
 
     mat_map_ = cv::Mat::zeros(map.info.height,map.info.width,CV_8U);
 
-    fprintf(out, "P5\n# CREATOR: Map_generator.cpp %.3f m/pix\n%d %d\n255\n",
-            map.info.resolution, map.info.width, map.info.height);
+    if(save_f){
+        //ROS_INFO("Writing map occupancy data to %s", mapdatafile.c_str());
+        RCLCPP_INFO(node_->get_logger(), "Writing map occupancy data to %s", mapdatafile.c_str());
+        out = fopen(mapdatafile.c_str(), "w");
+        if (!out)
+        {
+            //ROS_ERROR("Couldn't save map file to %s", mapdatafile.c_str());
+            RCLCPP_ERROR(node_->get_logger(), "Couldn't save map file to %s", mapdatafile.c_str());
+            return;
+        }
+        fprintf(out, "P5\n# CREATOR: Map_generator.cpp %.3f m/pix\n%d %d\n255\n",
+                map.info.resolution, map.info.width, map.info.height);
+    }
     for(unsigned int y = 0; y < map.info.height; y++) {
         for(unsigned int x = 0; x < map.info.width; x++) {
             unsigned int i = x + (map.info.height - y - 1) * map.info.width;
             if (map.data[i] == 0) { //occ [0,0.1)
                 //fputc(254, out);
                 //fputc(255, out);    // 0xff  white
-                fputc(FREE_AREA, out);
+                if(save_f) fputc(FREE_AREA, out);
                 mat_map_.data[i] = FREE_AREA;
             } 
             //else if (map->data[i] == +100) { //occ (0.65,1]
@@ -207,25 +212,26 @@ void GetMap::saveMap(const nav_msgs::msg::OccupancyGrid &map){
             //}
             else if (map.data[i] < 0) {     // 未チェック領域
                 //fputc(128, out);
-                fputc(UNKNOWN_AREA, out);
+                if(save_f) fputc(UNKNOWN_AREA, out);
                 mat_map_.data[i] = UNKNOWN_AREA;
             } 
             else{                       // 障害領域
-                fputc(100-map.data[i],out);
+                if(save_f) fputc(100-map.data[i],out);
                 mat_map_.data[i] = 100-map.data[i];
             }
         }
     }
 
-    fclose(out);
+    if(save_f) fclose(out);
 
     std::string mapmetadatafile = mapname_ + ".yaml";
 
-    //ROS_INFO("Writing map occupancy data to %s", mapmetadatafile.c_str());
-    RCLCPP_INFO(node_->get_logger(), "Writing map occupancy data to %s", mapmetadatafile.c_str());
+    if(save_f){
+        //ROS_INFO("Writing map occupancy data to %s", mapmetadatafile.c_str());
+        RCLCPP_INFO(node_->get_logger(), "Writing map occupancy data to %s", mapmetadatafile.c_str());
+        yaml_fp = fopen(mapmetadatafile.c_str(), "w");
+    }
 
-    FILE* yaml_fp = fopen(mapmetadatafile.c_str(), "w");
- 
     /*
 resolution: 0.100000
 origin: [0.000000, 0.000000, 0.000000]
@@ -259,11 +265,12 @@ free_thresh: 0.196
     mapm_.width = map.info.width;
     mapm_.height = map.info.height;
 
-    fprintf(yaml_fp, "image: %s\nresolution: %f\norigin: [%f, %f, %f]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n\n",
-            mapdatafile.c_str(), map.info.resolution, map.info.origin.position.x, map.info.origin.position.y, yaw);
+    if(save_f){
+        fprintf(yaml_fp, "image: %s\nresolution: %f\norigin: [%f, %f, %f]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n\n",
+                mapdatafile.c_str(), map.info.resolution, map.info.origin.position.x, map.info.origin.position.y, yaw);
 
-    fclose(yaml_fp);
-
+        fclose(yaml_fp);
+    }
     //ROS_INFO("Done\n");
     //saved_map_ = true;
 }
@@ -271,22 +278,31 @@ free_thresh: 0.196
 /*-------------------------
 * class GetMap
 * check_collision()
+*   float x: 基本座標[M]
+*   float y: 基本座標[M]
+*   float &ox:
+*   float &oy:
+*   int r : ロボットの半径[pixcel] 5 -> 0.25[M] 7 -> 0.35[M]
+*   int func:
 * 障害物から適切な距離を求める
-*  func=0
+*  func=0  default
 *    障害物の2値画像を用いて、障害物の重心から離れる
 *  func=1
 *    非障害物 2値画像を用いて、非障害物の重心の方へ近づく
 --------------------------*/
-void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
+void GetMap::check_collision(float x,float y,float &ox,float &oy,int r,int func){
     ox=x;
     oy=y;
 
     cv::Point center_p; // 円の中心位置
-    int r =5;      // 円の半径  30 -> 1.5[M]      7 ->  0.35[M]  5->0.25[M]
-    if(func!=0){
-        r = 7;
-    }
+    //int r =5;      // 円の半径  30 -> 1.5[M]      7 ->  0.35[M]  5->0.25[M]
+    //if(func!=0){
+    //    r = 7;
+    //}
+
     cv::Mat result,result2,mask;
+
+    std::cout << "check_collision() func:"<< func << " r:"<< r <<std::endl;
 
     //x0 = (x_g + 0.5) * (double)line_w_ * yaml.resolution + yaml.origin[0];
     //y0 = (y_g + 0.5) * (double)line_w_ * yaml.resolution + yaml.origin[1];
@@ -314,10 +330,19 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
         // 白色領域の面積(ピクセル数)を計算する
         int white_cnt = cv::countNonZero(result2);
 
+        //#define CHECK_COLLISION_TEST
+        #if defined(CHECK_COLLISION_TEST)
+            cv::namedWindow("GetMap::check_collision", cv::WINDOW_NORMAL);
+            cv::imshow("GetMap::check_collision", result2);
+            int rc = cv::waitKey(1000);
+            cv::destroyWindow("GetMap::check_collision");
+        #endif
+
+
         // 障害物と接しています。
         if(white_cnt > 0){
 
-            std::cout << "white_cnt=" << white_cnt << std::endl;
+            std::cout << " white_cnt=" << white_cnt << std::endl;
 
             // 4. 見つかった障害物の重心を求めます。
             cv::Moments m = cv::moments(result2,true);
@@ -325,7 +350,7 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
             double x_g = m.m10 / m.m00;
             double y_g = m.m01 / m.m00;
 
-            std::cout << "x_g=" << x_g <<" y_g="<< y_g << std::endl;
+            std::cout << " x_g=" << x_g <<" y_g="<< y_g << std::endl;
 
             // map 重心を、基本座標にします。
             float x_gb = ((float)x_g + 0.5) * mapm_.resolution + mapm_.origin[0];
@@ -354,21 +379,22 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
             float theta_r = std::atan2(off_target_y,off_target_x);   //  [ragian]
 
             float dx,dy;
-            if(white_cnt < 10){
-                // 5.2  (x,y) から、(x_gb,y_gb) とは逆方向に 10[cm] ずらす。
-                dx = std::cos(theta_r) * 0.1;
-                dy = std::sin(theta_r) * 0.1;
-            }
-            else{
-                // 5.2  (x,y) から、(x_gb,y_gb) とは逆方向に 20[cm] ずらす。
+            //if(white_cnt < 10){
+            if(white_cnt < 3){  // changed by nishi 2024.2.10
+                // 5.2  (x,y) から、(x_gb,y_gb) とは逆方向に 20[cm] ずらす。changed by nishi 2024.3.10
                 dx = std::cos(theta_r) * 0.2;
                 dy = std::sin(theta_r) * 0.2;
+            }
+            else{
+                // 5.2  (x,y) から、(x_gb,y_gb) とは逆方向に 40[cm] ずらす。changed by nishi 2024.3.10
+                dx = std::cos(theta_r) * 0.4;
+                dy = std::sin(theta_r) * 0.4;
             }
 
             ox=x+dx;
             oy=y+dy;
 
-            std::cout << "ox=" << ox <<" oy="<< oy << std::endl;
+            std::cout << " ox=" << ox <<" oy="<< oy << std::endl;
         }
     }
     // 非障害物へ近づく処理
@@ -382,7 +408,7 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
         // 非障害物と接しています。
         if(white_cnt > 0){
 
-            std::cout << "white_cnt=" << white_cnt << std::endl;
+            std::cout << " white_cnt=" << white_cnt << std::endl;
 
             // 4. 見つかった非障害物の重心を求めます。
             cv::Moments m = cv::moments(result2,true);
@@ -390,7 +416,7 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
             double x_g = m.m10 / m.m00;
             double y_g = m.m01 / m.m00;
 
-            std::cout << "x_g=" << x_g <<" y_g="<< y_g << std::endl;
+            std::cout << " x_g=" << x_g <<" y_g="<< y_g << std::endl;
 
             // map 重心を、基本座標にします。
             float x_gb = ((float)x_g + 0.5) * mapm_.resolution + mapm_.origin[0];
@@ -433,7 +459,7 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int func){
             ox=x+dx;
             oy=y+dy;
 
-            std::cout << "ox=" << ox <<" oy="<< oy << std::endl;
+            std::cout << " ox=" << ox <<" oy="<< oy << std::endl;
         }
     }
 }
@@ -494,6 +520,177 @@ void GetMap::conv_fmt2(std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map){
         //cv2.waitKey(0)
         //cv2.destroyAllWindows()
     }
+}
+
+/*-------------------------
+* class GetMap
+* check_obstacle()
+*  Map上の障害物を、x を中心にした、半径r の 円で、88度毎に判定する
+*   float x: real world[M]
+*   float y: real world[M]
+*   float rz: ロボットの今の向き [radian]
+*   float r_lng: 判定円の半径 [M]
+*   int func=0  default
+*
+*  Rviz2 では、上が X 方向だが、右に90度回転させると、Real World と一致する。
+*                    +y
+*       1            |
+*    2  x  0   -x ---+---> +x 軸 進行方向
+*       3            |
+*                    -y
+* Map -> cv::mat だと、y軸逆か!!
+* コールする前に、GetMap::Get() をコールしてください。
+* 参考ページ
+* http://cvwww.ee.ous.ac.jp/opencv_practice4/
+*/
+int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int black_thresh){
+
+    int rc=0;
+    cv::Point center_p; // 円の中心位置
+
+    cv::Mat result,result2,mask;
+
+    std::cout << "start GetMap::check_obstacle() func=" << func;
+
+
+    // real world 座標を、Mat map 座標に変換 
+    int px = (int)((x - mapm_.origin[0]) / mapm_.resolution);
+    int py = (int)((y - mapm_.origin[1]) / mapm_.resolution);
+
+    //ロボットの現在位置を、マスクの中心にします。
+    center_p.x = px;
+    center_p.y = py;
+
+    // Mask画像 を作成
+    mask = cv::Mat::zeros(mapm_.height, mapm_.width, CV_8UC1);
+    // 円弧、扇形を描く
+	// ellipse(画像, 中心座標, Size(x径, y径), 楕円の回転角度, 始点角度, 終点角度, 色, 線幅, 連結)
+
+    //int rr=12;
+    int rr=(int)(r_lng/0.05);
+
+    // ロボットの今の向き[degree]
+    int dz=(int)(rz*RADIANS_F);
+
+    std::cout << " dz=" << dz << std::endl;
+
+    // /home/nishi/usr/local/src/cpp-nishi/opencv-test1/main-12.cpp
+    // 右が、0 下が 90 上が -90   -- 反時計回り
+    switch(func){
+        case 0:
+            // func=0
+            cv::ellipse(mask, center_p, cv::Size(rr, rr), 0, -44+dz, 44+dz, cv::Scalar(255), -1, cv::LINE_AA);
+        break;
+        case 3:
+            // func=1 -> 3  cv_mat だと、y軸逆か!!
+            cv::ellipse(mask, center_p, cv::Size(rr, rr), 0, -44+dz, -44-90+dz, cv::Scalar(255), -1, cv::LINE_AA);
+        break;
+        case 2:
+            // func=2
+            cv::ellipse(mask, center_p, cv::Size(rr, rr), 0, -44-90+dz, -44-90-90+dz, cv::Scalar(255), -1, cv::LINE_AA);
+        break;
+        case 1:
+            // func=3 -> 1  cv_mat だと、y軸逆か!!
+            cv::ellipse(mask, center_p, cv::Size(rr, rr), 0, 44+dz, 44+90+dz, cv::Scalar(255), -1, cv::LINE_AA);
+        break;
+    }
+    //#define TEST_KK2
+    #if defined(TEST_KK2)
+        cv::imshow("img", mask);
+        cv::waitKey(0);
+        cv::destroyAllWindows();
+    #endif
+
+    //#define TEST_KK2_A
+    #if defined(TEST_KK2_A)
+        cv::imshow("画像", mat_bin_map_);
+        cv::waitKey(0);
+        cv::destroyAllWindows();
+    #endif
+
+    // 障害物 2値化画像に 円のマスクを実施
+    mat_bin_map_.copyTo(result2,mask);
+
+    //#define TEST_KK2_A2
+    #if defined(TEST_KK2_A2)
+        cv::imshow("画像", result2);
+        cv::waitKey(0);
+        cv::destroyAllWindows();
+    #endif
+
+
+    // 黒色領域の面積(ピクセル数)を計算する
+    int black_cnt = cv::countNonZero(result2);
+
+    std::cout << " black_cnt=" << black_cnt;
+
+    if(black_cnt <= black_thresh){
+        black_cnt=0;
+    }
+    std::cout << " adjust black_cnt=" << black_cnt << std::endl;
+    return black_cnt;
+}
+
+
+/*
+test_plot()
+    float x,y: ロボット位置(基準座標) [M]
+    float r_yaw: 基準座標での角度。 [rad]
+    float robot_r=0.3 : ロボット半径
+    ロボットの位置をマップにプロットする。
+*/
+bool GetMap::test_plot(float x,float y,float r_yaw,float robot_r){
+    get();
+
+    std::cout << "GetMap::test_plot()" << std::endl;
+
+    std::cout << "mapm_.origin[0]:"<< mapm_.origin[0]<< " mapm_.origin[1]:"<< mapm_.origin[1] << "mapm_.resolution:"<< mapm_.resolution  << std::endl;
+
+    cv::Point center_p; // 円の中心位置
+    cv::Mat my_map;
+
+    // real world 座標を、Mat map 座標に変換 
+    int px = (int)((x - mapm_.origin[0]) / mapm_.resolution);
+    int py = (int)((y - mapm_.origin[1]) / mapm_.resolution);
+
+    //ロボットの現在位置を、マスクの中心にします。
+    center_p.x = px;
+    center_p.y = py;
+
+    //my_map=mat_map_.clone();
+    my_map=mat_bin_map_.clone();
+    //int rr=(robot_r/mapm_.resolution);
+    int rr=(robot_r/0.05);
+
+    rr=6;
+    //rr=7;
+
+    int dz=(int)(r_yaw*RADIANS_F);
+
+    std::cout << " px:"<< px <<" py:"<< py << " rr:" << rr << std::endl;
+
+
+    // 回転四角形
+    // # RotatedRect(中心座標, サイズ(x, y), 回転角度degree)
+    //cv::RotatedRect rect1(cv::Point2f( 80, 80), cv::Size(rr, rr), 0);
+    cv::RotatedRect rect1(center_p, cv::Size(rr*2, rr*2), 0);
+
+    // ロボットの外形(円)を描く
+    // # ellipse(画像, RotatedRect, 色, 線幅, 連結)
+    //cv::ellipse(my_map, rect1, cv::Scalar(255, 0, 255), 1, cv::LINE_AA);
+    //cv::ellipse(my_map, rect1, cv::Scalar(255), 1, cv::LINE_AA);
+    cv::ellipse(my_map, rect1, cv::Scalar(160), 1, cv::LINE_AA);
+
+    //ロボットの向き。円弧を描く
+    //cv::ellipse(my_map, center_p, cv::Size(rr, rr), 0, -30+dz, 30+dz, cv::Scalar(255), -1, cv::LINE_AA);
+    cv::ellipse(my_map, center_p, cv::Size(rr, rr), 0, -30+dz, 30+dz, cv::Scalar(160), -1, cv::LINE_AA);
+
+    cv::namedWindow("GetMap::test_plot", cv::WINDOW_NORMAL);
+
+    cv::imshow("GetMap::test_plot", my_map);
+    int rc = cv::waitKey(1000);
+    cv::destroyWindow("GetMap::test_plot");
+
 }
 
 

@@ -69,18 +69,23 @@ void RobotDriveNAV2::feedbackCallback(GoalHandleNavigateToPose::SharedPtr pose,c
 
 
 /*
-* void get_tf(int func)
+* bool get_tf(int func)
 */
 bool RobotDriveNAV2::get_tf(int func){
     bool rc;
-    rc=getTF_.get(func);
+    //rc=getTF_.get(func);
+    rc=getTF_->get(func);       // changed by nishi 2024.2.27
 
-    base_tf=getTF_.base_tf;
+    //base_tf=getTF_.base_tf;
+    base_tf=getTF_->base_tf;    // changed by nishi 2024.2.27
 
     if (func==2){
-        _rx=getTF_._rx;
-        _ry=getTF_._ry;
-        _rz=getTF_._rz;
+        //_rx=getTF_._rx;
+        _rx=getTF_->_rx;        // changed by nishi 2024.2.27
+        //_ry=getTF_._ry;
+        _ry=getTF_->_ry;        // changed by nishi 2024.2.27
+        //_rz=getTF_._rz;
+        _rz=getTF_->_rz;        // changed by nishi 2024.2.27
         if(log_level>=3)
             std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
     }
@@ -88,8 +93,10 @@ bool RobotDriveNAV2::get_tf(int func){
 }
 
 //void RobotDriveNAV2::init(ros::NodeHandle &nh,bool navi_use){
-void RobotDriveNAV2::init(std::shared_ptr<rclcpp::Node> node,bool navi_use){
+//void RobotDriveNAV2::init(std::shared_ptr<rclcpp::Node> node,std::shared_ptr<GetTF>getTF,bool navi_use){
+void RobotDriveNAV2::init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use){
     node_=node;
+    getTF_=getTF;       // add by nishi 2024.2.27
 
     rclcpp::WallRate rate(1);
     std::cout << "RobotDriveNAV2::init():#1 " << std::endl;
@@ -97,7 +104,8 @@ void RobotDriveNAV2::init(std::shared_ptr<rclcpp::Node> node,bool navi_use){
     heartBeat_.init(node_);     // add by nishi 2023.3.8
     rate.sleep();
 
-    getTF_.init(node_);
+    //getTF_.init(node_);
+    getTF_->init(node_);    // changed by nishi 2024.2.27
 
     std::cout << "RobotDriveNAV2::init():#2 " << std::endl;
 
@@ -230,7 +238,7 @@ void RobotDriveNAV2::exec_pub(float x,float y,float r_yaw,bool rotate_f){
                 rclcpp::Duration elapsed = cur_t - tf_chk_t;
                 // check tf topic alive add by nishi 2023.3.6
                 if(elapsed.seconds() >= sec_dur_tf){
-                    tf_act=get_tf();
+                    tf_act=get_tf(0);
                     if(tf_act != true){
                         // ここで、 heart beat を止めて、 tf が回復するまで待つモードへ移行する。
                         std::cout << "tf lost !!!!" << std::endl;
@@ -251,7 +259,7 @@ void RobotDriveNAV2::exec_pub(float x,float y,float r_yaw,bool rotate_f){
                     moving_cnt ++;
                     move_chk_t = node_->now();
                     if(rotate_f==false){
-                        tf_act=get_tf();
+                        tf_act=get_tf(0);
                         //tf::Vector3 cur_origin = base_tf.getOrigin();
                         tf2::Vector3 cur_origin = base_tf.getOrigin();
                         float x = cur_origin.getX();
@@ -374,24 +382,38 @@ void RobotDriveNAV2::cancel_goal(std::shared_future<std::shared_ptr<rclcpp_actio
 /*
 move()
 自分からの相対位置へ移動
-    dist: 自分からの距離
-    d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
+    float dist: 自分からの距離
+    float d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
+    bool func_f: false[deafult] d_yaw -> 基準座標での角度(今までの処理)
+                 true           d_yaw(+/-) -> ロボットからの角度
 */
-void RobotDriveNAV2::move(float dist,float d_yaw){
-    get_tf();
+void RobotDriveNAV2::move(float dist,float d_yaw,bool func_f){
+    std::cout << "N move() func_f=" << func_f << std::endl;
+    get_tf(2);
+    float r_yaw,d_yawx;
     //tf::Vector3 start_origin = base_tf.getOrigin();
     tf2::Vector3 start_origin = base_tf.getOrigin();
 
     float start_x = start_origin.getX();
     float start_y = start_origin.getY();
 
-    float r_yaw = d_yaw/RADIANS_F;
+    // 基準座標での角度
+    if(func_f==false){
+        r_yaw = d_yaw/RADIANS_F;
+        d_yawx = d_yaw;
+    }
+    else{
+        r_yaw = _rz + d_yaw/RADIANS_F;
+        d_yawx = r_yaw*RADIANS_F;
+    }
+    std::cout << " d_yawx:"<< d_yawx << std::endl;
+
     // 目的地を計算
     //float y = self.base_tf.transform.translation.y + dist * math.sin(r_yaw);
     float y = start_y + dist * std::sin(r_yaw);
     //float x = self.base_tf.transform.translation.x + dist * math.cos(r_yaw);
     float x = start_x + dist * std::cos(r_yaw);
-    rotate_abs(d_yaw);
+    rotate_abs(d_yawx);
     if (dist != 0.0)
         go_abs(x,y);
 }
@@ -419,6 +441,7 @@ comp_dad() : compute distanse and direction
     float y:
     float &dist:
     float &r_yaw:
+    float &r_yaw_off:
 */
 void RobotDriveNAV2::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_yaw_off){
     get_tf(1);
@@ -440,7 +463,8 @@ void RobotDriveNAV2::comp_dad(float x,float y,float &dist, float &r_yaw, float &
     cur_dist = round_my<float>(cur_dist,3);
 
     if(cur_dist > 0.0){
-        float r_theta = std::atan2(off_y,off_x);   //  [ragian]
+        // ロボットからのターゲットの向き、
+        float r_theta = std::atan2(off_y,off_x);   //  [radian]
         // ロボットの位置の原点からの向きは、
         float r_theta_robo = std::atan2(cur_y,cur_x);
 
@@ -457,7 +481,7 @@ go_abs(x,y,isForward=True,speed=0.05)
 */
 void RobotDriveNAV2::go_abs(float x,float y,float speed ,bool isForward){
 
-    std::cout << "go_abs" << std::endl;
+    std::cout << "N go_abs()" << std::endl;
 
 }
 
@@ -472,14 +496,14 @@ void RobotDriveNAV2::rotate_abs(float stop_dz,bool rad_f,float speed){
     // stop_dz = 180.0 # [deg]
     // speed = 10.0 # [deg/s]
 
-    std::cout << "rotate_abs()" << std::endl;
+    std::cout << "N rotate_abs() ";
     if(rad_f==false){
         std::cout << "stop_dz=" << stop_dz << std::endl;
     }
     else{
         std::cout << "stop_dz=" << stop_dz*RADIANS_F << std::endl;
     }
-    get_tf();
+    get_tf(0);
     //tf::Vector3 start_origin = base_tf.getOrigin();
     tf2::Vector3 start_origin = base_tf.getOrigin();
 
@@ -514,8 +538,7 @@ void RobotDriveNAV2::rotate_off(float d_theta, float speed, bool go_curve){
     // 目的の角度と速度を設定
     //d_theta = 180.0 # [deg]
     //speed = 10.0 # [deg/s]
-    std::cout << "RobotDriveNAV2::rotate_off() called"<< std::endl;
-    std::cout << "d_theta:" << d_theta << std::endl;
+    std::cout << "N rotate_off() d_theta:" << d_theta << std::endl;
 
     float r_theta = d_theta/RADIANS_F;
 
@@ -536,17 +559,13 @@ void RobotDriveNAV2::rotate_off(float d_theta, float speed, bool go_curve){
 //! Drive forward a specified distance based on odometry information
 bool RobotDriveNAV2::driveForwardOdom(double distance)
 {
-  
-
   return false;
 }
 
 bool RobotDriveNAV2::turnOdom(bool clockwise, double radians)
 {
-
   return false;
 }
-
 
 /*-----------------------
 - robot_navi call routine
@@ -560,13 +579,12 @@ navi_move()
 */
 ///void RobotDriveNAV2::navi_move(float x,float y,float r_yaw){
 bool RobotDriveNAV2::navi_move(float x,float y,float r_yaw,float r_yaw_off){
-    rotate_abs(r_yaw,true);
+    //rotate_abs(r_yaw,true);       // change by nishi 2024.3.2
     exec_pub(x,y,r_yaw);
     if(id_ >=3)
     {
         return false;
     }
-
     return true;
 }
 

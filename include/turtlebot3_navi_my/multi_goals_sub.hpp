@@ -126,7 +126,7 @@ public:
     * https://answers.ros.org/question/293890/how-to-use-waitformessage-properly/
     * http://docs.ros.org/en/lunar/api/nav_msgs/html/msg/OccupancyGrid.html
     */
-    void get();
+    void get(bool save_f=false);
 
     /*
     * conv_fmt2(nav_msgs::OccupancyGrid_ map_msg)
@@ -135,9 +135,13 @@ public:
     void conv_fmt2(std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map);
 
     //void saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
-    void saveMap(const nav_msgs::msg::OccupancyGrid &map);
+    void saveMap(const nav_msgs::msg::OccupancyGrid &map,bool save_f=false);
 
-    void check_collision(float x,float y,float &ox,float &oy,int func=0);
+    void check_collision(float x,float y,float &ox,float &oy,int r=5,int func=0);
+
+    int check_obstacle(float x,float y,float rz,float r_lng,int func=0,int black_thresh=15);
+
+    bool test_plot(float x,float y,float r_yaw,float robot_r=0.3);
 
     #ifdef XXXX_X
     void conv_dot2grid(self,x,y);

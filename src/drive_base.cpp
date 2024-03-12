@@ -17,7 +17,7 @@
 
 #include <rclcpp/publisher_options.hpp>
 
-#include "turtlebot3_navi_my/robot_drive.hpp"
+#include "turtlebot3_navi_my/robot_driveCmd_Vel.hpp"
 //#include "turtlebot3_navi_my/robot_driveNAV2.hpp"
 
 
@@ -31,10 +31,14 @@ int main(int argc, char * argv[])
 
   std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("drive_base");
 
-  RobotDrive drive;
+  //std::shared_ptr<GetTF>getTF; 
+  //getTF=std::shared_ptr<GetTF>(new GetTF);
+  GetTF getTF; 
+
+  RobotDriveCmd_Vel drive;
   //RobotDriveNAV2 drive;
 
-  drive.init(node,false);
+  drive.init(node,&getTF,false);
 
   int test_id=1;
 

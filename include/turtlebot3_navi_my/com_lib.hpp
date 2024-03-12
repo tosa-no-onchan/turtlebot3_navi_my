@@ -1,5 +1,5 @@
 /*
-* coom_lib.hpp
+* com_lib.hpp
 *
 *
 */
@@ -128,7 +128,9 @@ private:
     rmw_qos_profile_t custom_qos_;
 
     bool use_sim_time_ = false;
+    bool init_f = false;    // add by nishi 2024.2.27
 
 };
+
 
 #endif  // COM_LIB

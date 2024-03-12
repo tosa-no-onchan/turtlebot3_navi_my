@@ -6,7 +6,7 @@
 #  $ . install/setup.bash
 #
 # 2. run
-# $ ros2 launch turtlebot3_navi_my multi_goals4_cmd_vel.launch.py
+# $ ros2 launch turtlebot3_navi_my multi_goals4_cmd_vel.launch.py use_sim_time:=[True|False]
 #
 import os
 

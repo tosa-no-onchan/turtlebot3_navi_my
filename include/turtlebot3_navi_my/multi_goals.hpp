@@ -44,11 +44,15 @@ multi_goals.hpp
 
 //#include <math.h>
 
+
 #if defined(USE_MOVE_BASE)
     #include "turtlebot3_navi_my/robot_driveNAV2.hpp"
+    #include "turtlebot3_navi_my/robot_driveCmd_Vel.hpp"
 #else
-    #include "turtlebot3_navi_my/robot_drive.hpp"
+    #include "turtlebot3_navi_my/robot_driveCmd_Vel.hpp"
 #endif
+//#include "turtlebot3_navi_my/robot_driveWrp.hpp"
+
 
 //#include <nav_msgs/OccupancyGrid.h>
 //#include <nav_msgs/msg/OccupancyGrid.h>
@@ -112,7 +116,6 @@ class AnchorFinder{
 private:
     bool view_f=false;
     bool view_f_m=false;
-    int  line_w_ = 5;  // ラインの幅 -> grid size [dot]  0.05[m] * 5 = 25[cm]
 
     // blob 重心
     double x_g;
@@ -146,6 +149,12 @@ private:
     //int blk_h_;      // blk_ height
 
 public:
+    // ブロブの作成時の、1[dot]の大きさ。あまり大きいと、ブロブが出来ないので注意。
+    int  line_w_ = 5;  // ラインの幅 -> grid size [dot]  0.05[m] * 5 = 25[cm]
+    // 障害物との距離の調整に使います。単位: size [dot]
+    int  robo_r_ = 4;  // robot 半径  -> grid size [dot]  0.05[m] * 5 = 25[cm]
+                       //     waffle 281 x 306[mm]    30.6/5[cm] = 6.12 -> 7/2  -> 3.5 -> 4
+
     // ロボットの第一候補位置(基本座標)
     double abs_x_;
     double abs_y_;
@@ -210,7 +219,6 @@ class BlobFinder{
 private:
     bool view_f=false;
     bool view_f_m=false;
-    int   line_w_ = 5;  // ラインの幅 -> grid size [dot]  0.05[m] * 5 = 25[cm]
 
     // blob 重心
     double x_g;
@@ -219,6 +227,11 @@ private:
     cv::Mat img_lab_;
 
 public:
+    // ブロブの作成時の、1[dot]の大きさ。あまり大きいと、ブロブが出来ないので注意。
+    int   line_w_ = 5;  // ラインの幅 -> grid size [dot]  0.05[m] * 5 = 25[cm]
+    // 障害物との距離の調整に使います。単位: size [dot]
+    int   robo_r_ = 4;  // robot 半径  -> grid size [dot]  0.05[m] * 5 = 25[cm]
+                        //     waffle 281 x 306[mm]    30.6/5[cm] = 6.12 -> 7/2  -> 3.5 -> 4
     // ロボットの第一候補位置(基本座標)
     double abs_x_;
     double abs_y_;
@@ -253,6 +266,7 @@ public:
     bool check_Border(float x,float y);
 };
 
+
 /*----------------------------
 - class MultiGoals
 ----------------------------*/
@@ -285,18 +299,26 @@ private:
 
     int get_map_func_=0;
 
+
+    // definition for RobotDrive 2024.2.29
+    int mode_f;   // 1: navigation2 mode 0:vmd_vel mode
+    int mode_f_origin;
+    //RobotNavi navi;
+    GetTF getTF; // add by nishi 2024.2.27
+    Robot_DriveCore *drive_;
+    #if defined(USE_MOVE_BASE)
+        RobotDriveNAV2 drive_nav;   // navigation2
+        RobotDriveCmd_Vel drive_cmd;   // cmd_vel
+        //#define drive_cmd drive_nav
+    #else
+        RobotDriveCmd_Vel drive_cmd;       // cmd_vel
+    #endif
+    //RobotDriveWrp drive;    // changed by nishi 2024.2.28
+
 public:
 
     #if defined(USE_FUTURE_GET_MAP)
         GetMap get_map;
-    #endif
-
-    //RobotNavi navi;
-
-    #if defined(USE_MOVE_BASE)
-        RobotDriveNAV2 drive;
-    #else
-        RobotDrive drive;
     #endif
 
     MultiGoals(){}
@@ -319,6 +341,17 @@ public:
         goalList: ゴールリスト2
     */
     void mloop_ex2(GoalList2 *goalList2);
+
+    /*
+    * set_drive_mode(int func)
+    * func: 0 -> cmd_vel, 1 -> navi2
+    */
+    void set_drive_mode(int func);
+
+    void check_obstacle_backaround(float r_lng=0.60,int black_thresh=8);
+
+    void obstacle_escape(float r_lng=0.60,int black_thresh=0,float move_l=0.12);
+
 
     /*
     move(self,dist,deg)
@@ -378,20 +411,30 @@ public:
             func: 0 -> move dist and rotate d_yaw
 
         func
-              21 -> sleep
-              22 -> get map
-              50 -> set Navigation mode
-              60 -> course_correct ON
-              61 -> course_correct OFF
-              62 -> after_correct_wait ON
-              63 -> after_correct_wait OFF
-              64 -> go curve ON
-              65 -> go curve OFF
-              66 -> set current postion as map(0,0)
-              67 -> set dumper ON
-              68 -> set dumper OFF
-              69 -> save local cost map
-              99 -> end
+            21 -> sleep
+            22 -> get map
+            23 -> map update
+            30 -> auto map build
+            31 -> auto map build of anchor
+            50 -> set Navigation mode
+            60 -> course_correct ON
+            61 -> course_correct OFF
+            62 -> after_correct_wait ON
+            63 -> after_correct_wait OFF
+            64 -> go curve ON
+            65 -> go curve OFF
+            66 -> set current postion as map(0,0)
+            67 -> set dumper ON
+            68 -> set dumper OFF
+            69 -> save local cost map
+            70 -> set border top-right
+            71 -> set border bottom-left
+            72 -> set line_w_
+            73 -> set robo_r_
+            80 -> navigation2 mode
+            81 -> cmd_vel mode
+            99 -> end
+
     */
     void mloop();
 

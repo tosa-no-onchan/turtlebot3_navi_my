@@ -7,9 +7,11 @@ https://www.k-cube.co.jp/wakaba/server/func/math_h.html
 https://answers.ros.org/question/50113/transform-quaternion/
 
 build
-$ catkin_make --pkg turtlebot3_navi_my
+$ colcon build --symlink-install --parallel-workers 1 --packages-select turtlebot3_navi_my
+$ source install/local_setup.bash
 
-$ rosrun turtlebot3_navi_my multi_goals4_cmd_vel
+#$ ros2 run turtlebot3_navi_my multi_goals4_cmd_vel
+$ ros2 launch turtlebot3_navi_my multi_goals4_cmd_vel.launch.py use_sim_time:=[True|False]
 */
 
 #include <memory>
@@ -224,7 +226,8 @@ GoalList navi_list1[] ={
             };
 
 
-GoalList2 m_goalList[] ={{60,0.0, 0.0},      // course correct ON
+GoalList2 m_goalList[] ={
+            {60,0.0, 0.0},      // course correct ON
             {0, 0.0, 0},       // [0,0]
             {0, 0.0, 90},
             {0, 0.0, 180},
@@ -272,10 +275,15 @@ GoalList2 m_goalList[] ={{60,0.0, 0.0},      // course correct ON
             };
 
 
-GoalList2 m_goalList2[] ={{0, 0.0, 0},       // [0,0]
-            {0, 1.0, 0},        // [1,0]
+GoalList2 m_goalList2[] ={
+            {60, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0},      // force current position to map(0,0)
+            {67, 0.0, 0.0},      // set dumper ON
+            {0, 0.0, 90},       // [0,0]
+            {0, 0.5, 0.0},        // [0.5,0]
             //{2,0.0,0.0, 0.0},
-            {0, 1.0, 0},        // [2,0]
+            //{0, 1.0, 0},        // [2,0]
             {99, 0.0, 0}        // [3,0]
             };
 
@@ -388,10 +396,12 @@ int main(int argc, char** argv)
     //    rate.sleep();
     //}
 
-    mg_ex.mloop_ex(goallist);
+    //mg_ex.mloop_ex(goallist);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(goallist2);
+
     //mg_ex.mloop_ex2(m_rotate_2);
+    mg_ex.mloop_ex2(m_goalList2);
 
     //mg_ex.mloop_ex(navi_list1);
 

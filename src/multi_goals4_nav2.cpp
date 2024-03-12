@@ -12,7 +12,9 @@ $ colcon build --symlink-install --parallel-workers 1 --packages-select turtlebo
 $ . install/setup.bash
 
 2. run
-$ ros2 run turtlebot3_navi_my multi_goals4_nav2
+ #$ ros2 run turtlebot3_navi_my multi_goals4_nav2
+ $ ros2 launch turtlebot3_navi_my multi_goals4_nav2.launch.py use_sim_time:=True
+
 */
 
 #include <iostream>
@@ -33,17 +35,45 @@ $ ros2 run turtlebot3_navi_my multi_goals4_nav2
 
 //#include <nav_msgs/OccupancyGrid.h>
 
-GoalList goallist0[] ={
+GoalList test1[] ={
             //{60, 0.0, 0.0, 0.0},      // course correct ON
             //{64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            {22,0.0,0.0, 0.0},      // get map
-            {21,0.0,0.0, 0.0},      // sleep
-            {22,0.0,0.0, 0.0},      // get map
-            {21,0.0,0.0, 0.0},      // sleep
-            {22,0.0,0.0, 0.0},      // get map
-            {21,0.0,0.0, 0.0},      // sleep
-            {99,0.0,0.0, 0.0}       // end
+            {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
+            //{22, 0.0,0.0, 0.0},      // get map
+            {2, 0.0, 0.0, 90.0},    // rotate_abs 90
+            {22, 0.0,0.0, 0.0},      // get map
+
+            {2, 0.0, 0.0, 180.0},   // rotate_abs 180
+            {22, 0.0,0.0, 0.0},      // get map
+
+            {0,-0.5,0.0, 180.0},    // go (-0.5,0.8) and rotate 180
+            {22, 0.0,0.0, 0.0},      // get map
+
+            {2, -0.5, 0.0, 270.0},   // rotate_abs 270
+            {22, 0.0,0.0, 0.0},      // get map
+
+            {0,-0.5,-0.5, 270.0},    // go (-0.5,-0.5) and rotate 270
+            {22, 0.0,0.0, 0.0},      // get map
+
+
+            //{2, 0.0, 0.0, 360},   // rotate_abs 360
+            {99,0.0,0.0, 0.0},      // end
+
+            {0,0.0,-0.4, 270.0},    // go (0.0,-0.4) and rotate 270
+            {22, 0.0,0.0, 0.0},      // get map
+
+            {0,0.0,-0.8, 270.0},    // go (0.0,-0.8) and rotate 270
+            {22, 0.0,0.0, 0.0},      // get map
+
+            {0,0.0,-0.8, 0.0},    // go (0.0,-0.8) and rotate 0
+            {22, 0.0,0.0, 0.0},      // get map
+
+            {0,0.0,-0.8, 90.0},    // go (0.0,-0.8) and rotate 90
+            {22, 0.0,0.0, 0.0},      // get map
+
+            {21, 0.0,0.0, 0.0},      // sleep
+            {99, 0.0,0.0, 0.0}       // end
         };
 
 GoalList goallist[] ={
@@ -238,12 +268,14 @@ GoalList turtlebot3_house2[] ={
             {99,0.0,0.0, 0.0}       // end
             };
 
-
+// Auto Map I ( nav2 and cmd_vel mode)
 GoalList turtlebot3_auto_map[] ={
-            //{60, 0.0, 0.0, 0.0},      // course correct ON
-            //{64, 0.0, 0.0, 0.0},      // go curve ON
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            //{67, 0.0, 0.0, 0.0},      // set dumper ON
+            {67, 0.0, 0.0, 0.0},      // set dumper ON
+            // 障害物からの距離の調整
+            {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
             {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},      // rotate 90
             {2, 0.0, 0.0, 180.0},     // rotate 180
@@ -255,11 +287,15 @@ GoalList turtlebot3_auto_map[] ={
             {99,0.0,0.0, 0.0},        // end
 };
 
+
+// Auto map II ( nav2 and cmd_vel mode)
 GoalList turtlebot3_auto_map_achor[] ={
-            //{60, 0.0, 0.0, 0.0},      // course correct ON
-            //{64, 0.0, 0.0, 0.0},      // go curve ON
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {67, 0.0, 0.0, 0.0},      // set dumper ON
+            // 障害物からの距離の調整
+            {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            //{67, 0.0, 0.0, 0.0},      // set dumper ON
             {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},      // rotate 90
             {2, 0.0, 0.0, 180.0},     // rotate 180
@@ -270,6 +306,94 @@ GoalList turtlebot3_auto_map_achor[] ={
             {31,0.0,0.0, 0.0},        // Auto map builder of anchor
             {99,0.0,0.0, 0.0},        // end
 };
+
+
+// nav2 and cmd_vel
+GoalList goallist_nav2_cmd[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+
+            {67, 0.0, 0.0, 0.0},      // set dumper ON
+            {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
+
+            //{99,0.0,0.0, 0.0},      // end
+
+            {81, 0.0, 0.0, 0.0},  // set cmd_vel mode
+            {2, 0.0, 0.0, 90.0},  // rotate_abs 90
+            //{22,0.0,0.0, 0.0},      // get map
+            //{99,0.0,0.0, 0.0},      // end
+            {2, 0.0, 0.0, 180.0},  // rotate_abs 180
+            {2, 0.0, 0.0, 270.0},  // rotate_abs 270
+            {2, 0.0, 0.0, 360},   // rotate_abs 360
+            {80, 0.0, 0.0, 0.0},  // set navigation2 mode
+
+            //{99,0.0,0.0, 0.0},      // end
+
+            //{50,0.0,0.0, 0.0},      // set Navigation mode
+            //{22,0.0,0.0, 0.0},      // get map
+            //{99,0.0,0.0, 0.0},      // end
+
+            {0,1.0,0.0, 0.0},      // go (1.0,0.0) and rotate 0
+
+            {81, 0.0, 0.0, 0.0},  // set cmd_vel mode
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            {2,1.0,0.0, 270.0},    // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            {80, 0.0, 0.0, 0.0},  // set navigation2 mode
+
+            //{99,0.0,0.0, 0.0},      // end
+
+            {0,2.0,0.0, 0.0},
+            {81, 0.0, 0.0, 0.0},  // set cmd_vel mode
+            {2,2.0,0.0, 90.0},     // rotate 90
+            {80, 0.0, 0.0, 0.0},  // set navigation2 mode
+
+
+            {0,2.0,0.5, 90.0},     // go (2.0,0.4) and rotate 90
+
+            {81, 0.0, 0.0, 0.0},  // set cmd_vel mode
+            {2,2.0,0.5, 180.0},    // rotate 180
+            {2,2.0,0.5, 270.0},    // rotate 270
+            {80, 0.0, 0.0, 0.0},  // set navigation2 mode
+
+            {0,2.0,0.0, 270.0},    // go (2.0,0.0) and rotate 270
+
+            {81, 0.0, 0.0, 0.0},  // set cmd_vel mode
+            {2,2.0,0.0, -180.0},   // rotate -180
+            {80, 0.0, 0.0, 0.0},  // set navigation2 mode
+
+            //{50,0.0,0.0, 0.0},     // set Navigation mode
+
+            //{2,0.0,0.0, 0.0},
+            //{99,0.0,0.0, 0.0},
+
+            //{50,0.0,0.0, 0.0},
+
+            {0,1.0,0.0, -180.0 },  // go (1.0,0.0) and rotate -180
+
+            {81, 0.0, 0.0, 0.0},  // set cmd_vel mode
+            {2,1.0,0.0, 270.0 },   // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            {80, 0.0, 0.0, 0.0},  // set navigation2 mode
+
+            //{2,0.0,0.0, 0.0},
+
+            {0,0.0,0.0, 180.0},    // (0.0,0.0) and rotate 180
+
+            {81, 0.0, 0.0, 0.0},  // set cmd_vel mode
+            {2,0.0,0.0, 270.0},    // rotate 270
+            {2,0.0,0.0, 360.0},    // rotate 360
+            {80, 0.0, 0.0, 0.0},  // set navigation2 mode
+
+            {22,0.0,0.0, 0.0},      // get map
+            {99,0.0,0.0, 0.0}       // end
+            };
+
+
 
 int main(int argc, char **argv){
     using namespace std::chrono_literals;
@@ -292,12 +416,13 @@ int main(int argc, char **argv){
     mg_ex.init(node);
 
 
-    mg_ex.mloop_ex(goallist);
-    //mg_ex.mloop_ex(goallist0);
+    //mg_ex.mloop_ex(goallist);
+    //mg_ex.mloop_ex(test1);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(turtlebot3_house2);
-    //mg_ex.mloop_ex(turtlebot3_auto_map);
+    mg_ex.mloop_ex(turtlebot3_auto_map);
     //mg_ex.mloop_ex(turtlebot3_auto_map_achor);
+    //mg_ex.mloop_ex(goallist_nav2_cmd);
 
 
     //ros::Rate rate(1);   //  1[Hz]

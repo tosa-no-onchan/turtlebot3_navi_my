@@ -52,6 +52,10 @@ void HeartBeat::timer_callback(){
 
 //void GetTF::init(ros::NodeHandle &nh){
 void GetTF::init(std::shared_ptr<rclcpp::Node> node){
+    if(init_f == true){
+        return;
+    }
+    init_f=true;
     //nh_=nh;
     node_=node;
 
@@ -268,3 +272,4 @@ void GetTF::get2(int func,const std::string& target_frame, const std::string& so
             std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
     }
 }
+

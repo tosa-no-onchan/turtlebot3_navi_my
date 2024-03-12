@@ -7,7 +7,7 @@
 * https://zenn.dev/uchidaryo/articles/ros2-programming-6
 */
 
-#include "turtlebot3_navi_my/robot_drive.hpp"
+#include "turtlebot3_navi_my/robot_driveCmd_Vel.hpp"
 
 #include "geometry_msgs/msg/twist.hpp"
 
@@ -16,15 +16,17 @@ using std::placeholders::_1;
 using namespace std::chrono_literals;
 
 //! ROS node initialization
-void RobotDrive::init(std::shared_ptr<rclcpp::Node> node,bool navi_use)
+void RobotDriveCmd_Vel::init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use)
 {
     node_=node;
+    getTF_=getTF;       // add by nishi 2024.2.27
 
     rclcpp::WallRate rate0(1);
     heartBeat_.init(node_);     // add by nishi 2023.3.8
     rate0.sleep();
 
-    getTF_.init(node);
+    //getTF_.init(node);
+    getTF_->init(node);     // changed by nishi 2024.2.27
 
     if (navi_use==true){
     //    navi_.init(nh,2);
@@ -51,7 +53,8 @@ void RobotDrive::init(std::shared_ptr<rclcpp::Node> node,bool navi_use)
     rclcpp::WallRate rate(50.0);
 
     while(i >= 0){
-        getTF_.get();
+        //getTF_.get();
+        getTF_->get();
         rate.sleep();
         //_pub.publish(_vel_msg);
         _pub->publish(_vel_msg);
@@ -62,24 +65,38 @@ void RobotDrive::init(std::shared_ptr<rclcpp::Node> node,bool navi_use)
 /*
 move()
 自分からの相対位置へ移動
-    dist: 自分からの距離
-    d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
+    float dist: 自分からの距離
+    float d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
+    bool func_f: false[deafult] d_yaw -> 基準座標での角度(今までの処理)
+                 true           d_yaw(+/-) -> ロボットからの角度
 */
-void RobotDrive::move(float dist,float d_yaw){
-    get_tf();
+void RobotDriveCmd_Vel::move(float dist,float d_yaw,bool func_f){
+    std::cout << "C move() func_f=" << func_f;
+    get_tf(2);
+    float r_yaw,d_yawx;
     //tf::Vector3 start_origin = base_tf.getOrigin();
     tf2::Vector3 start_origin = base_tf.getOrigin();
 
     float start_x = start_origin.getX();
     float start_y = start_origin.getY();
 
-    float r_yaw = d_yaw/RADIANS_F;
+    // 基準座標での角度
+    if(func_f==false){
+        r_yaw = d_yaw/RADIANS_F;
+        d_yawx = d_yaw;
+    }
+    else{
+        r_yaw = _rz + d_yaw/RADIANS_F;
+        d_yawx = r_yaw*RADIANS_F;
+    }
+    std::cout << " d_yawx:"<< d_yawx << std::endl;
+
     // 目的地を計算
     //float y = self.base_tf.transform.translation.y + dist * math.sin(r_yaw);
     float y = start_y + dist * std::sin(r_yaw);
     //float x = self.base_tf.transform.translation.x + dist * math.cos(r_yaw);
     float x = start_x + dist * std::cos(r_yaw);
-    rotate_abs(d_yaw);
+    rotate_abs(d_yawx);
     if (dist != 0.0)
         go_abs(x,y);
 }
@@ -88,7 +105,7 @@ move_abs()
     x,y: 絶対番地への移動(基準座標)
     d_yaw: 基準座標での角度。 [degree]
 */
-void RobotDrive::move_abs(float x,float y,float d_yaw){
+void RobotDriveCmd_Vel::move_abs(float x,float y,float d_yaw){
     rotate_abs(d_yaw);
     go_abs(x,y);
 }
@@ -100,8 +117,9 @@ comp_dad() : compute distanse and direction
     float y:
     float &dist:
     float &r_yaw:
+    float &r_yaw_off:
 */
-void RobotDrive::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_yaw_off){
+void RobotDriveCmd_Vel::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_yaw_off){
     get_tf(1);
 
     dist=0.0;
@@ -123,7 +141,7 @@ void RobotDrive::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_ya
 
     if(cur_dist > 0.0){
         // ロボットからのターゲットの向き、
-        float r_theta = std::atan2(off_y,off_x);   //  [ragian] ノーマライズが必要か?
+        float r_theta = std::atan2(off_y,off_x);   //  [radian] ノーマライズが必要か?
 
         // 180度表現に変換
         if (abs(r_theta) > 180.0/RADIANS_F){
@@ -148,8 +166,6 @@ void RobotDrive::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_ya
         //else if (r_theta_off < -180.0/RADIANS_F)
         //    r_theta_off += 360.0/RADIANS_F;
 
-
-
         dist=cur_dist;
         //r_yaw= r_theta+r_theta_robo;
         r_yaw= r_theta;     
@@ -158,20 +174,27 @@ void RobotDrive::comp_dad(float x,float y,float &dist, float &r_yaw, float &r_ya
 }
 
 /*
-* void get_tf(int func)
+* bool get_tf(int func)
 */
-void RobotDrive::get_tf(int func){
-    getTF_.get(func);
+bool RobotDriveCmd_Vel::get_tf(int func){
+    bool rc;
+    //getTF_.get(func);
+    rc=getTF_->get(func);  // changed by nishi 2024.2.27
 
-    base_tf=getTF_.base_tf;
+    //base_tf=getTF_.base_tf;
+    base_tf=getTF_->base_tf;    // changed by nishi 2024.2.27
 
     if (func==2){
-        _rx=getTF_._rx;
-        _ry=getTF_._ry;
-        _rz=getTF_._rz;
+        //_rx=getTF_._rx;
+        _rx=getTF_->_rx;    // changed by nishi 2024.2.27
+        //_ry=getTF_._ry;
+        _ry=getTF_->_ry;    // changed by nishi 2024.2.27
+        //_rz=getTF_._rz;
+        _rz=getTF_->_rz;    // changed by nishi 2024.2.27
         if(log_level>=3)
             std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
     }
+    return rc;
 }
 
 
@@ -179,9 +202,9 @@ void RobotDrive::get_tf(int func){
 go_abs(x,y,isForward=True,speed=0.05)
 直進する。
 */
-void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
+void RobotDriveCmd_Vel::go_abs(float x,float y,float speed ,bool isForward){
 
-    std::cout << "go_abs" << std::endl;
+    std::cout << "C go_abs()";
 
     float i_spped;
 
@@ -216,9 +239,10 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
     double start_distance = std::sqrt(off_x*off_x+off_y*off_y+off_z*off_z);
     float current_distance=0.0;
 
-    std::cout << "start_distance=" << round_my<double>(start_distance,3) << std::endl;
+    std::cout << " start_distance=" << round_my<double>(start_distance,3) << std::endl;
 
     int i = 0;
+    int j = 0;
     bool ex_f=false;
 
     unsigned char cost;
@@ -266,56 +290,60 @@ void RobotDrive::go_abs(float x,float y,float speed ,bool isForward){
             }
         }
 
-
         i+=1;
         if (i > 5){
+            // 自分からの目的地の方角
+            float off_target_x = x - cur_x;
+            float off_target_y = y - cur_y;
 
-        // 自分からの目的地の方角
-        float off_target_x = x - cur_x;
-        float off_target_y = y - cur_y;
+            float theta_r = std::atan2(off_target_y,off_target_x);   //  [ragian]
 
-        float theta_r = std::atan2(off_target_y,off_target_x);   //  [ragian]
+            // 自分の方向を減算
+            float theta_ar = theta_r - _rz;
 
-        // 自分の方向を減算
-        float theta_ar = theta_r - _rz;
+            // 後ろ向き
+            if (abs(theta_ar) > 180.0/RADIANS_F){
+                if (theta_ar > 0.0)
+                    theta_ar -= 360.0/RADIANS_F;
+                else
+                    theta_ar += 360.0/RADIANS_F;
+            }
+            j++;
+            if(j > 3){
+                std::cout << " _dz=" << round_my<double>(_rz*RADIANS_F,3) <<" theta_d=" << round_my<float>(theta_r*RADIANS_F,3)
+                    << " theta_ad=" << round_my<float>(theta_ar*RADIANS_F,3) << std::endl;
+            }
 
-        // 後ろ向き
-        if (abs(theta_ar) > 180.0/RADIANS_F){
-            if (theta_ar > 0.0)
-                theta_ar -= 360.0/RADIANS_F;
-            else
-                theta_ar += 360.0/RADIANS_F;
-        }
-        std::cout << "_dz=" << round_my<double>(_rz*RADIANS_F,3) <<" theta_d=" << round_my<float>(theta_r*RADIANS_F,3)
-            << " theta_ad=" << round_my<float>(theta_ar*RADIANS_F,3) << std::endl;
+            if (ex_f == true)
+                std::exit(0);
 
-        if (ex_f == true)
-            std::exit(0);
+            if (_course_correct == true){
+                // 10 [cm] 以上距離がある 時に方向を補正
+                if ((start_distance - current_distance) > 0.1 && current_distance > 0.1){
+                    // 到達点まで 1[M] 以上　かつ　ズレが 2.0[dgree] か ズレが 4.0[dgree]
+                    if ((abs(theta_ar * RADIANS_F) > 4.0) || ((start_distance - current_distance) > 1.0 &&  abs(theta_ar * RADIANS_F) > 2.0)){
+                        rotate_off(theta_ar*RADIANS_F,3.0,_go_curve);
+                        _vel_msg.linear.x = i_spped;
+                        //std::exit(0);
+                        //ex_f=true;
+                        i=i;
+                        if (_after_correct_wait == true){
 
-        if (_course_correct == true){
-            // 10 [cm] 以上距離がある 時に方向を補正
-            if ((start_distance - current_distance) > 0.1 && current_distance > 0.1){
-                // 到達点まで 1[M] 以上　かつ　ズレが 2.0[dgree] か ズレが 4.0[dgree]
-                if ((abs(theta_ar * RADIANS_F) > 4.0) || ((start_distance - current_distance) > 1.0 &&  abs(theta_ar * RADIANS_F) > 2.0)){
-                    rotate_off(theta_ar*RADIANS_F,3.0,_go_curve);
-                    _vel_msg.linear.x = i_spped;
-                    //std::exit(0);
-                    //ex_f=true;
-                    i=i;
-                    if (_after_correct_wait == true){
-
-                        std::cout << "after_correct_wait" << std::endl;
-                        get_tf(2);
-                        std::cout << "dx,dy,dz=" << round_my<double>(_rx,3) <<"," << round_my<double>(_ry,3) << ","
-                            << round_my<double>(_rz,3) << std::endl;
-                        while(1)
-                            rate.sleep();
+                            std::cout << " after_correct_wait" << std::endl;
+                            get_tf(2);
+                            std::cout << " dx,dy,dz=" << round_my<double>(_rx,3) <<"," << round_my<double>(_ry,3) << ","
+                                << round_my<double>(_rz,3) << std::endl;
+                            while(1)
+                                rate.sleep();
+                        }
                     }
                 }
             }
-        }
-        std::cout << "current_distance=" << round_my<float>(current_distance,3) << std::endl;
-        i=0;
+            if(j > 3){
+                std::cout << " current_distance=" << round_my<float>(current_distance,3) << std::endl;
+                j=0;
+            }
+            i=0;
         }    
         //ros::spinOnce();
         rclcpp::spin_some(node_);
@@ -333,13 +361,22 @@ rotate_abs()
     stop_dz(d_theta) : [deg] 基本座標上の角度
     speed :  5.0  [deg/s]
 */
-void RobotDrive::rotate_abs(float stop_dz,float speed){
+/*
+rotate_abs()
+    stop_dz(d_theta) : [deg] 基本座標上の角度
+    rad_f : false -> deg / true -> radian
+    speed :  5.0  [deg/s]
+*/
+void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
+//void RobotDriveCmd_Vel::rotate_abs(float stop_dz,float speed){
     // 目的の角度と速度を設定
     // stop_dz = 180.0 # [deg]
     // speed = 10.0 # [deg/s]
 
     int turn_plus;
     //geometry_msgs::Twist _vel_msg;
+
+    std::cout << "C rotate_abs()" << std::endl;
 
     _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
     _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
@@ -492,14 +529,14 @@ void rotate_off()
     d_theta : [deg] ロボット座標上の角度
     speed :  5.0  [deg/s]
 */
-void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
+void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
     // 目的の角度と速度を設定
     //d_theta = 180.0 # [deg]
     //speed = 10.0 # [deg/s]
 
     int turn_plus=0;
 
-    std::cout << "start rotate_off d_theta=" << d_theta << std::endl;
+    std::cout << "C rotate_off() d_theta:" << d_theta << std::endl;
 
     float rz_dlt = abs(speed/RADIANS_F) * 0.25;
     float rz_wind = rz_dlt * 3.0;
@@ -523,7 +560,7 @@ void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
     get_tf(2);
     //#print 'rx,ry,rz=',self.rx,self.ry,self.rz
 
-    std::cout << "r_theta= " << round_my<float>(r_theta,3) << std::endl;
+    std::cout << " r_theta= " << round_my<float>(r_theta,3) << std::endl;
 
     // Twist 型のデータ
     //t = Twist()
@@ -554,17 +591,15 @@ void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
     while(1){
         //_pub.publish(_vel_msg);
         _pub->publish(_vel_msg);
-
         get_tf(2);
         lp_cnt++;
         if(lp_cnt > 80){
-            std::cout << "stop_rz=" << round_my<float>(stop_rz,4) << std::endl;
+            std::cout << " stop_rz=" << round_my<float>(stop_rz,4) << std::endl;
             lp_cnt=0;
         }
-
         // 最も近い角度で終了します
         if (ok_f == true){
-            std::cout << "ok nearly" << std::endl;
+            std::cout << " ok nearly" << std::endl;
             break;
         }
         // 目的の角度です。
@@ -573,7 +608,7 @@ void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
         //break;
         // 目的の角度です。
         if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
-            std::cout << "ok just" << std::endl;
+            std::cout << " ok just" << std::endl;
             break;
         }
         }
@@ -616,7 +651,7 @@ void RobotDrive::rotate_off(float d_theta, float speed, bool go_curve){
 }
 
 //! Drive forward a specified distance based on odometry information
-bool RobotDrive::driveForwardOdom(double distance)
+bool RobotDriveCmd_Vel::driveForwardOdom(double distance)
 {
 
     //we will record transforms here
@@ -657,7 +692,7 @@ bool RobotDrive::driveForwardOdom(double distance)
     return false;
 }
 
-bool RobotDrive::turnOdom(bool clockwise, double radians)
+bool RobotDriveCmd_Vel::turnOdom(bool clockwise, double radians)
 {
     while(radians < 0) radians += 2*M_PI;
     while(radians > 2*M_PI) radians -= 2*M_PI;
@@ -733,7 +768,7 @@ navi_move()
     r_yaw: 基本座標上の 角度。 [rad]
     r_yaw_off: ロボットの向きからの 角度。 [rad]
 */
-bool RobotDrive::navi_move(float x,float y,float r_yaw,float r_yaw_off){
+bool RobotDriveCmd_Vel::navi_move(float x,float y,float r_yaw,float r_yaw_off){
     if(r_yaw_off != 0.0){
         rotate_off(r_yaw_off*RADIANS_F);
     }
@@ -744,7 +779,7 @@ bool RobotDrive::navi_move(float x,float y,float r_yaw,float r_yaw_off){
 /*
 navi_map_save()
 */
-void RobotDrive::navi_map_save(){
+void RobotDriveCmd_Vel::navi_map_save(){
     //navi_.map_save();
 }
 
