@@ -34,6 +34,10 @@
 
     2) navigation2  
     mulit_goals4_nav2.cpp の GoalList goallist[] で、指定する。  
+    Auto Map I  
+    mg_ex.mloop_ex(turtlebot3_auto_map);  
+    Auto Map II  
+    mg_ex.mloop_ex(turtlebot3_auto_map_achor);  
 
 #### 4. update  
 2023.3.16  
