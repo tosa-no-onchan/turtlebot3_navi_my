@@ -581,7 +581,7 @@ navi_move()
 bool RobotDriveNAV2::navi_move(float x,float y,float r_yaw,float r_yaw_off){
     //rotate_abs(r_yaw,true);       // change by nishi 2024.3.2
     exec_pub(x,y,r_yaw);
-    if(id_ >=3)
+    if(id_ >= NAV_ERROR)        // chaanged by nishi 2024.3.14
     {
         return false;
     }

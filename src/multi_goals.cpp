@@ -1396,7 +1396,7 @@ void MultiGoals::auto_map(){
                 //if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
                 //if(drive.navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){
                 if(drive_->navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){    // changed by nishi 2024.2.28
-                    std::cout << ">> derive.navi_move() error end"<< std::endl;
+                    std::cout << ">> drive_->navi_move() error end"<< std::endl;
                     std::cout << ">> black point appeend"<< std::endl;
                     blobFinder_.g_points_black.push_back(g_ponts_ptr->at(j));
                 }
@@ -1426,21 +1426,23 @@ void MultiGoals::auto_map(){
 
         std::cout << ">> Auto Map >>> lc="<< lc << std::endl;
 
-        float d_yaw=90.0;
-        // 360度回転
-        //for(int k=0;k<4 ;k++){
-        //   drive.rotate_off(d_yaw);
-        //}
 
         // ここで、GetMap::check_obstacle() で、前方の障害物をチェックして、問題があれば、後ろを向かせる。add by nishi 2024.3.7
         obstacle_escape();
 
         // ここを、cmd_vel モードにしたらどう?  by nishi 2024.3.1
         set_drive_mode(0);      // set cmd_vel mode
+
+        float d_yaw=90.0;
+        // 360度回転
+        for(int k=0;k<4 ;k++){
+           drive_->rotate_off(d_yaw);
+        }
+
         // 前方、60 をチェック
-        drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
-        drive_->rotate_off(-60.0);  // changed by nishi 2024.2.28
-        drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
+        //drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
+        //drive_->rotate_off(-60.0);  // changed by nishi 2024.2.28
+        //drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
         set_drive_mode(1);      // set nav2 mode
 
     }
@@ -1558,7 +1560,7 @@ void MultiGoals::auto_map_anchor(){
 
                 //if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
                 if(drive_->navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){    // changed by nishi 2024.2.28
-                    std::cout << ">> derive.navi_move() error end"<< std::endl;
+                    std::cout << ">> drive_->navi_move() error end"<< std::endl;
                     //std::cout << ">> black point appeend"<< std::endl;
                     //anchorFinder_.g_points_black.push_back(g_ponts_ptr->at(j));
                     mark=128;

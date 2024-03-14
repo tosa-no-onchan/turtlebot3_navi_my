@@ -420,8 +420,8 @@ int main(int argc, char **argv){
     //mg_ex.mloop_ex(test1);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(turtlebot3_house2);
-    mg_ex.mloop_ex(turtlebot3_auto_map);
-    //mg_ex.mloop_ex(turtlebot3_auto_map_achor);
+    //mg_ex.mloop_ex(turtlebot3_auto_map);
+    mg_ex.mloop_ex(turtlebot3_auto_map_achor);
     //mg_ex.mloop_ex(goallist_nav2_cmd);
 
 

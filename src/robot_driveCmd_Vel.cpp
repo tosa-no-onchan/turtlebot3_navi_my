@@ -587,6 +587,9 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
     bool ok_f = false;
 
     int lp_cnt=0;
+    int lp_cnt_chk=0;
+
+    float prev_rz=0.0;
 
     while(1){
         //_pub.publish(_vel_msg);
@@ -594,8 +597,22 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
         get_tf(2);
         lp_cnt++;
         if(lp_cnt > 80){
-            std::cout << " stop_rz=" << round_my<float>(stop_rz,4) << std::endl;
+            std::cout << " stop_rz=" << round_my<float>(stop_rz,4) << " _rz="<< round_my<float>(_rz,4) << std::endl;
             lp_cnt=0;
+            //小数点以下 2桁は有効
+            float _rz_x = round_my<float>(_rz,2);
+            // ロボットが動いていない? add by nishi 2024.3.14
+            if(prev_rz == _rz_x){
+                lp_cnt_chk++;
+                if(lp_cnt_chk >= 3){
+                    std::cout << " time out" << std::endl;
+                    break;
+                }
+            }
+            else{
+                lp_cnt_chk=0;
+            }
+            prev_rz = _rz_x;
         }
         // 最も近い角度で終了します
         if (ok_f == true){
@@ -604,13 +621,13 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
         }
         // 目的の角度です。
         if (abs(stop_rz - _rz) <= rz_dlt){
-        //std::cout << "ok just" << std::endl;
-        //break;
-        // 目的の角度です。
-        if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
-            std::cout << " ok just" << std::endl;
-            break;
-        }
+            //std::cout << "ok just" << std::endl;
+            //break;
+            // 目的の角度です。
+            if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
+                std::cout << " ok just" << std::endl;
+                break;
+            }
         }
 
         float rz_off = stop_rz - _rz;
