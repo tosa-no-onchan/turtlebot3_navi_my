@@ -62,6 +62,7 @@
 #### 4. YouTube に動画をアップしました。  
 
 [Auto Map II デモ](https://youtu.be/7o0vceDqD84?si=6Tb7DEqfdw9tuNvq)   
+[![alt設定](http://img.youtube.com/vi/7o0vceDqD84/0.jpg)](https://youtu.be/7o0vceDqD84?si=6Tb7DEqfdw9tuNvq)
 
 
 #### 5. update  
