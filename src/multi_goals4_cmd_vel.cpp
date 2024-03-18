@@ -280,8 +280,11 @@ GoalList2 m_goalList2[] ={
             {64, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0},      // force current position to map(0,0)
             {67, 0.0, 0.0},      // set dumper ON
-            {0, 0.0, 90},       // [0,0]
-            {0, 0.5, 0.0},        // [0.5,0]
+            //{0, 0.0, 90},       // rotate left 90
+            //{0, 0.0, 45},        // rotate left 45
+            {0, 2.0, 30},         // move back [-0.5,45]
+            //{0, 0.0, 45},       // rotate left 45
+            //{0, -0.5, 0.0},     // move back [-0.5,0]
             //{2,0.0,0.0, 0.0},
             //{0, 1.0, 0},        // [2,0]
             {99, 0.0, 0}        // [3,0]
@@ -396,12 +399,12 @@ int main(int argc, char** argv)
     //    rate.sleep();
     //}
 
-    //mg_ex.mloop_ex(goallist);
+    mg_ex.mloop_ex(goallist);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(goallist2);
 
     //mg_ex.mloop_ex2(m_rotate_2);
-    mg_ex.mloop_ex2(m_goalList2);
+    //mg_ex.mloop_ex2(m_goalList2);
 
     //mg_ex.mloop_ex(navi_list1);
 

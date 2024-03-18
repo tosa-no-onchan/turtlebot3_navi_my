@@ -31,11 +31,11 @@ public:
     move()
     自分からの相対位置へ移動
         float dist: 自分からの距離
-        float d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
-        bool func_f: false[deafult] d_yaw -> 基準座標での角度(今までの処理)
-                     true           d_yaw(+/-) -> ロボットからの角度
+                    > 0 前進
+                    < 0 後退
+        float d_yaw: ロボットからの角度。 [degree] 
     */
-    virtual void move(float dist,float d_yaw,bool func_f=false){};
+    virtual void move(float dist,float d_yaw){};
 
     /*
     move_abs()
@@ -60,10 +60,10 @@ public:
     */
     virtual bool get_tf(int func=0){};
     /*
-    go_abs(x,y,isForward=True,speed=0.05)
+    go_abs(x,y,isBack=falsse,speed=0.05)
     直進する。
     */
-    virtual void go_abs(float x,float y,float speed=0.05 ,bool isForward=true){};
+    virtual void go_abs(float x,float y,bool isBack=false,float speed=0.05 ){};
 
     /*
     robot_driveCmd_vel

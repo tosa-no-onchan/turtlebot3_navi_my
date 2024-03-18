@@ -72,9 +72,7 @@ typedef struct {
 /*------------------------------------------------
  GoalList2
   func,x,dist,d_yaw
-  func: 0 -> move dist and rotate d_yaw
-       1 -> move point x,y only
-       2 -> rotate d_yaw only
+  func: 0 -> move forward dist and rotate d_yaw  x > 0: go forward, x < 0 : go back(cmd_vel only)
        21 -> sleep
        22 -> get map
        50 -> set Navigation mode

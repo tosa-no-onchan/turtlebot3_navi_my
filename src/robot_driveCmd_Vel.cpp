@@ -66,12 +66,13 @@ void RobotDriveCmd_Vel::init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,boo
 move()
 自分からの相対位置へ移動
     float dist: 自分からの距離
-    float d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
-    bool func_f: false[deafult] d_yaw -> 基準座標での角度(今までの処理)
-                 true           d_yaw(+/-) -> ロボットからの角度
+                   > 0 前進
+                   < 0 後退
+    float d_yaw: ロボットからの角度。 [degree] 
 */
-void RobotDriveCmd_Vel::move(float dist,float d_yaw,bool func_f){
-    std::cout << "C move() func_f=" << func_f;
+void RobotDriveCmd_Vel::move(float dist,float d_yaw){
+    bool isBack=false;
+    std::cout << "C move() ";
     get_tf(2);
     float r_yaw,d_yawx;
     //tf::Vector3 start_origin = base_tf.getOrigin();
@@ -80,25 +81,33 @@ void RobotDriveCmd_Vel::move(float dist,float d_yaw,bool func_f){
     float start_x = start_origin.getX();
     float start_y = start_origin.getY();
 
-    // 基準座標での角度
-    if(func_f==false){
-        r_yaw = d_yaw/RADIANS_F;
-        d_yawx = d_yaw;
-    }
-    else{
-        r_yaw = _rz + d_yaw/RADIANS_F;
-        d_yawx = r_yaw*RADIANS_F;
-    }
+    // ロボットからの角度
+    r_yaw = _rz + d_yaw/RADIANS_F;
+    d_yawx = r_yaw*RADIANS_F;
+
     std::cout << " d_yawx:"<< d_yawx << std::endl;
+
+    if(dist < 0){
+        isBack=true;
+    }
+
+    std::cout << " start_x:"<< start_x << " start_y:"<< start_y << std::endl;
 
     // 目的地を計算
     //float y = self.base_tf.transform.translation.y + dist * math.sin(r_yaw);
     float y = start_y + dist * std::sin(r_yaw);
     //float x = self.base_tf.transform.translation.x + dist * math.cos(r_yaw);
     float x = start_x + dist * std::cos(r_yaw);
+
+    std::cout << " x:"<< x << " y:"<< y << std::endl;
+
+    //while(1){
+    //    sleep(1);
+    //}
+
     rotate_abs(d_yawx);
     if (dist != 0.0)
-        go_abs(x,y);
+        go_abs(x,y,isBack);
 }
 /*
 move_abs()
@@ -199,16 +208,17 @@ bool RobotDriveCmd_Vel::get_tf(int func){
 
 
 /*
-go_abs(x,y,isForward=True,speed=0.05)
+go_abs(x,y,isBack=false,speed=0.05)
 直進する。
 */
-void RobotDriveCmd_Vel::go_abs(float x,float y,float speed ,bool isForward){
+void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
 
-    std::cout << "C go_abs()";
+    std::cout << "C go_abs() isBack:" << isBack;
 
     float i_spped;
 
-    if(isForward)
+    // 前進です。
+    if(!isBack)
         i_spped = abs(speed);
     else
         i_spped = -abs(speed);
@@ -246,6 +256,14 @@ void RobotDriveCmd_Vel::go_abs(float x,float y,float speed ,bool isForward){
     bool ex_f=false;
 
     unsigned char cost;
+    float _rz_cur;
+    // 前進です。
+    if(!isBack)
+        _rz_cur=_rz;
+    else{
+        // 反対を向ける
+        _rz_cur=normalize_rad(_rz+180.0/RADIANS_F);
+    }
 
     //Loop to move the turtle in an specified distance
     while(current_distance < start_distance){
@@ -273,6 +291,15 @@ void RobotDriveCmd_Vel::go_abs(float x,float y,float speed ,bool isForward){
 
         current_distance = std::sqrt(off_x*off_x+off_y*off_y+off_z*off_z);
 
+        // 前進です。
+        if(!isBack)
+            _rz_cur=_rz;
+        // 後進です。
+        else{
+            // 反対を向ける
+            _rz_cur=normalize_rad(_rz+180.0/RADIANS_F);
+        }
+
         // dumper ON
         if(_dumper==true){
             cost=0;
@@ -296,24 +323,17 @@ void RobotDriveCmd_Vel::go_abs(float x,float y,float speed ,bool isForward){
             float off_target_x = x - cur_x;
             float off_target_y = y - cur_y;
 
-            float theta_r = std::atan2(off_target_y,off_target_x);   //  [ragian]
-
+            // 前進も、後退もOK みたい
+            // 後ろだと、後ろの角度が得られる。
+            float theta_r = std::atan2(off_target_y,off_target_x);   //  [radian]
             // 自分の方向を減算
-            float theta_ar = theta_r - _rz;
+            float theta_ar = normalize_rad(theta_r - _rz_cur);
 
-            // 後ろ向き
-            if (abs(theta_ar) > 180.0/RADIANS_F){
-                if (theta_ar > 0.0)
-                    theta_ar -= 360.0/RADIANS_F;
-                else
-                    theta_ar += 360.0/RADIANS_F;
-            }
             j++;
-            if(j > 3){
-                std::cout << " _dz=" << round_my<double>(_rz*RADIANS_F,3) <<" theta_d=" << round_my<float>(theta_r*RADIANS_F,3)
+            if(j > 4){
+                std::cout << " _dz_cur=" << round_my<double>(_rz_cur*RADIANS_F,3) <<" theta_d=" << round_my<float>(theta_r*RADIANS_F,3)
                     << " theta_ad=" << round_my<float>(theta_ar*RADIANS_F,3) << std::endl;
             }
-
             if (ex_f == true)
                 std::exit(0);
 
@@ -327,8 +347,8 @@ void RobotDriveCmd_Vel::go_abs(float x,float y,float speed ,bool isForward){
                         //std::exit(0);
                         //ex_f=true;
                         i=i;
+                        // for debug
                         if (_after_correct_wait == true){
-
                             std::cout << " after_correct_wait" << std::endl;
                             get_tf(2);
                             std::cout << " dx,dy,dz=" << round_my<double>(_rx,3) <<"," << round_my<double>(_ry,3) << ","
@@ -339,7 +359,7 @@ void RobotDriveCmd_Vel::go_abs(float x,float y,float speed ,bool isForward){
                     }
                 }
             }
-            if(j > 3){
+            if(j > 4){
                 std::cout << " current_distance=" << round_my<float>(current_distance,3) << std::endl;
                 j=0;
             }

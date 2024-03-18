@@ -19,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <math.h>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -54,6 +55,13 @@ T round_my(T dt,int n)
         return std::round(dt);
     }
 }
+
+/*
+* radian の補正
+*  float rz: [Radian]
+*  180度[Radian] 以上を補正します。  
+*/
+float normalize_rad(float rz);
 
 class HeartBeat{
 public:

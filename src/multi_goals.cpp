@@ -1702,7 +1702,7 @@ void MultiGoals::check_obstacle_backaround(float r_lng,int black_thresh){
         rcx= get_map.check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,0,black_thresh);
         if(rcx==0){
             std::cout << "go forward 0.1[M]" <<std::endl;
-            drive_->move(0.1,drive_->_rz*RADIANS_F);
+            drive_->move(0.1,0.0);
         }
         set_drive_mode(1);      // set nav2 mode
 
@@ -1714,7 +1714,7 @@ void MultiGoals::check_obstacle_backaround(float r_lng,int black_thresh){
             // 前に動かす
             std::cout << "go forward 0.1[M]" <<std::endl;
             set_drive_mode(0);      // set cmd_vel mode
-            drive_->move(0.1,drive_->_rz*RADIANS_F);
+            drive_->move(0.1,0.0);
             set_drive_mode(1);      // set nav2 mode
         }
 
@@ -1759,26 +1759,26 @@ void MultiGoals::obstacle_escape(float r_lng,int black_thresh,float move_l){
         // 後ろ方向に障害物があります。
         if(black_counts[2] > black_thresh){
             // 前に、0.1[M] 動かす。
-            std::cout << "go forward 0.1[M]" <<std::endl;
-            drive_->move(move_l,0.0,true);
+            std::cout << "go forward 0.12[M]" <<std::endl;
+            drive_->move(move_l,0.0);
         }
         // 左右に障害物があります。
         else if((black_counts[1] > 0 && black_counts[3] > 0) || (black_counts[1] > black_thresh) || (black_counts[3] > black_thresh)){
             // 前に、0.1[M] 動かす。
-            std::cout << "go forward 0.1[M]" <<std::endl;
-            drive_->move(move_l,0.0,true);
+            std::cout << "go forward 0.12[M]" <<std::endl;
+            drive_->move(move_l,0.0);
         }
     }
     // 後ろの障害物が、有りません。
     else if(black_counts[2] <= black_thresh){
-        std::cout << "turn around backward" <<std::endl;
-        // 後ろを向かせ、0.1[M] 動かす。
+        // 後ろへ 0.12[M] 動かす。
+        std::cout << "go backward 0.12[M]" <<std::endl;
+        drive_->move(-move_l,0.0);
+
+        std::cout << "turn around 180" <<std::endl;
         // 後ろを向かせる
-        //drive_->rotate_off(90.0);
         drive_->rotate_off(180.0);
 
-        std::cout << "go backward 0.1[M]" <<std::endl;
-        drive_->move(move_l,0.0,true);
     }
     // 左が、右より障害物が少ない
     else if(black_counts[1] < black_counts[3]){
@@ -1790,8 +1790,8 @@ void MultiGoals::obstacle_escape(float r_lng,int black_thresh,float move_l){
             // 右が、障害物あり
             if(black_counts[3] > black_thresh){
                 // 前に、0.1[M] 動かす。
-                std::cout << "go leftward 0.1[M]" <<std::endl;
-                drive_->move(move_l,0.0,true);
+                std::cout << "go leftward 0.12[M]" <<std::endl;
+                drive_->move(move_l,0.0);
             }
         }
     }
@@ -1803,8 +1803,8 @@ void MultiGoals::obstacle_escape(float r_lng,int black_thresh,float move_l){
         // 左は、障害物がある。
         if(black_counts[1] > black_thresh){
             // 前に、0.1[M] 動かす。
-            std::cout << "go rightward 0.1[M]" <<std::endl;
-            drive_->move(move_l,0.0,true);
+            std::cout << "go rightward 0.12[M]" <<std::endl;
+            drive_->move(move_l,0.0);
         }
     }
     // すべてブラックです。
@@ -1816,28 +1816,28 @@ void MultiGoals::obstacle_escape(float r_lng,int black_thresh,float move_l){
             case 0: // 前方が空いている
                 // 前に、0.02[M] 動かす。
                 std::cout << " go forward 0.02[M]" <<std::endl;
-                drive_->move(0.02,0.0,true);
+                drive_->move(0.02,0.0);
             break;
             case 1:
                 //左へ向かせる。
                 drive_->rotate_off(90.0);
                 // 前に、0.02[M] 動かす。
                 std::cout << " go leftward 0.02[M]" <<std::endl;
-                drive_->move(0.02,0.0,true);
+                drive_->move(0.02,0.0);
             break;
             case 2:
+                std::cout << " go back 0.02[M] and turn around 180" <<std::endl;
+                drive_->move(-0.02,0.0);
                 // 後ろを向かせる
                 //drive_->rotate_off(90.0);
                 drive_->rotate_off(180.0);
-                std::cout << " go backward 0.02[M]" <<std::endl;
-                drive_->move(0.02,0.0,true);
             break;
             case 3:
                 //右へ向かせる。
                 drive_->rotate_off(-90.0);
                 // 前に、0.02[M] 動かす。
                 std::cout << " go rightward 0.02[M]" <<std::endl;
-                drive_->move(0.02,0.0,true);
+                drive_->move(0.02,0.0);
             break;
         }
     }
@@ -2163,11 +2163,10 @@ void MultiGoals::mloop_sub(){
         }
     }
     else{
-        if(_goalList2[goalId].func != 10){
+        if(_goalList2[goalId].func == 0){
             dist = _goalList2[goalId].dist;
             d_yaw = _goalList2[goalId].d_yaw;
-            //drive.move(dist,d_yaw);
-            drive_->move(dist,d_yaw,true);           // changed by nishi 2024.3.8
+            drive_->move(dist,d_yaw);
             //self.goalMsg.pose.position.y += dist * math.sin(math.radians(d_yaw));
             //self.goalMsg.pose.position.x += dist * math.cos(math.radians(d_yaw));
         }

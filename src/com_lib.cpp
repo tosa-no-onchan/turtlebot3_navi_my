@@ -13,6 +13,37 @@
 using namespace std::chrono_literals;
 //using geometry_msgs::msg::Quaternion;
 
+/*
+* radian の補正
+*  float rz: [Radian]
+*  180度[Radian] 以上を補正します。  
+*/
+float normalize_rad(float rz){
+    //if(abs(rz) >= 360.0/RADIANS_F){
+    //    if(rz >0.0)
+    //        rz -= 360.0/RADIANS_F;
+    //    else
+    //        rz += 360.0/RADIANS_F;
+    //}
+    //if(abs(rz) >= 180.0/RADIANS_F){
+    //    if(rz >0.0)
+    //        rz -= 180.0/RADIANS_F;
+    //    else
+    //        rz += 180.0/RADIANS_F;
+    //}
+    //abs(rz)/(180.0/RADIANS_F);
+    rz= fmod(rz,(360.0/RADIANS_F));
+    if(abs(rz) > 180.0/RADIANS_F){
+        if(rz > 0.0){
+            rz = -360.0/RADIANS_F + rz;
+        }
+        else{
+            rz = 360.0/RADIANS_F + rz;
+        }
+    }
+    return rz;
+}
+
 void HeartBeat::init(std::shared_ptr<rclcpp::Node> node){
     //nh_=nh;
     node_=node;

@@ -383,12 +383,14 @@ void RobotDriveNAV2::cancel_goal(std::shared_future<std::shared_ptr<rclcpp_actio
 move()
 自分からの相対位置へ移動
     float dist: 自分からの距離
-    float d_yaw: 基準座標での角度。 [degree] ロボット座標上の角度では無い
-    bool func_f: false[deafult] d_yaw -> 基準座標での角度(今までの処理)
-                 true           d_yaw(+/-) -> ロボットからの角度
+                   > 0 前進
+                   < 0 後退
+    float d_yaw: ロボットからの角度。 [degree] 
+    
+注) RobotDriveNAV2::move() は、後退は出来ません。
 */
-void RobotDriveNAV2::move(float dist,float d_yaw,bool func_f){
-    std::cout << "N move() func_f=" << func_f << std::endl;
+void RobotDriveNAV2::move(float dist,float d_yaw){
+    std::cout << "N move() " << std::endl;
     get_tf(2);
     float r_yaw,d_yawx;
     //tf::Vector3 start_origin = base_tf.getOrigin();
@@ -397,15 +399,10 @@ void RobotDriveNAV2::move(float dist,float d_yaw,bool func_f){
     float start_x = start_origin.getX();
     float start_y = start_origin.getY();
 
-    // 基準座標での角度
-    if(func_f==false){
-        r_yaw = d_yaw/RADIANS_F;
-        d_yawx = d_yaw;
-    }
-    else{
-        r_yaw = _rz + d_yaw/RADIANS_F;
-        d_yawx = r_yaw*RADIANS_F;
-    }
+    // ロボットからの角度
+    r_yaw = _rz + d_yaw/RADIANS_F;
+    d_yawx = r_yaw*RADIANS_F;
+
     std::cout << " d_yawx:"<< d_yawx << std::endl;
 
     // 目的地を計算
@@ -476,10 +473,10 @@ void RobotDriveNAV2::comp_dad(float x,float y,float &dist, float &r_yaw, float &
 }
 
 /*
-go_abs(x,y,isForward=True,speed=0.05)
+go_abs(x,y,isBack=false,speed=0.05)
 直進する。
 */
-void RobotDriveNAV2::go_abs(float x,float y,float speed ,bool isForward){
+void RobotDriveNAV2::go_abs(float x,float y, bool isBack, float speed ){
 
     std::cout << "N go_abs()" << std::endl;
 
