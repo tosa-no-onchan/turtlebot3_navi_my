@@ -30,7 +30,7 @@ $ . install/setup.bash
 
 
 //#define USE_MOVE_BASE
-#include "turtlebot3_navi_my/multi_goals.hpp"
+#include "turtlebot3_navi_my/pro_control_map.hpp"
 
 
 //#include <nav_msgs/OccupancyGrid.h>
@@ -411,7 +411,7 @@ int main(int argc, char **argv){
     loop.sleep();
 
 
-    MultiGoals mg_ex;
+    ProControlMap mg_ex;
     //mg_ex.init(nh);
     mg_ex.init(node);
 

@@ -29,7 +29,7 @@ $ ros2 launch turtlebot3_navi_my multi_goals4_cmd_vel.launch.py use_sim_time:=[T
 
 //#include <math.h>
 
-#include "turtlebot3_navi_my/multi_goals.hpp"
+#include "turtlebot3_navi_my/pro_control.hpp"
 
 //#include <nav_msgs/OccupancyGrid.h>
 //from nav_msgs.msg import OccupancyGrid,Odometry
@@ -388,7 +388,7 @@ int main(int argc, char** argv)
     //RobotNavi navi;
     //navi.init(nh);
 
-    MultiGoals mg_ex;
+    ProControl mg_ex;
     //mg_ex.init(nh);
     mg_ex.init(node);
 
