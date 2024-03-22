@@ -5,7 +5,7 @@
   ROS2 Gazebo Turtlebot3 、 自作 Turtlebot3(foxbot_core3_r2.ino) を、 /cmd_vel 、 navigation2 を使って  
   動かす事ができる、 c++ プログラム。  
 
-  特に、Gazebo House , Turtlebot2 and Rtabmap_ros with RGBD Camera 環境があれば、簡単に下記テストができる。  
+  特に、Gazebo House , Turtlebot3 and Rtabmap_ros with RGBD Camera 環境があれば、簡単に下記テストができる。  
   #### cmd_vel :
   
     C++ プログラムから、/cmd_vel 操作でロボットを動かせる。  
