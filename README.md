@@ -46,6 +46,10 @@
 #### 2.2 /cmd_vel を使う。  
 
     $ ros2 launch turtlebot3_navi_my multi_goals4_cmd_vel.launch.py [use_sim_time:=True]  
+
+#### 2.3 Auto Map を実行する。  
+
+    $ ros2 launch turtlebot3_navi_my go_auto_map.launch.py [use_sim_time:=True] 
   
 #### 3. コースを設定。  
 
@@ -54,6 +58,9 @@
 
     2) navigation2  
     mulit_goals4_nav2.cpp の GoalList goallist[] で、指定する。  
+
+    3) Auto Map  
+    go_auto_map.cpp の GoalList goallist[] で、指定する。  
     Auto Map  
     mg_ex.mloop_ex(turtlebot3_auto_map);  
     Auto Map II  
