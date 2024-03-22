@@ -1,6 +1,6 @@
 ## turtlebot3_navi_my for Ros2 humble r3  
   
-  C++ Programable Robot Control   
+  Ros2 C++ Programable Robot Control   
   for [foxbot_core3_r2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  and Turtlebot3  
   ROS2 Gazebo Turtlebot3 、 自作 Turtlebot3(foxbot_core3_r2.ino) を、 /cmd_vel 、 navigation2 を使って  
   動かす事ができる、 c++ プログラム。  
