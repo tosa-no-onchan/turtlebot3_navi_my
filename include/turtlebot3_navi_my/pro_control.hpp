@@ -62,11 +62,8 @@
 
 #include "com_def.hpp"
 #include "com_lib.hpp"
-#include "Labeling.hpp"
 
 #include <opencv2/opencv.hpp>
-
-//#define USE_FUTURE_GET_MAP
 
 #include "pro_control_sub.hpp"
 
@@ -176,6 +173,9 @@ public:
     virtual void set_line_w(float x){};
     virtual void set_robo_r(float x){};
 
+    // Auto mower 向けのメンバー
+    virtual void auto_mower(){};
+
 
     /*
     mloop(self)
@@ -195,6 +195,7 @@ public:
             23 -> map update
             30 -> auto map build
             31 -> auto map build of anchor
+            35 -> auto mower
             50 -> set Navigation mode
             60 -> course_correct ON
             61 -> course_correct OFF

@@ -1,0 +1,12 @@
+/*
+* robot_driveBase.cpp
+*
+*
+*/
+
+#include "turtlebot3_navi_my/robot_driveBase.hpp"
+
+void Robot_DriveBase::st_dumy(){
+    std::cout << "Robot_DriveBase::st_dumy():#1 " << std::endl;
+
+}

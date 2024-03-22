@@ -57,7 +57,6 @@ add_executable(subscribe_test src/subscribe_test.cpp src/com_lib.cpp)
 add_executable(multi_goals4_nav2 src/multi_goals4_nav2.cpp 
   src/pro_control.cpp 
   src/pro_control_sub.cpp 
-  src/pro_control_map.cpp 
   src/robot_driveNAV2.cpp 
   src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
@@ -65,6 +64,31 @@ add_executable(multi_goals4_nav2 src/multi_goals4_nav2.cpp
 #target_compile_options(multi_goals4_nav2 PRIVATE -DUSE_MOVE_BASE)
 target_compile_options(multi_goals4_nav2 PRIVATE -DUSE_NAV2)
 target_compile_options(multi_goals4_nav2 PRIVATE -Wno-unused-parameter)
+
+add_executable(go_auto_map src/go_auto_map.cpp 
+  src/pro_control.cpp 
+  src/pro_control_sub.cpp 
+  src/pro_control_map.cpp 
+  src/robot_driveNAV2.cpp 
+  src/robot_driveCmd_Vel.cpp 
+  src/com_lib.cpp)
+
+#target_compile_options(go_auto_map PRIVATE -DUSE_MOVE_BASE)
+target_compile_options(go_auto_map PRIVATE -DUSE_NAV2)
+target_compile_options(go_auto_map PRIVATE -Wno-unused-parameter)
+
+
+add_executable(go_auto_mower src/go_auto_mower.cpp 
+  src/pro_control.cpp 
+  src/pro_control_sub.cpp 
+  src/pro_control_mower.cpp 
+  src/robot_driveNAV2.cpp 
+  src/robot_driveCmd_Vel.cpp 
+  src/com_lib.cpp)
+
+target_compile_options(go_auto_mower PRIVATE -DUSE_NAV2)
+target_compile_options(go_auto_mower PRIVATE -Wno-unused-parameter)
+
 
 target_include_directories(multi_goals4_cmd_vel PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -78,6 +102,17 @@ target_include_directories(multi_goals4_nav2 PUBLIC
   ${OpenCV_INCLUDE_DIRS}
   )
 
+target_include_directories(go_auto_map PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${OpenCV_INCLUDE_DIRS}
+  )
+
+target_include_directories(go_auto_mower PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${OpenCV_INCLUDE_DIRS}
+  )
 
 target_include_directories(drive_base PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -119,6 +154,32 @@ ament_target_dependencies(multi_goals4_cmd_vel
 )
 
 ament_target_dependencies(multi_goals4_nav2
+  rclcpp
+  std_msgs 
+  geometry_msgs
+  tf2
+  tf2_ros
+  #nav_msgs
+  nav2_msgs
+  OpenCV
+  sensor_msgs
+  tf2_geometry_msgs
+)
+
+ament_target_dependencies(go_auto_map
+  rclcpp
+  std_msgs 
+  geometry_msgs
+  tf2
+  tf2_ros
+  #nav_msgs
+  nav2_msgs
+  OpenCV
+  sensor_msgs
+  tf2_geometry_msgs
+)
+
+ament_target_dependencies(go_auto_mower
   rclcpp
   std_msgs 
   geometry_msgs
@@ -230,12 +291,19 @@ install(TARGETS
   multi_goals4_nav2
   DESTINATION lib/${PROJECT_NAME})
 
+install(TARGETS
+  go_auto_map
+  DESTINATION lib/${PROJECT_NAME})
+
+install(TARGETS
+  go_auto_mower
+  DESTINATION lib/${PROJECT_NAME})
+  
 # install the launch directory
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
 )
-
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

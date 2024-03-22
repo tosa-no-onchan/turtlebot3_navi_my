@@ -30,7 +30,7 @@ $ . install/setup.bash
 
 
 //#define USE_MOVE_BASE
-#include "turtlebot3_navi_my/pro_control_map.hpp"
+#include "turtlebot3_navi_my/pro_control.hpp"
 
 
 //#include <nav_msgs/OccupancyGrid.h>
@@ -268,45 +268,6 @@ GoalList turtlebot3_house2[] ={
             {99,0.0,0.0, 0.0}       // end
             };
 
-// Auto Map I ( nav2 and cmd_vel mode)
-GoalList turtlebot3_auto_map[] ={
-            {60, 0.0, 0.0, 0.0},      // course correct ON
-            {64, 0.0, 0.0, 0.0},      // go curve ON
-            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            {67, 0.0, 0.0, 0.0},      // set dumper ON
-            // 障害物からの距離の調整
-            {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
-            {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
-            {2, 0.0, 0.0, 90.0},      // rotate 90
-            {2, 0.0, 0.0, 180.0},     // rotate 180
-            {2, 0.0, 0.0, 270.0},     // rotate 270
-            {2, 0.0, 0.0, 0.0},       // rotate 360
-            //{10,0.0,1.0,90.0},         // navi move
-            //{10,0.0,-1.0,-90.0},         // navi move
-            {30,0.0,0.0, 0.0},        // Auto map builder
-            {99,0.0,0.0, 0.0},        // end
-};
-
-
-// Auto map II ( nav2 and cmd_vel mode)
-GoalList turtlebot3_auto_map_achor[] ={
-            {60, 0.0, 0.0, 0.0},      // course correct ON
-            {64, 0.0, 0.0, 0.0},      // go curve ON
-            {67, 0.0, 0.0, 0.0},      // set dumper ON
-            // 障害物からの距離の調整
-            {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
-            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
-            {2, 0.0, 0.0, 90.0},      // rotate 90
-            {2, 0.0, 0.0, 180.0},     // rotate 180
-            {2, 0.0, 0.0, 270.0},     // rotate 270
-            {2, 0.0, 0.0, 0.0},       // rotate 360
-            //{10,0.0,1.0,90.0},         // navi move
-            //{10,0.0,-1.0,-90.0},         // navi move
-            {31,0.0,0.0, 0.0},        // Auto map builder of anchor
-            {99,0.0,0.0, 0.0},        // end
-};
-
 
 // nav2 and cmd_vel
 GoalList goallist_nav2_cmd[] ={
@@ -393,8 +354,6 @@ GoalList goallist_nav2_cmd[] ={
             {99,0.0,0.0, 0.0}       // end
             };
 
-
-
 int main(int argc, char **argv){
     using namespace std::chrono_literals;
     rclcpp::WallRate loop(1);
@@ -406,24 +365,20 @@ int main(int argc, char **argv){
     rclcpp::init(argc, argv);
 
     //ros::NodeHandle nh;
-    std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("muliti_goals4",rclcpp::NodeOptions{});
+    std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("muliti_goals4_nav2",rclcpp::NodeOptions{});
 
     loop.sleep();
 
 
-    ProControlMap mg_ex;
+    ProControl mg_ex;
     //mg_ex.init(nh);
     mg_ex.init(node);
 
-
-    //mg_ex.mloop_ex(goallist);
+    mg_ex.mloop_ex(goallist);
     //mg_ex.mloop_ex(test1);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(turtlebot3_house2);
-    //mg_ex.mloop_ex(turtlebot3_auto_map);
-    mg_ex.mloop_ex(turtlebot3_auto_map_achor);
     //mg_ex.mloop_ex(goallist_nav2_cmd);
-
 
     //ros::Rate rate(1);   //  1[Hz]
     while(rclcpp::ok()){
