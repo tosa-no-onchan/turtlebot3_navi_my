@@ -58,7 +58,7 @@ public:
     /*
     * bool get_tf(int func)
     */
-    virtual bool get_tf(int func=0){};
+    virtual bool get_tf(int func=0){return true;};
     /*
     go_abs(x,y,isBack=falsse,speed=0.05)
     直進する。
@@ -68,7 +68,7 @@ public:
     /*
     robot_driveCmd_vel
     rotate_abs()
-        stop_dz(d_theta) : [deg] 基本座標上の角度
+        stop_dz(d_theta) : [deg] 基本座標上の角度  > 0 左回転 /  < 0 右回転
         speed : 8.0  [deg/s]
     */
     //virtual void rotate_abs(float stop_dz,float speed=8.0){};
@@ -76,21 +76,21 @@ public:
     /*
     robot_driveNAV2
     rotate_abs()
-        stop_dz(d_theta) : [deg] 基本座標上の角度
+        stop_dz(d_theta) : [deg] 基本座標上の角度  > 0 左回転 /  < 0 右回転
         rad_f : false -> deg / true -> radian
-        speed :  5.0  [deg/s]
+        speed :  15.0  [deg/s]
     */
     virtual void rotate_abs(float stop_dz,bool rad_f=false, float speed=15.0){};
 
 
     /* 
     void rotate_off()
-        d_theta : [deg] ロボット座標上の角度
-        speed :  5.0  [deg/s]
+        d_theta : [deg] ロボットの今の向きからの角度   > 0 左回転 /  < 0 右回転
+        speed :  15.0  [deg/s]
     */
     virtual void rotate_off(float d_theta, float speed=15.0,bool go_curve=false){};
 
-    virtual bool navi_move(float x,float y,float r_yaw,float r_yaw_off=0.0){};
+    virtual bool navi_move(float x,float y,float r_yaw,float r_yaw_off=0.0){return true;};
 
     virtual void navi_map_save(){};
 

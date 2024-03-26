@@ -262,7 +262,7 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
         _rz_cur=_rz;
     else{
         // 反対を向ける
-        _rz_cur=normalize_rad(_rz+180.0/RADIANS_F);
+        _rz_cur=normalize_tf_rz(_rz+180.0/RADIANS_F);
     }
 
     //Loop to move the turtle in an specified distance
@@ -297,7 +297,7 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
         // 後進です。
         else{
             // 反対を向ける
-            _rz_cur=normalize_rad(_rz+180.0/RADIANS_F);
+            _rz_cur=normalize_tf_rz(_rz+180.0/RADIANS_F);
         }
 
         // dumper ON
@@ -327,7 +327,7 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
             // 後ろだと、後ろの角度が得られる。
             float theta_r = std::atan2(off_target_y,off_target_x);   //  [radian]
             // 自分の方向を減算
-            float theta_ar = normalize_rad(theta_r - _rz_cur);
+            float theta_ar = normalize_tf_rz(theta_r - _rz_cur);
 
             j++;
             if(j > 4){
@@ -378,12 +378,7 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
 
 /*
 rotate_abs()
-    stop_dz(d_theta) : [deg] 基本座標上の角度
-    speed :  5.0  [deg/s]
-*/
-/*
-rotate_abs()
-    stop_dz(d_theta) : [deg] 基本座標上の角度
+    stop_dz(d_theta) : [deg] 基本座標上の角度  > 0 左回転 /  < 0 右回転
     rad_f : false -> deg / true -> radian
     speed :  5.0  [deg/s]
 */
@@ -393,31 +388,28 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     // stop_dz = 180.0 # [deg]
     // speed = 10.0 # [deg/s]
 
-    int turn_plus;
+    int turn_plus=0;        // 1: turn left(+) , -1: turn right(-) , 0: 未定
+    if(stop_dz > 0)
+        turn_plus=1;
+    else if(stop_dz < 0)
+        turn_plus=-1;
+
     //geometry_msgs::Twist _vel_msg;
 
-    std::cout << "C rotate_abs()" << std::endl;
+    float stop_rz = stop_dz;
+    if(!rad_f){
+        stop_rz = stop_dz/ RADIANS_F;
+    }
+    float stop_rz_origin = stop_rz;
+    // 小数点以下5 の 丸め
+    //stop_rz = round_my<float>(stop_rz,5);
+    stop_rz=round_my_zero(stop_rz);
+
+    std::cout << "C rotate_abs() stop_dz=" << stop_rz*RADIANS_F << std::endl;
 
     _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
     _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
 
-    std::cout << "start rotate_abs stop_dz=" << stop_dz << std::endl;
-
-    //# turn plus
-    if (stop_dz >= 0.0){
-        turn_plus = 1;   // reverse clock(left) rotate
-        //#self.vel_msg.angular.z = speed * 3.1415 / 180.0 # [rad]
-        //#self.vel_msg.angular.z = speed # [rad]
-        _vel_msg.angular.z = speed / RADIANS_F;  // [rad]
-    }
-    // turn minus
-    else{
-        turn_plus = -1;   // regura clock(right) rotate
-        //#self.vel_msg.angular.z = speed * 3.1415 / -180.0 # [rad]
-        _vel_msg.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
-    }
-
-    std::cout << "turn_plus=" << turn_plus << std::endl;
 
     float rz_dlt = abs(speed / RADIANS_F) * 0.25;
     // #z_wind = abs(speed / RADIANS_F) * 2.0;
@@ -428,50 +420,252 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     //#t.linear.x = 0
     _vel_msg.linear.x = 0.0;
 
-    float stop_rz = stop_dz/ RADIANS_F;
-    // 180度表現に変換
-    if (abs(stop_rz) > 180.0/RADIANS_F){
-        if (stop_rz > 0.0)
-            stop_rz -= 360.0/RADIANS_F;
+    get_tf(2);
+
+    // 小数点以下5 の 丸め
+    //_rz = round_my<float>(_rz,5);
+    _rz=round_my_zero(_rz);
+
+    std::cout << " _rx,_ry,_rz=" << _rx << ","<< _ry << "," << _rz << std::endl;
+
+    // stop_dz 余り角
+    float stop_dz_mod = fmod(stop_dz,360.0);
+    std::cout << " stop_dz_mod=" << stop_dz_mod  << std::endl;
+
+    // stop_rz をノーマライズする。 180/RADIANS_F <= stop_rz <= -180/RADIANS_F
+    int quo_i;
+    stop_rz = normalize_tf_rz_quo(stop_rz,quo_i);
+
+    // ロボットとの角度差を求める
+    float r_theta = stop_rz - _rz;
+    std::cout <<" turn_plus=" << turn_plus << " r_theta="<< r_theta << " quo_i=" << quo_i <<" stop_rz=" << stop_rz << std::endl;
+
+    // turn_plus == 0 (未定) なら、 r_theta を回転方向とする。
+    if(turn_plus == 0){
+        if(r_theta >= 0)
+            turn_plus = 1;
         else
-            stop_rz +=  360.0/RADIANS_F;
+            turn_plus = -1;
+    }
+    else{
+        // 回転方向が違ったら、回転方向を反転する。
+        if( (turn_plus == 1 && r_theta < 0) || (turn_plus == -1 && r_theta > 0)){
+            std::cout <<" #3 passed "<<  std::endl;
+            r_theta=reverse_tf_rz(r_theta);
+        }
+    }
+    float r_theta_sav=r_theta;
+    // quo の回転数を加味して、トータルの回転角度を計算
+    r_theta = (float)quo_i * 360.0/RADIANS_F + r_theta;      // r_theta : トータルの回転角 [rad]
+
+    std::cout << " d_theta=" << r_theta * RADIANS_F << std::endl;
+
+    std::cout << " normalized stop_dz=" << stop_rz*RADIANS_F << " ,stop_dz_mod="<< stop_dz_mod << std::endl;
+
+    if (abs(r_theta) <= rz_dlt)
+        return;
+
+    std::cout << " turn_plus=" << turn_plus << std::endl;
+
+    // 反転時の角度差を検証する。
+    float r_theta_reverse = reverse_tf_rz(r_theta);
+    // 5.0 度以内なら、
+    if(abs(r_theta) < 5.0/RADIANS_F || abs(r_theta_reverse) < 5.0/RADIANS_F){
+        std::cout << " stop_dz is within 5.0[deg]" << std::endl;
+        rotate_abs_179(stop_rz_origin, true,speed);
+        return;
     }
 
-    get_tf(2);
-    std::cout << "_rx,_ry,_rz=" << _rx << ","<< _ry << "," << _rz << std::endl;
+    //# turn plus
+    if (turn_plus >= 0){
+        //#self.vel_msg.angular.z = speed * 3.1415 / 180.0 # [rad]
+        //#self.vel_msg.angular.z = speed # [rad]
+        _vel_msg.angular.z = speed / RADIANS_F;  // [rad]
+    }
+    // turn minus
+    else{
+        //#self.vel_msg.angular.z = speed * 3.1415 / -180.0 # [rad]
+        _vel_msg.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
+    }
 
+    // stop_rz を目指す
+    rclcpp::WallRate rate(40);  // 40[Hz]
+    float rz_min = 10.0;
+    bool ok_f = false;
+
+    int lp_cnt=0;
+    int lp_cnt_chk=0;
+
+    // 残り回転量をセット
+    float remain_r_theta = r_theta;
+    float prev_rz=_rz;  // 前回の回転位置を保存
+
+    while(1){
+        _pub->publish(_vel_msg);
+
+        rate.sleep();
+        rclcpp::spin_some(node_);
+
+        get_tf(2);
+        lp_cnt++;
+        // 今回の回転量を計算します。 delta(角)を求める。
+        float cur_rz = _rz - prev_rz;
+
+        // TF _rz は、常に 0pi からの近い角度と向き(+-)が、返される。  +-|0pi <= _rz <= pi|
+        // なので、 pi を跨った時の、delta(差)角 の計算には、補正が必要になる。
+        // normalize_tf_rz() が、使えます。
+        cur_rz=normalize_tf_rz(cur_rz);
+
+        remain_r_theta -= cur_rz;
+
+        if(lp_cnt > 20){
+            std::cout << " remain_r_theta=" << round_my<float>(remain_r_theta,4) << " _rz="<< round_my<float>(_rz,4) << " cur_rz=" << round_my<float>(cur_rz,4)<< std::endl;
+            lp_cnt=0;
+        }
+
+        // 残量角度 <= 30[rad] であれば、roate_abs_179() に任せる。
+        if(abs(remain_r_theta) <= 30/RADIANS_F){
+            rotate_abs_179(stop_dz_mod, false, speed);
+            break;
+        }
+
+        // ロボットが、動障害物にぶつかって、動いていないかチェック
+        //小数点以下 3桁は有効
+        float cur_rz_x = round_my<float>(cur_rz,3);
+        if(cur_rz_x == 0.0){
+            lp_cnt_chk++;
+            if(lp_cnt_chk >= 9){
+                std::cout << " time out" << std::endl;
+                break;
+            }
+        }
+        else{
+            lp_cnt_chk=0;
+        }
+        prev_rz = _rz;
+
+        //rate.sleep();
+        //rclcpp::spin_some(node_);
+    }
+
+    std::cout << "stop" << std::endl;
+    _vel_msg.angular.z = 0.0;   // [rad]
+    //Force the robot to stop
+    //_pub.publish(_vel_msg);
+    _pub->publish(_vel_msg);
+    rate.sleep();
+
+    get_tf(2);
+}
+
+/*
+rotate_abs_last179()
+最後の 179[deg] を回転する
+    stop_dz(d_theta) : [deg] 基本座標上の角度  > 0 左回転 /  < 0 右回転
+    rad_f : false -> deg / true -> radian
+    speed :  5.0  [deg/s]
+*/
+void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
+    // 目的の角度と速度を設定
+    // stop_dz = 180.0 # [deg]
+    // speed = 10.0 # [deg/s]
+    bool speed_half_msg_f=false;
+
+    int turn_plus=0;        // 1: turn left(+) , -1: turn right(-) , 0: 未定
+    //if(stop_dz > 0)
+    //    turn_plus=1;
+    //else if(stop_dz < 0)
+    //    turn_plus=-1;
+
+    //geometry_msgs::Twist _vel_msg;
+
+    float stop_rz = stop_dz;
+    if(!rad_f){
+        stop_rz = stop_dz/ RADIANS_F;
+    }
+    // 小数点以下5 の 丸め
+    //stop_rz = round_my<float>(stop_rz,5);
+    stop_rz=round_my_zero(stop_rz);
+
+    std::cout << "C rotate_abs_179() stop_dz=" << stop_rz*RADIANS_F << std::endl;
+
+    _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
+    _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
+
+
+    float rz_dlt = abs(speed / RADIANS_F) * 0.25;
+    // #z_wind = abs(speed / RADIANS_F) * 2.0;
+    float rz_wind = rz_dlt * 3.0;
+
+    //# Twist 型のデータ
+    //#t = Twist()
+    //#t.linear.x = 0
+    _vel_msg.linear.x = 0.0;
+
+    get_tf(2);
+
+    // 小数点以下5 の 丸め
+    //_rz = round_my<float>(_rz,5);
+    _rz=round_my_zero(_rz);
+
+    std::cout << " _rx,_ry,_rz=" << _rx << ","<< _ry << "," << _rz << std::endl;
+
+    // stop_rz をノーマライズする。 180/RADIANS_F <= stop_rz <= -180/RADIANS_F
+    int quo_i;
+    stop_rz = normalize_tf_rz_quo(stop_rz,quo_i);
+
+    // ロボットとの角度差を求める
     float rz_off = stop_rz - _rz;
+
+    // turn_plus == 0 (未定) なら、 r_theta を回転方向とする。
+    if(turn_plus == 0){
+        if(rz_off >= 0)
+            turn_plus = 1;
+        else
+            turn_plus = -1;
+    }
+    else{
+        // 回転方向が違ったら、回転方向を反転する。
+        if( (turn_plus == 1 && rz_off < 0) || (turn_plus == -1 && rz_off > 0)){
+            std::cout <<" #3 passed "<<  std::endl;
+            rz_off=reverse_tf_rz(rz_off);
+        }
+    }
+
+    // quo の回転数を加味して、トータルの回転角度を計算
+    //rz_off = (float)quo_i * 360.0/RADIANS_F + rz_off;      // r_theta : トータルの回転角 [rad]
 
     if (abs(rz_off) <= rz_dlt)
         return;
 
-    std::cout << "dz_off=" << rz_off * RADIANS_F << std::endl;
+    float stop_rz_norm = stop_rz;
 
-    // 逆回りが近い
-    if (abs(rz_off) > 180.0/RADIANS_F){
-        if (rz_off > 0.0)
-            rz_off -= 360.0/RADIANS_F;
-        else
-            rz_off += 360.0/RADIANS_F;
+    std::cout << " dz_off=" << rz_off * RADIANS_F << " stop_rz_norm=" << stop_rz_norm << std::endl;
+
+    std::cout << " turn_plus=" << turn_plus << std::endl;
+
+    //# turn plus
+    if (turn_plus >= 0){
+        //#self.vel_msg.angular.z = speed * 3.1415 / 180.0 # [rad]
+        //#self.vel_msg.angular.z = speed # [rad]
+        _vel_msg.angular.z = speed / RADIANS_F;  // [rad]
     }
+    // turn minus
+    else{
+        //#self.vel_msg.angular.z = speed * 3.1415 / -180.0 # [rad]
+        _vel_msg.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
+    }
+    float speed_half=_vel_msg.angular.z * 0.5;
+
     if (abs(rz_off) <= 10.0/RADIANS_F){      //# 角度差が 10.0 度以内 であれば、補正回転にする
-        std::cout << "adjust angle" << std::endl;
-        // 左回り
-        if (rz_off >= 0.0){
-            _vel_msg.angular.z = abs(_vel_msg.angular.z);
-            turn_plus = 1;
-        }
-        // 右回り
-        else{
-            _vel_msg.angular.z = abs(_vel_msg.angular.z) * -1.0;
-            turn_plus = -1;
-        }
+        std::cout << " adjust angle" << std::endl;
+        _vel_msg.angular.z = speed_half;
     }
     else{
-        std::cout << ">non adjust angle" << std::endl;
+        std::cout << " non adjust angle" << std::endl;
     }
 
-    std::cout << "turn_plus=" << turn_plus << std::endl;
+    std::cout << " turn_plus=" << turn_plus << std::endl;
 
     //print 'test1'
     //sys.exit()
@@ -483,40 +677,55 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     bool ok_f = false;
     int lp_cnt=0;
     while(1){
-        //_pub.publish(_vel_msg);
         _pub->publish(_vel_msg);
 
         get_tf(2);
-        lp_cnt++;
-        if(lp_cnt > 80){
-            std::cout << "stop_rz=" << round_my<float>(stop_rz,3) << std::endl;
-            lp_cnt=0;
-        }
 
         // 最も近い角度で終了します
         if (ok_f == true){
-            std::cout << "ok nearly" << std::endl;
+            std::cout << " ok nearly" << std::endl;
             break;
         }
         // 目的の角度です。
-        if (abs(_rz - stop_rz) <= rz_dlt){
-        //  std::cout << "ok just" << std::endl;
-        //  break;
-        // 目的の角度です。
-        if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
-            std::cout << "ok just" << std::endl;
-            break;
+        //if (abs(_rz - stop_rz) <= rz_dlt){
+        if (abs(stop_rz_norm - _rz) <= rz_dlt){
+            //  std::cout << "ok just" << std::endl;
+            //  break;
+            // 目的の角度です。
+            if (round_my<float>(stop_rz_norm,3) == round_my<float>(_rz,3)){
+                std::cout << " ok just" << std::endl;
+                break;
+            }
         }
+        //float rz_off = stop_rz - _rz;
+        float rz_off = stop_rz_norm - _rz;
+        // ノーマライズします。
+        rz_off=normalize_tf_rz(rz_off);
+
+        lp_cnt++;
+        if(lp_cnt > 20){
+            std::cout << " stop_rz_norm=" << round_my<float>(stop_rz_norm,3) << " rz_off="<< round_my<float>(rz_off,3) << " _rz=" << _rz << std::endl;
+            lp_cnt=0;
         }
-        //rz_off = abs(abs(stop_rz) - abs(self.rz))
-        float rz_off = stop_rz - _rz;
-        if (rz_off > 180.0/RADIANS_F){
-            rz_off = -(360.0/RADIANS_F - rz_off);
+
+        if(rz_off > 0.0){
+            if(_vel_msg.angular.z < 0.0)
+                _vel_msg.angular.z *= -1.0;  // [rad]
         }
-        else if (rz_off < -180.0/RADIANS_F){
-            rz_off += 360.0/RADIANS_F;
+        // rz_off <  0  --->  regura clock(right) rotate(-)
+        else{
+            if(_vel_msg.angular.z > 0.0)
+                _vel_msg.angular.z *= -1.0;  // [rad]
         }
+
         rz_off=abs(rz_off);
+        if (rz_off <= 10.0/RADIANS_F){      //# 角度差が 10.0 度以内 であれば、補正回転にする
+            if(speed_half_msg_f==false){
+                _vel_msg.angular.z = speed_half;
+                std::cout << " set speed_half" << std::endl;
+                speed_half_msg_f=true;
+            }
+        }
         if (rz_off <= rz_wind){
             // 最小の角度を求める
             // print 'rz_off=',rz_off 
@@ -534,7 +743,7 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
         //ros::spinOnce();
         rclcpp::spin_some(node_);
     }
-    std::cout << "stop" << std::endl;
+    std::cout << " stop" << std::endl;
     _vel_msg.angular.z = 0.0;   // [rad]
     //Force the robot to stop
     //_pub.publish(_vel_msg);
@@ -546,7 +755,7 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
 
 /* 
 void rotate_off()
-    d_theta : [deg] ロボット座標上の角度
+    d_theta : [deg] ロボットの今の向きからの角度   > 0 左回転 /  < 0 右回転
     speed :  5.0  [deg/s]
 */
 void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
@@ -554,25 +763,24 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
     //d_theta = 180.0 # [deg]
     //speed = 10.0 # [deg/s]
 
-    int turn_plus=0;
-
+    bool turn_plus;
     std::cout << "C rotate_off() d_theta:" << d_theta << std::endl;
 
     float rz_dlt = abs(speed/RADIANS_F) * 0.25;
-    float rz_wind = rz_dlt * 3.0;
+    //float rz_wind = rz_dlt * 3.0;
 
     float r_theta = d_theta/RADIANS_F;
     if (abs(r_theta) <= rz_dlt)
         return;
 
     if (d_theta >= 0.0){
-        turn_plus = 1;   // reverse clock(left) rotate
+        turn_plus = true;   // reverse clock(left) rotate(+)
         //_vel_msg.angular.z = speed * 3.1415 / 180.0; //[rad]
         //_vel_msg.angular.z = speed; // [rad]
         _vel_msg.angular.z = speed/RADIANS_F;  // [rad]
     }
     else{
-        turn_plus = -1;   // clock(right) rotate
+        turn_plus = false; // regura clock(right) rotate(-)
         //_vel_msg.angular.z = speed * 3.1415 / -180.0; // [rad]
         _vel_msg.angular.z = speed/RADIANS_F * -1.0;  // [rad]
     }
@@ -590,91 +798,76 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
         _vel_msg.linear.x = 0.0;
     }
 
-    float stop_rz= _rz + r_theta;
+    // World 座標 stop_rz を目指す。
+    float stop_rz =  normalize_tf_rz(r_theta+_rz);
 
-    // 180度表現に変換
-    if (abs(stop_rz) > 180.0/RADIANS_F){
-        if (stop_rz > 0.0)
-            stop_rz -= 360.0/RADIANS_F;
-        else
-            stop_rz +=  360.0/RADIANS_F;
-    }
+    rclcpp::WallRate rate(40);  // 40[Hz]
+    //float rz_min = 10.0;
 
-    // stop_rz を目指す
-    //ros::Rate rate(40);   // 40 [Hz]
-    rclcpp::WallRate rate(40);
-    float rz_min = 10.0;
     bool ok_f = false;
 
     int lp_cnt=0;
     int lp_cnt_chk=0;
 
-    float prev_rz=0.0;
+    // 残り回転量をセット
+    float remain_r_theta = r_theta;
+    float prev_rz=_rz;  // 前回の回転位置を保存
 
     while(1){
-        //_pub.publish(_vel_msg);
         _pub->publish(_vel_msg);
+
+        rate.sleep();
+        rclcpp::spin_some(node_);
+
         get_tf(2);
         lp_cnt++;
-        if(lp_cnt > 80){
-            std::cout << " stop_rz=" << round_my<float>(stop_rz,4) << " _rz="<< round_my<float>(_rz,4) << std::endl;
+        // 今回の回転量を計算します。 delta(角)を求める。
+        float cur_rz = _rz - prev_rz;
+
+        // TF _rz は、常に 0pi からの近い角度と向き(+-)が、返される。  +-|0pi <= _rz <= pi|
+        // なので、 pi を跨った時の、delta(差)角 の計算には、補正が必要になる。
+        #if defined(TEST_KYK)
+        // pi を跨った計算です。 left(+) 角値  から right(-) 角値 迄の delta(差)角 計算
+        if(cur_rz < -180/RADIANS_F)
+            // delta = 2pi - delta
+            cur_rz = 360/RADIANS_F - cur_rz;
+        // pi を跨った計算です。 right(-) 角値 から left(+) 角値 迄の delta(差)角 計算
+        else if(cur_rz > 180/RADIANS_F)
+            // delta = delta - 2pi
+            cur_rz = cur_rz - 360/RADIANS_F;
+        #endif
+        // normalize_tf_rz() が、使えます。
+        cur_rz=normalize_tf_rz(cur_rz);
+
+        remain_r_theta -= cur_rz;
+
+        if(lp_cnt > 40){
+            std::cout << " remain_r_theta=" << round_my<float>(remain_r_theta,4) << " _rz="<< round_my<float>(_rz,4) << " cur_rz=" << round_my<float>(cur_rz,4)<< std::endl;
             lp_cnt=0;
-            //小数点以下 2桁は有効
-            float _rz_x = round_my<float>(_rz,2);
-            // ロボットが動いていない? add by nishi 2024.3.14
-            if(prev_rz == _rz_x){
-                lp_cnt_chk++;
-                if(lp_cnt_chk >= 3){
-                    std::cout << " time out" << std::endl;
-                    break;
-                }
-            }
-            else{
-                lp_cnt_chk=0;
-            }
-            prev_rz = _rz_x;
         }
-        // 最も近い角度で終了します
-        if (ok_f == true){
-            std::cout << " ok nearly" << std::endl;
+
+        // 残量角度 <= 30[rad] であれば、roate_abs_179() に任せる。
+        if(abs(remain_r_theta) <= 30/RADIANS_F){
+            rotate_abs_179(stop_rz, true, speed);
             break;
         }
-        // 目的の角度です。
-        if (abs(stop_rz - _rz) <= rz_dlt){
-            //std::cout << "ok just" << std::endl;
-            //break;
-            // 目的の角度です。
-            if (round_my<float>(stop_rz,3) == round_my<float>(_rz,3)){
-                std::cout << " ok just" << std::endl;
+        // ロボットが、動障害物にぶつかって、動いていないかチェック
+        //小数点以下 3桁は有効
+        float cur_rz_x = round_my<float>(cur_rz,3);
+        if(cur_rz_x == 0.0){
+            lp_cnt_chk++;
+            if(lp_cnt_chk >= 6){
+                std::cout << " time out" << std::endl;
                 break;
             }
         }
-
-        float rz_off = stop_rz - _rz;
-        if (rz_off > 180.0/RADIANS_F)
-            rz_off = -(360.0/RADIANS_F - rz_off);
-
-        else if (rz_off < -180.0/RADIANS_F)
-            rz_off += 360.0/RADIANS_F;
-
-        rz_off=abs(rz_off);
-        if (rz_off <= rz_wind){
-            //print "rz_off=",rz_off," rz_min=",rz_min
-            // 最小の角度を求める
-            if (rz_off <= rz_min)
-                rz_min = rz_off;
-
-            // 最小の角度を通り過ぎ
-            else{
-                // 1クロック逆戻り
-                _vel_msg.angular.z *= -1.0;
-                ok_f = true;
-                //break;
-            }
+        else{
+            lp_cnt_chk=0;
         }
-        rate.sleep();
-        //ros::spinOnce();
-        rclcpp::spin_some(node_);
+        prev_rz = _rz;
+
+        //rate.sleep();
+        //rclcpp::spin_some(node_);
     }
 
     std::cout << "stop" << std::endl;

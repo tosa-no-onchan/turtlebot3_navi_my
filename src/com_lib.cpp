@@ -14,11 +14,14 @@ using namespace std::chrono_literals;
 //using geometry_msgs::msg::Quaternion;
 
 /*
-* radian の補正
-*  float rz: [Radian]
-*  180度[Radian] 以上を補正します。  
+* float normalize_tf_rz(float rz)
+*  tf rz [radian] の補正
+*   float rz: [Radian]
+*   180度[Radian] 以上を補正します。
+*  piを超す(WrapAround) と、符号が変わります。
+*  TF rz は、常に 0pi から pi の間の角度と回転方向を返す。(0pi から近い角度)
 */
-float normalize_rad(float rz){
+float normalize_tf_rz(float rz){
     //if(abs(rz) >= 360.0/RADIANS_F){
     //    if(rz >0.0)
     //        rz -= 360.0/RADIANS_F;
@@ -31,17 +34,114 @@ float normalize_rad(float rz){
     //    else
     //        rz += 180.0/RADIANS_F;
     //}
-    //abs(rz)/(180.0/RADIANS_F);
+
     rz= fmod(rz,(360.0/RADIANS_F));
-    if(abs(rz) > 180.0/RADIANS_F){
-        if(rz > 0.0){
-            rz = -360.0/RADIANS_F + rz;
-        }
-        else{
-            rz = 360.0/RADIANS_F + rz;
-        }
+
+    // 小数点以下5 の 丸めをしないと、うまく行かない。
+    //rz = round_my<float>(rz,5);
+    rz = round_my_zero<float>(rz);
+    if(rz > 180.0/RADIANS_F){
+        rz = -360.0/RADIANS_F + rz;
+        //std::cout << "normalize_tf_rz() #2 rz=" << rz << " dz="<< rz * RADIANS_F << std::endl;
+    }
+    else if(rz < -180.0/RADIANS_F){
+        rz = 360.0/RADIANS_F + rz;
+        //std::cout << "normalize_tf_rz() #3 rz=" << rz << " dz="<< rz * RADIANS_F << std::endl;
     }
     return rz;
+}
+
+/*
+* float normalize_tf_rz_quo(float rz, int &quo)
+*  tf rz [radian] の補正
+*   float rz: [Radian]
+*   180度[Radian] 以上を補正します。
+*   int &quo:   quotient (商)
+*  piを超す(WrapAround) と、符号が変わります。
+*  TF rz は、常に 0pi から pi の間の角度と回転方向を返す。(0pi から近い角度)
+*/
+float normalize_tf_rz_quo(float rz,int &quo){
+    float quo_ = rz / (360.0/RADIANS_F);
+    quo = (int)quo_;
+    
+    rz= fmod(rz,(360.0/RADIANS_F));
+
+    // 小数点以下5 の 丸めをしないと、うまく行かない。
+    //rz = round_my<float>(rz,5);
+    rz = round_my_zero<float>(rz);
+    if(rz == 0.0){
+        if(quo > 0){
+            quo--;
+        }
+        else if(quo <0)
+            quo++;
+        return rz;
+    }
+    return normalize_tf_rz(rz);
+}
+
+/*
+* float reverse_tf_rz(float rz)
+*   TF rz[radian] の反転
+*   float rz: [Radian] の向きを反転させます。
+*         rz(+)  -> rz(-)
+*         rz(-)  -> rz(+)
+*/
+float reverse_tf_rz(float rz){
+    rz = round_my_zero<float>(rz);
+    if(rz > 0){
+        rz = -360.0/RADIANS_F + rz;
+    }
+    else if(rz < 0){
+        rz = 360.0/RADIANS_F + rz;
+    }
+    return rz;
+}
+
+
+/*
+* float adjust_tf_rz(float stop_rz,float r_theta,float _rz)
+*   TF rz[radian] の反転
+*   float rz: [Radian] の向きを反転させます。
+*         rz(+)  -> rz(-)
+*         rz(-)  -> rz(+)
+*/
+float adjust_tf_rz(float stop_rz,float r_theta,float _rz){
+    // 目的角までの差角を求める
+    //float r_theta = stop_rz - _rz;
+    // stop_rz、_rz の回転角 空間が異なる場合、補正が必要
+    // stop_rz は、left(+)回転 空間
+    if(stop_rz >= 0){
+        // _rz は、right(-)回転 空間
+        if(_rz < 0){
+            std::cout << " #4 passed !!" << std::endl;
+            //r_theta = stop_rz + _rz;
+            r_theta = stop_rz - (360/RADIANS_F + _rz);
+        }
+    }
+    // stop_rz は、right(-)回転 空間
+    else{
+        // _rz は、left(+)回転 空間
+        if(_rz >= 0){
+            // _rz(+) を、 _rz(-) に回転座標変換して、 stop_rz(-) を追い越さない場合、言い換えると
+            //     |_rz(-)|  <=  |stop_rz(-)| 
+            // の時は、下記計算が使える .... 計算しても符号(-)が変わらない事を条件とする
+            //r_theta = stop_rz - (-360/RADIANS_F + _rz);
+            float rz_minus = -360/RADIANS_F + _rz;
+            rz_minus = round_my_zero<float>(rz_minus);
+            if(abs(rz_minus) <= abs(stop_rz)){
+                std::cout << " #5 passed !!" << std::endl;
+                // _rz(-) が stop_rz(-) をおい越さ無い場合
+                r_theta = stop_rz - rz_minus;
+            }
+            else{
+                std::cout << " #6 passed !!" << std::endl;
+                // _rz(-) が、stop_rz(-) をおい越す場合
+                r_theta = stop_rz + _rz;
+            }
+        }
+    }
+    return r_theta;
 }
 
 void HeartBeat::init(std::shared_ptr<rclcpp::Node> node){

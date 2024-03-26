@@ -86,14 +86,14 @@ public:
       float dist: 自分からの距離
                     > 0 前進
                     < 0 後退
-      float d_yaw: ロボットからの角度。 [degree] 
+      float d_yaw: ロボットからの角度。 [degree]  > 0 左回転 /  < 0 右回転
   */
   void move(float dist,float d_yaw);
 
   /*
   move_abs()
       x,y: 絶対番地への移動(基準座標)
-      d_yaw: 基準座標での角度。 [degree]
+      d_yaw: 基準座標での角度。 [degree]  > 0 左回転 /  < 0 右回転
   */
   void move_abs(float x,float y,float d_yaw);
 
@@ -134,27 +134,30 @@ public:
 
   /*
   rotate_abs()
-      stop_dz(d_theta) : [deg] 基本座標上の角度
-      speed :  5.0  [deg/s]
+      stop_dz(d_theta) : [deg] 基本座標上の角度  > 0 左回転 /  < 0 右回転
+      rad_f : false -> deg / true -> radian
+      speed :  15.0  [deg/s]
   */
   //void rotate_abs(float stop_dz,float speed=5.0);
   //void rotate_abs(float stop_dz,float speed=8.0);
-
-  /*
-  rotate_abs()
-      stop_dz(d_theta) : [deg] 基本座標上の角度
-      rad_f : false -> deg / true -> radian
-      speed :  5.0  [deg/s]
-  */
   void rotate_abs(float stop_dz,bool rad_f=false, float speed=15.0);
 
+  /*
+  rotate_abs_179()
+    最後の 179[deg] を回転する
+      stop_dz(d_theta) : [deg] 基本座標上の角度  > 0 左回転 /  < 0 右回転
+      rad_f : false -> deg / true -> radian
+      speed :  15.0  [deg/s]
+  */
+  void rotate_abs_179(float stop_dz,bool rad_f=false, float speed=15.0);
 
   /* 
   void rotate_off()
-      d_theta : [deg] ロボット座標上の角度
-      speed :  5.0  [deg/s]
+      d_theta : [deg] ロボットの今の向きからの角度   > 0 左回転 /  < 0 右回転
+      speed :  15.0  [deg/s]
   */
   void rotate_off(float d_theta, float speed=15.0,bool go_curve=false);
+
   //! Drive forward a specified distance based on odometry information
   bool driveForwardOdom(double distance);
   bool turnOdom(bool clockwise, double radians);

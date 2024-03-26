@@ -484,7 +484,7 @@ void RobotDriveNAV2::go_abs(float x,float y, bool isBack, float speed ){
 
 /*
 rotate_abs()
-    stop_dz(d_theta) : [deg] 基本座標上の角度
+    stop_dz(d_theta) : [deg] 基本座標上の角度  > 0 左回転 /  < 0 右回転
     rad_f : false -> deg / true -> radian
     speed :  5.0  [deg/s]
 */
@@ -522,7 +522,7 @@ void RobotDriveNAV2::rotate_abs(float stop_dz,bool rad_f,float speed){
 
 /* 
 void rotate_off()
-    d_theta : [deg] ロボット座標上の角度
+    d_theta : [deg] ロボットの今の向きからの角度   > 0 左回転 /  < 0 右回転
     speed :  5.0  [deg/s]
 
     クォータニオン(四元数)を使用して座標を回転させる

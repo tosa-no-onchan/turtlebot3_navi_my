@@ -56,12 +56,49 @@ T round_my(T dt,int n)
     }
 }
 
+
 /*
-* radian の補正
-*  float rz: [Radian]
-*  180度[Radian] 以上を補正します。  
+* T round_my_zero(T dt,int n)
 */
-float normalize_rad(float rz);
+template <class T=float>
+T round_my_zero(T dt)
+{
+    return round_my<T>(dt,5);
+}
+
+
+/*
+* float normalize_tf_rz(float rz)
+*  tf rz [radian] の補正
+*   float rz: [Radian]
+*   180度[Radian] 以上を補正します。  
+*  piを超す(WrapAround) と、符号が変わります。
+*  TF rz は、常に 0pi から pi の間の角度と回転方向を返す。(0pi から近い角度)
+*/
+float normalize_tf_rz(float rz);
+
+/*
+* float normalize_tf_rz_quo(float rz,int &quo)
+*  tf rz [radian] の補正
+*   float rz: [Radian]
+*   180度[Radian] 以上を補正します。  
+*   int &quo:   quotient (商)
+*  piを超す(WrapAround) と、符号が変わります。
+*  TF rz は、常に 0pi から pi の間の角度と回転方向を返す。(0pi から近い角度)
+*/
+float normalize_tf_rz_quo(float rz,int &quo);
+
+/*
+* float reverse_tf_rz(float rz)
+*   TF rz[radian] の反転
+*   float rz: [Radian] の向きを反転させます。
+*         rz(+)  -> rz(-)
+*         rz(-)  -> rz(+)
+*/
+float reverse_tf_rz(float rz);
+
+
+float adjust_tf_rz(float stop_rz,float r_theta,float _rz);
 
 class HeartBeat{
 public:
