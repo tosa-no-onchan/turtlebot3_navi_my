@@ -388,11 +388,6 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     // stop_dz = 180.0 # [deg]
     // speed = 10.0 # [deg/s]
 
-    int turn_plus=0;        // 1: turn left(+) , -1: turn right(-) , 0: 未定
-    if(stop_dz > 0)
-        turn_plus=1;
-    else if(stop_dz < 0)
-        turn_plus=-1;
 
     //geometry_msgs::Twist _vel_msg;
 
@@ -400,10 +395,10 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     if(!rad_f){
         stop_rz = stop_dz/ RADIANS_F;
     }
-    float stop_rz_origin = stop_rz;
+
     // 小数点以下5 の 丸め
-    //stop_rz = round_my<float>(stop_rz,5);
     stop_rz=round_my_zero(stop_rz);
+    float stop_rz_origin = stop_rz;
 
     std::cout << "C rotate_abs() stop_dz=" << stop_rz*RADIANS_F << std::endl;
 
@@ -427,6 +422,17 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     _rz=round_my_zero(_rz);
 
     std::cout << " _rx,_ry,_rz=" << _rx << ","<< _ry << "," << _rz << std::endl;
+
+    int turn_plus=0;        // 1: turn left(+) , -1: turn right(-) , 0: 未定
+    // 同じ回転空間で、目的角が少ない時は、回転向きを未定にする。
+    if(stop_dz > 0){
+        if(_rz > 0 && stop_rz > _rz)
+            turn_plus=1;
+    }
+    else if(stop_dz < 0){
+        if(_rz < 0 && stop_rz < _rz)
+            turn_plus=-1;
+    }
 
     // stop_dz 余り角
     float stop_dz_mod = fmod(stop_dz,360.0);
