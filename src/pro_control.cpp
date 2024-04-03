@@ -343,6 +343,7 @@ mloop(self)
             30 -> auto map build
             31 -> auto map build of anchor
             35 -> auto mower
+            36 -> auto mower2
             50 -> set Navigation mode
             60 -> course_correct ON
             61 -> course_correct OFF
@@ -427,8 +428,11 @@ void ProControl::mloop(){
             case 31:        // auto map build of anchor
                 auto_map_anchor();
                 break;
-            case 35:        // auto mower
+            case 35:        // auto mower()
                 auto_mower();
+                break;
+            case 36:        // auto mower2()
+                auto_mower(2);
                 break;
             case 50:
                 call_service();

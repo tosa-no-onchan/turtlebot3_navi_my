@@ -342,7 +342,7 @@ void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
 * https://yomi322.hateblo.jp/entry/2012/04/17/223100
 * https://qiita.com/usagi/items/3563ddb01e4eb342485e
 */
-void GetMap::get(bool save_f){
+bool GetMap::get(bool save_f){
     int cnt=3;
     // for ROS
     //std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map=nullptr;
@@ -433,6 +433,7 @@ void GetMap::get(bool save_f){
     else{
         std::cout << "GetMap::get(): 99 error" << std::endl;
     }
+    return is_successful;
 }
 
 /*
@@ -908,12 +909,17 @@ test_plot()
     float robot_r=0.3 : ロボット半径
     ロボットの位置をマップにプロットする。
 */
-bool GetMap::test_plot(float x,float y,float r_yaw,float robot_r){
-    get();
+void GetMap::test_plot(float x,float y,float r_yaw,float robot_r){
 
     std::cout << "GetMap::test_plot()" << std::endl;
 
-    std::cout << "mapm_.origin[0]:"<< mapm_.origin[0]<< " mapm_.origin[1]:"<< mapm_.origin[1] << "mapm_.resolution:"<< mapm_.resolution  << std::endl;
+    bool rc=get();
+    if(rc != true){
+        std::cout << " error end" << std::endl;
+        return;
+    }
+
+    std::cout << " mapm_.origin[0]:"<< mapm_.origin[0]<< " mapm_.origin[1]:"<< mapm_.origin[1] << "mapm_.resolution:"<< mapm_.resolution  << std::endl;
 
     cv::Point center_p; // 円の中心位置
     cv::Mat my_map;
@@ -938,7 +944,6 @@ bool GetMap::test_plot(float x,float y,float r_yaw,float robot_r){
 
     std::cout << " px:"<< px <<" py:"<< py << " rr:" << rr << std::endl;
 
-
     // 回転四角形
     // # RotatedRect(中心座標, サイズ(x, y), 回転角度degree)
     //cv::RotatedRect rect1(cv::Point2f( 80, 80), cv::Size(rr, rr), 0);
@@ -957,7 +962,7 @@ bool GetMap::test_plot(float x,float y,float r_yaw,float robot_r){
     cv::namedWindow("GetMap::test_plot", cv::WINDOW_NORMAL);
 
     cv::imshow("GetMap::test_plot", my_map);
-    int rc = cv::waitKey(1000);
+    int key = cv::waitKey(1000);
     cv::destroyWindow("GetMap::test_plot");
 
 }

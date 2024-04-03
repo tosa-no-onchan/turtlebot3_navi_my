@@ -68,10 +68,10 @@ GoalList goallist_test[] ={
             //{0, 0.0, 0.0, -180.0},   // go (0.0,0.0) and rotate -180
 
             // rotae_abs() の連続テスト  -> OK
-            //{0, 0.0, 0.0, 90.0},   // go (0.0,0.0) and rotate 90
-            //{0, 0.0, 0.0, 180.0},   // go (0.0,0.0) and rotate 90
-            //{0, 0.0, 0.0, 270.0},   // go (0.0,0.0) and rotate 90
-            //{0, 0.0, 0.0, 360.0},   // go (0.0,0.0) and rotate 90
+            {0, 0.0, 0.0, 90.0},   // go (0.0,0.0) and rotate 90
+            {0, 0.0, 0.0, 180.0},   // go (0.0,0.0) and rotate 90
+            {0, 0.0, 0.0, 270.0},   // go (0.0,0.0) and rotate 90
+            {0, 0.0, 0.0, 360.0},   // go (0.0,0.0) and rotate 90
 
             // rotae_abs() の連続テスト -> OK
             //{0, 0.0, 0.0, -90.0},   // go (0.0,0.0) and rotate -90
@@ -90,7 +90,7 @@ GoalList goallist_test[] ={
             //{0, 0.0, 0.0, 170.0},   // go (0.0,0.0) and rotate 170    -> OK
             //{0, 0.0, 0.0, 180.0+45.0},   // go (0.0,0.0) and rotate 225  -> OK
 
-            {0, 0.0, 0.0, 180.0+10.0},   // go (0.0,0.0) and rotate 190  -> OK
+            //{0, 0.0, 0.0, 180.0+10.0},   // go (0.0,0.0) and rotate 190  -> OK
 
             // 反転 Zero のテスト  -> OK
             //{0, 0.0, 0.0, 90.0},   // go (0.0,0.0) and rotate 90
@@ -132,6 +132,12 @@ GoalList goallist_test[] ={
             // 180 の反転テスト
             //{0, 0.0, 0.0, -180.0},   // go (0.0,0.0) and rotate -180
             //{0, 0.0, 0.0, -180.0},   // go (0.0,0.0) and rotate -180   -> 右回転 360(-) した。上と動きが違った。ちょっとの角度差なら、小さい方に回転させるべきか?
+
+            // 戻りテスト
+            //{0, 0.0, 0.0, 90.0},   // go (0.0,0.0) and rotate 90
+            //{0, 0.0, 0.0, 45.0},   // go (0.0,0.0) and rotate 45
+            //{0, 0.0, 0.0, -90.0},   // go (0.0,0.0) and rotate -90
+            //{0, 0.0, 0.0, -45.0},   // go (0.0,0.0) and rotate -45
 
 
             {99,0.0,0.0, 0.0}       // end
@@ -494,8 +500,8 @@ int main(int argc, char** argv)
     //    rate.sleep();
     //}
 
-    //mg_ex.mloop_ex(goallist_test);
-    mg_ex.mloop_ex(goallist);
+    mg_ex.mloop_ex(goallist_test);
+    //mg_ex.mloop_ex(goallist);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(goallist2);
 

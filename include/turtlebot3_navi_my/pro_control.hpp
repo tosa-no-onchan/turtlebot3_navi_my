@@ -174,8 +174,7 @@ public:
     virtual void set_robo_r(float x){};
 
     // Auto mower 向けのメンバー
-    virtual void auto_mower(){};
-
+    virtual void auto_mower(int m_type=1){};
 
     /*
     mloop(self)
@@ -196,6 +195,7 @@ public:
             30 -> auto map build
             31 -> auto map build of anchor
             35 -> auto mower
+            36 -> auto mower2
             50 -> set Navigation mode
             60 -> course_correct ON
             61 -> course_correct OFF

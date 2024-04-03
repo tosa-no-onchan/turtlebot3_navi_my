@@ -862,7 +862,8 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
         float cur_rz_x = round_my<float>(cur_rz,3);
         if(cur_rz_x == 0.0){
             lp_cnt_chk++;
-            if(lp_cnt_chk >= 6){
+            //if(lp_cnt_chk >= 6){
+            if(lp_cnt_chk >= 12){
                 std::cout << " time out" << std::endl;
                 break;
             }
