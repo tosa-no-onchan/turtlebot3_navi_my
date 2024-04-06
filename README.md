@@ -31,6 +31,13 @@
 
 説明は、下記ページにあります。  
 [自作 Turtlebot3 自律走行に向けたプログラム。#12 AutoMap II](http://www.netosa.com/blog/2022/08/-turtlebot3-12.html)  
+
+  #### Auto Mower  
+
+     Auto Map , MapII で作成した map を使って、ロボットの開始位置の自由領域を、ロボットの幅でコースを作成して、それを走行する。
+
+説明は、下記ページにあります。  
+[ROS2 自作 Turtlebot3 による 草刈りロボット開発。#3 Auto Mower](http://www.netosa.com/blog/2024/04/ros2-turtlebot3-3.html)  
     
 実行は、下記ランチファイルの上部の説明を参照してください。  
 [turtlebot3_rgbd_sync.launch.py](https://github.com/tosa-no-onchan/rtabmap_ros_my/blob/main/launch/turtlebot3_rgbd_sync.launch.py)  
