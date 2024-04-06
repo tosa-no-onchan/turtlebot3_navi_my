@@ -6,6 +6,7 @@
   動かす事ができる、 c++ プログラム。  
 
   特に、Gazebo House , Turtlebot3 and Rtabmap_ros with RGBD Camera 環境があれば、簡単に下記テストができる。  
+  Turtlebot3 amcl and scan の launch を追加しました。    
   #### cmd_vel :
   
     C++ プログラムから、/cmd_vel 操作でロボットを動かせる。  
@@ -33,7 +34,9 @@
     
 実行は、下記ランチファイルの上部の説明を参照してください。  
 [turtlebot3_rgbd_sync.launch.py](https://github.com/tosa-no-onchan/rtabmap_ros_my/blob/main/launch/turtlebot3_rgbd_sync.launch.py)  
-[turtlebot3_rgbd.launch.py](https://github.com/tosa-no-onchan/rtabmap_ros_my/blob/main/launch/turtlebot3_rgbd.launch.py)
+[turtlebot3_rgbd.launch.py](https://github.com/tosa-no-onchan/rtabmap_ros_my/blob/main/launch/turtlebot3_rgbd.launch.py)  
+Turtlebot3 amcl and scan の launch を追加しました。  
+launch/turtlebot3_amcl_scan.launch.py  
 
   
 #### 1. How to install  
@@ -60,7 +63,11 @@
 #### 2.3 Auto Map を実行する。  
 
     $ ros2 launch turtlebot3_navi_my go_auto_map.launch.py [use_sim_time:=True] 
-  
+
+#### 2.4 Auto Mower を実行する。    
+
+    $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py [use_sim_time:=True] 
+
 #### 3. コースを設定。  
 
     1) /cmd_vel  
@@ -149,4 +156,8 @@ GoalList turtlebot3_auto_map_achor[] ={
     1) Version r2 にしました。  
     Gazebo Turtlebot3 , Rtabmap_ros with RGBD Camera and Navigation2 で、AutoMapI AutoMapII が芳しく無いので、修正しました。
 
+2024.4.6  
+
+    1) Auto Mower , Turtlebot3 amcl and scan の launch を追加しました。
+    
     
