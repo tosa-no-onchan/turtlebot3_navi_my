@@ -33,7 +33,12 @@ void ProControlMower::auto_mower(int m_type){
     std::cout << "Start Auto Mower" << std::endl;
 
     //get_map.get(true);
-    get_map.get();
+    if(get_map.get() != true)
+    {
+        std::cout << "  get_map error occured , then Auto Mower is not executable!!" << std::endl;
+        return;
+    }
+
 
     drive_->get_tf(2);
 

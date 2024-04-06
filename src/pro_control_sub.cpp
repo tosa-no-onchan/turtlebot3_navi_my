@@ -288,6 +288,8 @@ void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_fr
     map_frame_ = map_frame;
     func_=func;
 
+    std::cout << "GetMap::init() func="<< func << std::endl;
+   
     //_sub = nh.subscribe(_map_frame, 1);
     //self.map_info = None
     //self.map_data = None
@@ -301,10 +303,26 @@ void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_fr
     // 'map' のパブリッシュ間隔は、rtabmap_ros/rtabmap の、map のパブリッシュ間隔に拠る。
     // 定期的に出る場合もあれば、不定期に出る場合もある。
 
+    // test 
+    //func_=1;
+
     // map は、不定期に、publish されている場合は、 call back で、取得する。
     if(func_==0){
-        subscript_ = node_->create_subscription<nav_msgs::msg::OccupancyGrid>(
-        map_frame, 10, std::bind(&GetMap::topic_callback, this, _1));
+        #define GET_MAP_TEST2
+        #if defined(GET_MAP_TEST2)
+            // reffer from amcl
+            //map_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
+            //map_topic_, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+            //std::bind(&AmclNode::mapReceived, this, std::placeholders::_1));
+
+            subscript_ = node->create_subscription<nav_msgs::msg::OccupancyGrid>(
+                map_frame, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+                std::bind(&GetMap::topic_callback, this, std::placeholders::_1));
+
+        #else
+            subscript_ = node_->create_subscription<nav_msgs::msg::OccupancyGrid>(
+                map_frame, 10, std::bind(&GetMap::topic_callback, this, _1));
+        #endif
     }
 
 }
@@ -312,6 +330,7 @@ void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_fr
 void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
 {
     //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
+    #define USE_MAP_INT_TRACE
     #if defined(USE_MAP_INT_TRACE)
         std::cout << "GetMap::map_msg.header.frame_id=" << map_msg.header.frame_id << std::endl;
     #endif

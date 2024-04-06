@@ -48,6 +48,11 @@
 // add for ROS2
 #include <rclcpp/wait_for_message.hpp>
 
+// add by nishi 2024.4.5 for Enable topic statics
+#include "rclcpp/rclcpp.hpp"
+//#include "rclcpp/subscription_options.hpp"
+
+
 //#include "nav2_msgs/srv/save_map.hpp"
 
 //#define USE_MAP_SAVER 
