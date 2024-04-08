@@ -40,6 +40,19 @@ $ ros2 launch turtlebot3_navi_my multi_goals4_cmd_vel.launch.py use_sim_time:=[T
 std::string map_frame="map";
 bool use_sim_time = false;
 
+GoalList abnormal_test[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            {67, 0.0, 0.0, 0.0},      // set dumper ON
+            {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
+
+            {0, 0.0, 0.0, -90.0},   // go (0.0,0.0) and rotate 90
+            {0, 0.0, -0.5, -90.0},   // go (0.0,-0.5) and rotate 90
+            {0, 0.0, -1.5, -90.0},   // go (0.0,-1.0) and rotate 90
+
+            {99,0.0,0.0, 0.0}       // end
+            };
 
 GoalList goallist_test[] ={
             {60, 0.0, 0.0, 0.0},      // course correct ON
@@ -500,8 +513,9 @@ int main(int argc, char** argv)
     //    rate.sleep();
     //}
 
-    mg_ex.mloop_ex(goallist_test);
-    //mg_ex.mloop_ex(goallist);
+    //mg_ex.mloop_ex(abnormal_test);
+    //mg_ex.mloop_ex(goallist_test);
+    mg_ex.mloop_ex(goallist);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(goallist2);
 

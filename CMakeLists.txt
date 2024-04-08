@@ -307,7 +307,7 @@ install(DIRECTORY
 
 # add by nishi for params 2024.4.6
 install(
-  DIRECTORY params
+  DIRECTORY params map
   DESTINATION share/${PROJECT_NAME}/
 )
 

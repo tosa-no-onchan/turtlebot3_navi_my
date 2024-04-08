@@ -102,8 +102,10 @@ public:
     int rows_;
     int cols_;
 
-    int robo_radius=4;      // robot raius [dot]   0.020[M] / 0.005[map resolution]
-    int safe_margin=2;      // safty margin [dot]
+    int robo_radius=4;      // robot raius [dot]   0.20[M] / 0.05[map resolution]
+    //int safe_margin=2;      // safty margin [dot] 2*0.05=0.1[M]
+    int safe_margin=4;      // safty margin [dot] 4*0.05=0.2[M] changed by nishi 2024.4.7
+    //int safe_margin=3;      // safty margin [dot] 3*0.05=0.15[M] changed by nishi 2024.4.7
     bool center_classfi=false;  // 分類基準 true:センター位置を基準にした分類  false:スタート位置を基準にした分類
 
     int start_x_,start_y_;

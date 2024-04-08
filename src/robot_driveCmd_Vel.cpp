@@ -248,11 +248,13 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
 
     double start_distance = std::sqrt(off_x*off_x+off_y*off_y+off_z*off_z);
     float current_distance=0.0;
+    float prev_current_distance=0.0;    // add by nishi 2024.4.6
 
     std::cout << " start_distance=" << round_my<double>(start_distance,3) << std::endl;
 
     int i = 0;
     int j = 0;
+    int chk_cnt=0;
     bool ex_f=false;
 
     unsigned char cost;
@@ -269,14 +271,12 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
     while(current_distance < start_distance){
         //std::cout << "pub cmd_vel" << std::endl;
         //Publish the velocity
-        //_pub.publish(_vel_msg);
         _pub->publish(_vel_msg);
 
         rate.sleep();
 
         get_tf(0);
 
-        //tf::Vector3 cur_origin = base_tf.getOrigin();
         tf2::Vector3 cur_origin = base_tf.getOrigin();
 
         //std::cout << "_x, _y,_z =" << cur_translation.getX() <<", "
@@ -319,6 +319,19 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
 
         i+=1;
         if (i > 5){
+            // ロボットが障害物に当たって止まっていないかチェック add by nishi 2024.4.6
+            if(round_my<float>(prev_current_distance,2) == round_my<float>(current_distance,2)){
+                chk_cnt++;
+                if(chk_cnt > 3){
+                    std::cout << " current_distance=" << round_my<float>(current_distance,3) << std::endl;
+                    std::cout << " time out" << std::endl;
+                    break;
+                }
+            }
+            else
+                chk_cnt=0;
+            prev_current_distance = current_distance;
+
             // 自分からの目的地の方角
             float off_target_x = x - cur_x;
             float off_target_y = y - cur_y;
@@ -435,7 +448,7 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     }
 
     // stop_dz 余り角
-    float stop_dz_mod = fmod(stop_dz,360.0);
+    float stop_dz_mod = fmod(stop_rz_origin*RADIANS_F,360.0);
     std::cout << " stop_dz_mod=" << stop_dz_mod  << std::endl;
 
     // stop_rz をノーマライズする。 180/RADIANS_F <= stop_rz <= -180/RADIANS_F
@@ -444,6 +457,14 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
 
     // ロボットとの角度差を求める
     float r_theta = stop_rz - _rz;
+
+    // add by nhishi 2024.4.7
+    r_theta = normalize_tf_rz(r_theta);
+    float tmp_r_theta = reverse_tf_rz(r_theta);
+    // 移動角度の小さい方を採用する。
+    if(abs(tmp_r_theta) < abs(r_theta))
+        r_theta=tmp_r_theta;
+
     std::cout <<" turn_plus=" << turn_plus << " r_theta="<< r_theta << " quo_i=" << quo_i <<" stop_rz=" << stop_rz << std::endl;
 
     // turn_plus == 0 (未定) なら、 r_theta を回転方向とする。

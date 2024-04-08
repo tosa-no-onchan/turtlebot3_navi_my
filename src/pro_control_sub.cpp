@@ -921,6 +921,69 @@ int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int bla
 }
 
 
+/*-------------------------
+* class GetMap
+* check_cource_obstacle()
+*  走行予定コース上の、Mapの障害物を、robo_radian*2 幅で、チェックする。
+*/
+int GetMap::check_cource_obstacle(float s_x,float s_y,float d_x,float d_y,float robo_radian,int black_thresh){
+
+    cv::Mat result,result2,mask;
+
+    // real world 座標を、Mat map 座標に変換 
+    int s_px = (int)((s_x - mapm_.origin[0]) / mapm_.resolution);
+    int s_py = (int)((s_y - mapm_.origin[1]) / mapm_.resolution);
+
+    int d_px = (int)((d_x - mapm_.origin[0]) / mapm_.resolution);
+    int d_py = (int)((d_y - mapm_.origin[1]) / mapm_.resolution);
+
+    int p_robo_radian = (int)(robo_radian/mapm_.resolution);
+
+    // Mask画像 を作成
+    mask = cv::Mat::zeros(mapm_.height, mapm_.width, CV_8UC1);
+
+    // 直線を引く。
+    cv::Point sp(s_px, s_py);	// 始点座標(x,y)
+    cv::Point dp(d_px, d_py);	// 終点座標(x,y)
+
+    // 両端を少し、扁平にしたいけど?
+    cv::line(mask, sp, dp, cv::Scalar(255), p_robo_radian*2, cv::LINE_AA);
+
+    //#define CHK_COURCE_OBSTACLE_TEST1
+    #if defined(CHK_COURCE_OBSTACLE_TEST1)
+        cv::imshow("mat_bin_map_", mat_bin_map_);
+        cv::waitKey(100);
+        //cv::destroyAllWindows();
+    #endif
+
+    #define CHK_COURCE_OBSTACLE_TEST2
+    #if defined(CHK_COURCE_OBSTACLE_TEST2)
+        cv::imshow("mask", mask);
+        cv::waitKey(100);
+        //cv::destroyAllWindows();
+    #endif
+
+    // 障害物 2値化画像に 円のマスクを実施
+    mat_bin_map_.copyTo(result2,mask);
+
+    #if defined(CHK_COURCE_OBSTACLE_TEST2)
+        cv::imshow("result2", result2);
+        cv::waitKey(100);
+        //cv::destroyAllWindows();
+    #endif
+
+    // 黒色領域の面積(ピクセル数)を計算する
+    int black_cnt = cv::countNonZero(result2);
+
+    std::cout << " black_cnt=" << black_cnt;
+
+    if(black_cnt <= black_thresh){
+        black_cnt=0;
+    }
+    std::cout << " adjust black_cnt=" << black_cnt << std::endl;
+    return black_cnt;
+}
+
 /*
 test_plot()
     float x,y: ロボット位置(基準座標) [M]

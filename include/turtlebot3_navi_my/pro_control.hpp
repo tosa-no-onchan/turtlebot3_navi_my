@@ -164,6 +164,8 @@ public:
 
     void obstacle_escape(float r_lng=0.60,int black_thresh=0,float move_l=0.12);
 
+    bool move_abs_auto_select(float x,float y,float r_yaw,float robo_radian=0.2); // add by nishi 2024.4.7
+
     // child class で使わない時は、ダミーを定義して下さい。
     // Auto map 向けのメンバー
     virtual void auto_map(){};
@@ -184,6 +186,7 @@ public:
                 1 -> move point x,y only
                 2 -> rotate d_yaw only
                 10 -> navi move x,y,d_yaw
+                11 -> move_abs_auto_select x,y,d_yaw // add by nishi 2024.4.7
 
         func,dist,d_yaw
             func: 0 -> move dist and rotate d_yaw

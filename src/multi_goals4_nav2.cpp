@@ -36,11 +36,16 @@ $ . install/setup.bash
 //#include <nav_msgs/OccupancyGrid.h>
 
 GoalList test1[] ={
-            //{60, 0.0, 0.0, 0.0},      // course correct ON
-            //{64, 0.0, 0.0, 0.0},      // go curve ON
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
             {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
             //{22, 0.0,0.0, 0.0},      // get map
+            //{11, 0.5, 0.0, 0.0},   // move_abs_auto_select
+            //{11, 0.5, 0.5, 0.0},   // move_abs_auto_select
+            {11,1.5, 1.5, 0.0},   // move_abs_auto_select
+            {99,0.0,0.0, 0.0},      // end
+
             {2, 0.0, 0.0, 90.0},    // rotate_abs 90
             {22, 0.0,0.0, 0.0},      // get map
 

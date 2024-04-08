@@ -39,9 +39,7 @@ void ProControlMower::auto_mower(int m_type){
         return;
     }
 
-
     drive_->get_tf(2);
-
     tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();
 
     float cur_x = cur_origin.getX();
@@ -70,7 +68,7 @@ void ProControlMower::auto_mower(int m_type){
         get_map.test_plot(cur_x,cur_y,drive_->_rz);
     #endif
 
-    #define USE_TEST_PLOT2
+    //#define USE_TEST_PLOT2
 
     std::cout << " start running" << std::endl;
     // contbuilder.cource_plan_vec_ に、走行プランが作成されるので、これに沿ってロボットを走行させます。
@@ -131,7 +129,8 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
 
-                if(drive_->navi_move(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
+                //if(drive_->navi_move(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
+                if(move_abs_auto_select(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
                     std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
                 }
 
@@ -152,7 +151,8 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
 
-                if(drive_->navi_move(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
+                //if(drive_->navi_move(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
+                if(move_abs_auto_select(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
                     std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
                 }
             }
@@ -174,7 +174,8 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
 
-                if(drive_->navi_move(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
+                //if(drive_->navi_move(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
+                if(move_abs_auto_select(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
                     std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
                 }
 
@@ -195,7 +196,8 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
 
-                if(drive_->navi_move(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
+                //if(drive_->navi_move(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
+                if(move_abs_auto_select(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
                     std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
                 }
             }

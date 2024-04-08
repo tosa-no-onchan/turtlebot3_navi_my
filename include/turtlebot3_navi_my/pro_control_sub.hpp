@@ -159,6 +159,7 @@ public:
     void check_collision(float x,float y,float &ox,float &oy,int r=5,int func=0);
 
     int check_obstacle(float x,float y,float rz,float r_lng,int func=0,int black_thresh=15);
+    int check_cource_obstacle(float s_x,float s_y,float d_x,float d_y,float robo_radian,int black_thresh=15);
 
     void test_plot(float x,float y,float r_yaw,float robot_r=0.3);
 
