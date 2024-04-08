@@ -34,7 +34,8 @@
 
   #### Auto Mower  
 
-     Auto Map , MapII で作成した map を使って、ロボットの開始位置の自由領域を、ロボットの幅でコースを作成して、それを走行する。
+     Auto Map , MapII で作成した map を使って、ロボットの開始位置の自由領域を、ロボットの幅で  
+     コースを作成して、それを走行する。
 
 説明は、下記ページにあります。  
 [ROS2 自作 Turtlebot3 による 草刈りロボット開発。#3 Auto Mower](http://www.netosa.com/blog/2024/04/ros2-turtlebot3-3.html)  
