@@ -99,9 +99,6 @@ private:
 
     u_int8_t t_type;
 
-    //! The node handle we'll be using
-    //ros::NodeHandle nh_;
-    std::shared_ptr<rclcpp::Node> node_;
 
     GoalList *_goalList;
     GoalList2 *_goalList2;
@@ -122,6 +119,10 @@ private:
     int mode_f_origin;
 
 public:
+
+    //! The node handle we'll be using
+    //ros::NodeHandle nh_;
+    std::shared_ptr<rclcpp::Node> node_;
 
     GetTF getTF; // add by nishi 2024.2.27
     Robot_DriveCore *drive_;

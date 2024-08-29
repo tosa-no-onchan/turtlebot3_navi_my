@@ -27,24 +27,29 @@
 # Example:
 #  1. Gazebo
 #   $ export TURTLEBOT3_MODEL=waffle
+#   $ . /usr/share/gazebo/setup.sh
 #   $ ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py
 #   how to kill Gazeb server
 #   $ killall gzserver
 #
-#  2. amcl scan [start slam_launch.py localization_launch.py navigation_launch.py]
-#  2.1 navigation [localization_launch.py navigation_launch.py]
+#  2. amcl scan [start slam,localization and navigation]
+#  2.1 navigation [start localization and navigation ]
 #   $ ros2 launch turtlebot3_navi_my turtlebbot3_amcl_scan.launch.py use_sim_time:=True [map:=FULL PATH] [params_file:=FULL PATH]
 #
-#  2.2 navigation and slam  [start slam_launch.py localization_launch.py navigation_launch.py]
+#  2.2 navigation and slam  [start slam and navigation]
 #   $ ros2 launch turtlebot3_navi_my turtlebbot3_amcl_scan.launch.py use_sim_time:=True slam:=True [map:=FULL PATH] [params_file:=FULL PATH]
 #
 #  3.1 Rviz
 #   $ ros2 launch nav2_bringup rviz_launch.py
 #
-#  4 C++ Auto Map [localization , navigation and slam]
+#  4. C++ Program controll
+#   $ ros2 launch turtlebot3_navi_my multi_goals4_cmd_vel.launch.py use_sim_time:=True
+#   $ ros2 launch turtlebot3_navi_my multi_goals4_nav2.launch.py use_sim_time:=True
+#
+#  5. C++ Auto Map [navigation and slam]
 #   $ ros2 launch turtlebot3_navi_my go_auto_map.launch.py use_sim_time:=True
 #
-#  5. C++ Auto Mower [localization and  navigation]
+#  6. C++ Auto Mower [localization and  navigation]
 #   $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True
 #
 # append.
@@ -73,6 +78,10 @@ def generate_launch_description():
         #    get_package_share_directory('turtlebot3_navigation2'),
         #    'map',
         #    'map.yaml')
+        #default=os.path.join(
+        #    get_package_share_directory('turtlebot3_navi_my'),
+        #    'map',
+        #    'house_map.yaml')
         default=os.path.join('/','home','nishi','map','house_map.yaml'),
         ),
 

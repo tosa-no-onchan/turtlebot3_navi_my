@@ -23,6 +23,21 @@ bool compare_Cource_Plan_dist_min(Cource_Plan &s1,Cource_Plan &s2){
 *
 --------------------------------------*/
 /*
+init()
+*/
+void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
+    ProControl::init(node);
+
+    node_->declare_parameter<double>("threshold",250.0);    // add by nishi 2024.4.24
+    node_->declare_parameter<bool>("plann_test",false);    // add by nishi 2024.4.24
+    node_->declare_parameter<bool>("all_nav2",true);    // add by nishi 2024.4.24
+
+    node_->get_parameter<double>("threshold",threshold_);  // add by nishi 2024.4.24
+    node_->get_parameter<bool>("plann_test",plann_test_);  // add by nishi 2024.4.24
+    node_->get_parameter<bool>("all_nav2",all_nav2_);  // add by nishi 2024.4.24
+
+}
+/*
 auto_mower(int m_type=1)
   m_type : 1 auto_mower()
            2 auto_mower2()
@@ -49,9 +64,9 @@ void ProControlMower::auto_mower(int m_type){
     //   output -> robo_slice_bolb_clst_
     ContoBuilderMower contbuilder;
 
-    double threshold=250;   // white 250 / gray 200
+    //double threshold=250;   // white 250 / gray 200
 
-    contbuilder.init(get_map.mat_map_,get_map.mapm_,threshold);
+    contbuilder.init(get_map.mat_map_,get_map.mapm_,threshold_);
 
     // real world 座標を、Mat map 座標に変換 
     int px = (int)((cur_x - get_map.mapm_.origin[0]) / get_map.mapm_.resolution);
@@ -67,6 +82,10 @@ void ProControlMower::auto_mower(int m_type){
         // plot してみる for Debug
         get_map.test_plot(cur_x,cur_y,drive_->_rz);
     #endif
+
+    // プラン作成テストのみです。
+    if(plann_test_)
+        return;
 
     //#define USE_TEST_PLOT2
 
@@ -129,9 +148,13 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
 
-                //if(drive_->navi_move(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
-                if(move_abs_auto_select(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
-                    std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
+                if(all_nav2_ == true){
+                    if(move_abs_auto_select(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
+                }
+                else{
+                    if(drive_->navi_move(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
                 }
 
                 // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
@@ -151,9 +174,13 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
 
-                //if(drive_->navi_move(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
-                if(move_abs_auto_select(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
-                    std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
+                if(all_nav2_ == true){
+                    if(move_abs_auto_select(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
+                }
+                else{
+                    if(drive_->navi_move(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
                 }
             }
             // ロボットを l へ、呼び寄せる
@@ -174,9 +201,13 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
 
-                //if(drive_->navi_move(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
-                if(move_abs_auto_select(l_x,l_y,r_yaw)==false){    // changed by nishi 2024.2.28
-                    std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
+                if(all_nav2_ == true){
+                    if(move_abs_auto_select(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
+                }
+                else{
+                    if(drive_->navi_move(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
                 }
 
                 // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
@@ -196,9 +227,13 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
 
-                //if(drive_->navi_move(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
-                if(move_abs_auto_select(f_x,f_y,r_yaw)==false){    // changed by nishi 2024.2.28
-                    std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
+                if(all_nav2_ == true){
+                    if(move_abs_auto_select(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
+                }
+                else{
+                    if(drive_->navi_move(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
                 }
             }
             cur_idx++;

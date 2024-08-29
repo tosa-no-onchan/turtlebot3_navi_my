@@ -81,9 +81,13 @@ class ProControlMower: public ProControl
 {
 private:
 
+    double threshold_;  // add by nishi 2024.4.24
+    bool plann_test_;   // add by nishi 2024.4.24
+    bool all_nav2_;     // add by nishi 2024.4.24
 
 public:
     ProControlMower(){}
+    void init(std::shared_ptr<rclcpp::Node> node);  // add by nishi 2024.4.24
     void auto_mower(int m_type=1);
 
 };

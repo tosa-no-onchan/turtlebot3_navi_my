@@ -35,6 +35,9 @@ def generate_launch_description():
 
         DeclareLaunchArgument('use_sim_time',default_value='false', description='sim time optional'),
         DeclareLaunchArgument('get_map_func',default_value='0', description='get_map_func optional'),
+        DeclareLaunchArgument('threshold',default_value='250.0', description='White threshold'),
+        DeclareLaunchArgument('plann_test',default_value='false', description='Plann create test'),
+        DeclareLaunchArgument('all_nav2',default_value='false', description='All Navigation2 cotroll'),
 
         Node(
             package='turtlebot3_navi_my',executable='go_auto_mower',output="screen",
@@ -43,7 +46,10 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[
                         {"use_sim_time": use_sim_time,
-                         "get_map_func": get_map_func
+                         "get_map_func": get_map_func,
+                         "threshold": LaunchConfiguration('threshold'),
+                         "plann_test": LaunchConfiguration('plann_test'),
+                         "all_nav2": LaunchConfiguration('all_nav2'),
                         }
             ]
         )
