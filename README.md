@@ -169,6 +169,7 @@ GoalList turtlebot3_auto_map_achor[] ={
 
 2024.4.6  
 
-    1) Auto Mower , Turtlebot3 amcl and scan の launch を追加しました。
+    1) Auto Mower , Turtlebot3 amcl and scan の launch を追加しました。  
+    launch/turtlebot3_amcl_scan.launch.py  
     
     
