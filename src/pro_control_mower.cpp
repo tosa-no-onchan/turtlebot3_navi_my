@@ -47,6 +47,8 @@ auto_mower(int m_type=1)
 void ProControlMower::auto_mower(int m_type){
     std::cout << "Start Auto Mower" << std::endl;
 
+    std::cout << " all_nav2_:" << all_nav2_ << std::endl;
+
     //get_map.get(true);
     if(get_map.get() != true)
     {
@@ -148,7 +150,7 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
 
-                if(all_nav2_ == true){
+                if(all_nav2_ == false){
                     if(move_abs_auto_select(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
                         std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
                 }
@@ -174,7 +176,7 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
 
-                if(all_nav2_ == true){
+                if(all_nav2_ == false){
                     if(move_abs_auto_select(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
                         std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
                 }
@@ -201,7 +203,7 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
 
-                if(all_nav2_ == true){
+                if(all_nav2_ == false){
                     if(move_abs_auto_select(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
                         std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
                 }
@@ -227,7 +229,7 @@ void ProControlMower::auto_mower(int m_type){
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
 
-                if(all_nav2_ == true){
+                if(all_nav2_ == false){
                     if(move_abs_auto_select(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
                         std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
                 }
