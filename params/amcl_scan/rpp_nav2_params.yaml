@@ -223,7 +223,8 @@ local_costmap:
       #robot_radius: 0.20
       #plugins: ["voxel_layer", "inflation_layer"]
       #plugins: ["obstacle_layer", "inflation_layer"]
-      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      #plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      plugins: ["obstacle_layer", "inflation_layer"]
       # https://navigation.ros.org/configuration/packages/costmap-plugins/inflation.html
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"

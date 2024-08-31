@@ -26,7 +26,9 @@ bool compare_Cource_Plan_dist_min(Cource_Plan &s1,Cource_Plan &s2){
 init()
 */
 void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
-    ProControl::init(node);
+    //ProControl::init(node);
+    // changed by nishi 2024.8.31  use local_costmap
+    ProControl::init(node,true);
 
     node_->declare_parameter<double>("threshold",250.0);    // add by nishi 2024.4.24
     node_->declare_parameter<bool>("plann_test",false);    // add by nishi 2024.4.24
@@ -53,6 +55,13 @@ void ProControlMower::auto_mower(int m_type){
     if(get_map.get() != true)
     {
         std::cout << "  get_map error occured , then Auto Mower is not executable!!" << std::endl;
+        return;
+    }
+
+    // test by nishi 2024.8.31
+    if(get_local_map.get() != true)
+    {
+        std::cout << "  get_local_map error occured , then Auto Mower is not executable!!" << std::endl;
         return;
     }
 
@@ -85,11 +94,18 @@ void ProControlMower::auto_mower(int m_type){
         get_map.test_plot(cur_x,cur_y,drive_->_rz);
     #endif
 
+    #define USE_TEST_PLOT_LOCAL_MAP
+    #if defined(USE_TEST_PLOT_LOCAL_MAP)
+        // plot してみる for Debug
+        get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+    #endif
+
     // プラン作成テストのみです。
     if(plann_test_)
         return;
 
-    //#define USE_TEST_PLOT2
+    #define USE_TEST_PLOT2
+    #define USE_TEST_PLOT_LOCAL_MAP2
 
     std::cout << " start running" << std::endl;
     // contbuilder.cource_plan_vec_ に、走行プランが作成されるので、これに沿ってロボットを走行させます。
@@ -146,9 +162,19 @@ void ProControlMower::auto_mower(int m_type){
                 r_yaw = std::atan2(yf,xf);
 
                 #if defined(USE_TEST_PLOT2)
-                    // plot してみる for Debug
+                    // target postion plot してみる for Debug
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
+
+                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
+                    // cur postion plot してみる for Debug
+                    drive_->get_tf(2);
+                    cur_origin = drive_->base_tf.getOrigin();
+                    cur_x = cur_origin.getX();
+                    cur_y = cur_origin.getY();
+                    get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+                #endif
+
 
                 if(all_nav2_ == false){
                     if(move_abs_auto_select(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
@@ -172,9 +198,19 @@ void ProControlMower::auto_mower(int m_type){
                 // f -> l へ向かう
 
                 #if defined(USE_TEST_PLOT2)
-                    // plot してみる for Debug
+                    // target postion plot してみる for Debug
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
+
+                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
+                    // cur postion plot してみる for Debug
+                    drive_->get_tf(2);
+                    cur_origin = drive_->base_tf.getOrigin();
+                    cur_x = cur_origin.getX();
+                    cur_y = cur_origin.getY();
+                    get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+                #endif
+
 
                 if(all_nav2_ == false){
                     if(move_abs_auto_select(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
@@ -199,8 +235,17 @@ void ProControlMower::auto_mower(int m_type){
                 r_yaw = std::atan2(yf,xf);
 
                 #if defined(USE_TEST_PLOT2)
-                    // plot してみる for Debug
+                    // target postion plot してみる for Debug
                     get_map.test_plot(l_x,l_y,r_yaw);
+                #endif
+
+                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
+                    // cur postion plot してみる for Debug
+                    drive_->get_tf(2);
+                    cur_origin = drive_->base_tf.getOrigin();
+                    cur_x = cur_origin.getX();
+                    cur_y = cur_origin.getY();
+                    get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
                 #endif
 
                 if(all_nav2_ == false){
@@ -225,8 +270,17 @@ void ProControlMower::auto_mower(int m_type){
                 // l -> f  へ向かう
 
                 #if defined(USE_TEST_PLOT2)
-                    // plot してみる for Debug
+                    // target postion plot してみる for Debug
                     get_map.test_plot(f_x,f_y,r_yaw);
+                #endif
+
+                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
+                    // cur postion plot してみる for Debug
+                    drive_->get_tf(2);
+                    cur_origin = drive_->base_tf.getOrigin();
+                    cur_x = cur_origin.getX();
+                    cur_y = cur_origin.getY();
+                    get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
                 #endif
 
                 if(all_nav2_ == false){

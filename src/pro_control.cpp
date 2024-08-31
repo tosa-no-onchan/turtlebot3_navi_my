@@ -15,11 +15,13 @@
 * Programable Controller Core Class
 *  class ProControl
 */
-void ProControl::init(std::shared_ptr<rclcpp::Node> node){
+void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_local_costmap){
 
     std::cout << "ProControlCore::init():#1 " << std::endl;
 
     node_=node;
+
+    use_local_costmap_=use_local_costmap;
 
 	get_map_func_ = node_->declare_parameter<int>("get_map_func", get_map_func_);
 
@@ -43,6 +45,9 @@ void ProControl::init(std::shared_ptr<rclcpp::Node> node){
     std::cout << "ProControl::init():#1.1 mode_f="<< mode_f << std::endl;
 
     get_map.init(node,get_map_func_);
+    // add by nishi 2024.8.30
+    if(use_local_costmap_==true)
+        get_local_map.init(node,get_map_func_,"local_costmap/costmap");
 
     std::cout << "ProControl::init():#2 " << std::endl;
 

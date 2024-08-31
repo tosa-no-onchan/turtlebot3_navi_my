@@ -124,6 +124,9 @@ public:
     //ros::NodeHandle nh_;
     std::shared_ptr<rclcpp::Node> node_;
 
+    // add by nishi 2024.8.31
+    bool use_local_costmap_;
+
     GetTF getTF; // add by nishi 2024.2.27
     Robot_DriveCore *drive_;
     #if defined(USE_NAV2)
@@ -136,12 +139,16 @@ public:
 
 
     GetMap get_map;
+    // add by nishi 2024.8.30
+    GetMap get_local_map;
 
     ProControl(){}
 
     //void init( map_frame,get_map,use_sim_time){
     //void init(ros::NodeHandle &nh);
-    void init(std::shared_ptr<rclcpp::Node> node);
+    //void init(std::shared_ptr<rclcpp::Node> node);
+    // changed by nishi 2024.8.31
+    void init(std::shared_ptr<rclcpp::Node> node,bool use_local_costmap=false);
 
 
     /*

@@ -991,7 +991,7 @@ test_plot()
     float robot_r=0.3 : ロボット半径
     ロボットの位置をマップにプロットする。
 */
-void GetMap::test_plot(float x,float y,float r_yaw,float robot_r){
+void GetMap::test_plot(float x,float y,float r_yaw,float robot_r, std::string sub_title){
 
     std::cout << "GetMap::test_plot()" << std::endl;
 
@@ -1041,11 +1041,14 @@ void GetMap::test_plot(float x,float y,float r_yaw,float robot_r){
     //cv::ellipse(my_map, center_p, cv::Size(rr, rr), 0, -30+dz, 30+dz, cv::Scalar(255), -1, cv::LINE_AA);
     cv::ellipse(my_map, center_p, cv::Size(rr, rr), 0, -30+dz, 30+dz, cv::Scalar(160), -1, cv::LINE_AA);
 
-    cv::namedWindow("GetMap::test_plot", cv::WINDOW_NORMAL);
+    // comment out by nishi 2024.8.31
+    //cv::namedWindow("GetMap_plot"+sub_title, cv::WINDOW_NORMAL);
 
-    cv::imshow("GetMap::test_plot", my_map);
+    cv::imshow("GetMap_plot"+sub_title, my_map);
     int key = cv::waitKey(1000);
-    cv::destroyWindow("GetMap::test_plot");
+
+    // comment out by nishi 2024.8.31
+    //cv::destroyWindow("GetMap_plot"+sub_title);
 
 }
 

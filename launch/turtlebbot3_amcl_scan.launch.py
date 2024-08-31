@@ -50,7 +50,7 @@
 #   $ ros2 launch turtlebot3_navi_my go_auto_map.launch.py use_sim_time:=True
 #
 #  6. C++ Auto Mower [localization and  navigation]
-#   $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True
+#   $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True [plann_test:=True]
 #
 # append.
 # how to map save
