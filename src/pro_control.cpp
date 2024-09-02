@@ -15,13 +15,13 @@
 * Programable Controller Core Class
 *  class ProControl
 */
-void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_local_costmap){
+void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_costmap){
 
     std::cout << "ProControlCore::init():#1 " << std::endl;
 
     node_=node;
 
-    use_local_costmap_=use_local_costmap;
+    use_costmap_=use_costmap;
 
 	get_map_func_ = node_->declare_parameter<int>("get_map_func", get_map_func_);
 
@@ -45,9 +45,9 @@ void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_local_costmap
     std::cout << "ProControl::init():#1.1 mode_f="<< mode_f << std::endl;
 
     get_map.init(node,get_map_func_);
-    // add by nishi 2024.8.30
-    if(use_local_costmap_==true)
-        get_local_map.init(node,get_map_func_,"local_costmap/costmap");
+    // add by nishi 2024.9.1
+    if(use_costmap_==true)
+        get_costmap.init(node,get_map_func_,"local_costmap/costmap");
 
     std::cout << "ProControl::init():#2 " << std::endl;
 
@@ -407,6 +407,75 @@ bool ProControl::move_abs_auto_select(float x,float y,float r_yaw,float robo_rad
     }
     return rc;
 }
+
+
+/*
+move_abs_auto_select_check()
+    走行コースの、障害物を判定して、cmd_vel と nav2 のどちらを選択するか判定する。
+    x,y: 絶対番地への移動(基準座標)
+    r_yaw: 基準座標での角度。 [radian]
+    robo_radian: ロボットの半径 [M]
+    rc:
+        0 : cmd_vel
+        1 : navi
+       -1 : error
+*/
+int ProControl::move_abs_auto_select_check(float x,float y,float r_yaw,float robo_radian){ // add by nishi 2024.4.7
+    std::cout << "ProControl::move_abs_auto_select_check() called"<< std::endl;
+    std::cout << " x:"<< x << " y:" << y << " d_yaw:" << r_yaw*RADIANS_F << std::endl;
+    //rotate_f=false;
+    int rc=0;
+
+    // original nav2 mode
+    if(get_map.get() != true)
+    {
+        std::cout << "  get_map error occured , then move_abs_auto_select() is not executable!!" << std::endl;
+        return -1;
+    }
+
+    drive_->get_tf(2);
+    tf2::Vector3 start_origin = drive_->base_tf.getOrigin();
+
+    float cur_x = start_origin.getX();
+    float cur_y = start_origin.getY();
+
+    // 自分からの目的地の方角
+    float off_target_x = x - cur_x;
+    float off_target_y = y - cur_y;
+    // 目的地の方角
+    float theta_r = std::atan2(off_target_y,off_target_x);   //  [radian]
+    theta_r = normalize_tf_rz(theta_r);
+    // 反転時の角度差を検証する。
+    float tmp_theta_r = reverse_tf_rz(theta_r);
+    // 移動角度の小さい方を採用する。
+    if(abs(tmp_theta_r) < abs(theta_r))
+        theta_r=tmp_theta_r;
+
+    std::cout << " theta_d:"<< theta_r*RADIANS_F << std::endl;
+
+    // original cmd_vel mode?
+    if(mode_f_origin == 0){
+        std::cout << " #1 select drive_cmd" << std::endl;
+        return rc;
+    }
+
+    // (cur_x,cur_y) -> (x,y) 間のロボット幅+α の障害物をチェック
+    //float robo_radian=0.2;
+    if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+        std::cout << " #2 select drive_cmd" << std::endl;
+        return rc;
+    }
+    else{
+        #if defined(USE_NAV2)
+            rc=1;
+            std::cout << " #3 select drive_nav" << std::endl;
+        #else
+            std::cout << " #4 select drive_cmd" << std::endl;
+        #endif
+    }
+    return rc;
+}
+
 
 /*
 move(self,dist,deg)

@@ -330,7 +330,7 @@ void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_fr
 void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
 {
     //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
-    #define USE_MAP_INT_TRACE
+    //#define USE_MAP_INT_TRACE
     #if defined(USE_MAP_INT_TRACE)
         std::cout << "GetMap::map_msg.header.frame_id=" << map_msg.header.frame_id << std::endl;
     #endif

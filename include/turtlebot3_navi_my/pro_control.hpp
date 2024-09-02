@@ -124,8 +124,8 @@ public:
     //ros::NodeHandle nh_;
     std::shared_ptr<rclcpp::Node> node_;
 
-    // add by nishi 2024.8.31
-    bool use_local_costmap_;
+    // add by nishi 2024.9.1
+    bool use_costmap_;
 
     GetTF getTF; // add by nishi 2024.2.27
     Robot_DriveCore *drive_;
@@ -139,8 +139,8 @@ public:
 
 
     GetMap get_map;
-    // add by nishi 2024.8.30
-    GetMap get_local_map;
+    // add by nishi 2024.9.1
+    GetMap get_costmap;
 
     ProControl(){}
 
@@ -148,7 +148,7 @@ public:
     //void init(ros::NodeHandle &nh);
     //void init(std::shared_ptr<rclcpp::Node> node);
     // changed by nishi 2024.8.31
-    void init(std::shared_ptr<rclcpp::Node> node,bool use_local_costmap=false);
+    void init(std::shared_ptr<rclcpp::Node> node,bool use_costmap=false);
 
 
     /*
@@ -173,6 +173,9 @@ public:
     void obstacle_escape(float r_lng=0.60,int black_thresh=0,float move_l=0.12);
 
     bool move_abs_auto_select(float x,float y,float r_yaw,float robo_radian=0.2); // add by nishi 2024.4.7
+
+    // add by nishi 2024.9.1
+    int move_abs_auto_select_check(float x,float y,float r_yaw,float robo_radian=0.2); // add by nishi 2024.4.7
 
     // child class で使わない時は、ダミーを定義して下さい。
     // Auto map 向けのメンバー

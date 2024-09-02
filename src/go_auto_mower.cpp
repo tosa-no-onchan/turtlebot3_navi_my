@@ -70,8 +70,8 @@ int main(int argc, char **argv){
     ProControlMower mg_ex;
     mg_ex.init(node);
 
-    //mg_ex.mloop_ex(turtlebot3_auto_mower);
-    mg_ex.mloop_ex(turtlebot3_auto_mower2);
+    mg_ex.mloop_ex(turtlebot3_auto_mower);
+    //mg_ex.mloop_ex(turtlebot3_auto_mower2);
 
     //ros::Rate rate(1);   //  1[Hz]
     while(rclcpp::ok()){

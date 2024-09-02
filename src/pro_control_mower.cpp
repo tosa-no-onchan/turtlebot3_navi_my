@@ -51,6 +51,8 @@ void ProControlMower::auto_mower(int m_type){
 
     std::cout << " all_nav2_:" << all_nav2_ << std::endl;
 
+    bool rc;
+
     //get_map.get(true);
     if(get_map.get() != true)
     {
@@ -59,7 +61,7 @@ void ProControlMower::auto_mower(int m_type){
     }
 
     // test by nishi 2024.8.31
-    if(get_local_map.get() != true)
+    if(get_costmap.get() != true)
     {
         std::cout << "  get_local_map error occured , then Auto Mower is not executable!!" << std::endl;
         return;
@@ -90,14 +92,14 @@ void ProControlMower::auto_mower(int m_type){
 
     #define USE_TEST_PLOT
     #if defined(USE_TEST_PLOT)
-        // plot してみる for Debug
+        // static map plot してみる for Debug
         get_map.test_plot(cur_x,cur_y,drive_->_rz);
     #endif
 
     #define USE_TEST_PLOT_LOCAL_MAP
     #if defined(USE_TEST_PLOT_LOCAL_MAP)
-        // plot してみる for Debug
-        get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+        // cost_map plot してみる for Debug
+        get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
     #endif
 
     // プラン作成テストのみです。
@@ -150,9 +152,15 @@ void ProControlMower::auto_mower(int m_type){
 
             // 偶数番です。 ロボットを f へ、呼び寄せる。
             if(cur_idx%2 == 0 || m_type==2){
-                // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                obstacle_escape();
+
+                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
+                    // 現在位置の cost map plot
+                    drive_->get_tf(2);
+                    cur_origin = drive_->base_tf.getOrigin();
+                    cur_x = cur_origin.getX();
+                    cur_y = cur_origin.getY();
+                    get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+                #endif
 
                 // 外側を向かせる
                 // l -> f の向きを求める
@@ -162,32 +170,44 @@ void ProControlMower::auto_mower(int m_type){
                 r_yaw = std::atan2(yf,xf);
 
                 #if defined(USE_TEST_PLOT2)
-                    // target postion plot してみる for Debug
+                    // 目的位置の static map plot
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
 
+                rc=true;
+                if(all_nav2_ == false){
+                    // drive_navi ?
+                    if(move_abs_auto_select_check(f_x,f_y,r_yaw)==1){
+                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                        obstacle_escape();
+                    }
+                    rc=move_abs_auto_select(f_x,f_y,r_yaw);
+                    if(rc==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
+                }
+                else{
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape();
+                    rc=drive_->navi_move(f_x,f_y,r_yaw);
+                    if(rc==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
+                }
+                if(rc==false){
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape();
+                }
+
                 #if defined(USE_TEST_PLOT_LOCAL_MAP2)
-                    // cur postion plot してみる for Debug
+                    // 現在位置の cost map plot
                     drive_->get_tf(2);
                     cur_origin = drive_->base_tf.getOrigin();
                     cur_x = cur_origin.getX();
                     cur_y = cur_origin.getY();
-                    get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+                    get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
                 #endif
-
-
-                if(all_nav2_ == false){
-                    if(move_abs_auto_select(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
-                }
-                else{
-                    if(drive_->navi_move(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
-                }
-
-                // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                obstacle_escape();
 
                 // 外側を向かせる
                 // f -> l の向きを求める
@@ -198,34 +218,38 @@ void ProControlMower::auto_mower(int m_type){
                 // f -> l へ向かう
 
                 #if defined(USE_TEST_PLOT2)
-                    // target postion plot してみる for Debug
+                    // 目的位置の static map plot
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
 
-                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
-                    // cur postion plot してみる for Debug
-                    drive_->get_tf(2);
-                    cur_origin = drive_->base_tf.getOrigin();
-                    cur_x = cur_origin.getX();
-                    cur_y = cur_origin.getY();
-                    get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
-                #endif
-
-
                 if(all_nav2_ == false){
+                    if(move_abs_auto_select_check(l_x,l_y,r_yaw)==1){
+                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                        obstacle_escape();
+                    }
                     if(move_abs_auto_select(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
                         std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
                 }
                 else{
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape();
                     if(drive_->navi_move(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
                         std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
                 }
             }
             // ロボットを l へ、呼び寄せる
             else{
-                // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                obstacle_escape();
+
+                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
+                    // 現在位置の cost map plot
+                    drive_->get_tf(2);
+                    cur_origin = drive_->base_tf.getOrigin();
+                    cur_x = cur_origin.getX();
+                    cur_y = cur_origin.getY();
+                    get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+                #endif
 
                 // 外側を向かせる
                 // f -> l の向きを求める
@@ -235,31 +259,43 @@ void ProControlMower::auto_mower(int m_type){
                 r_yaw = std::atan2(yf,xf);
 
                 #if defined(USE_TEST_PLOT2)
-                    // target postion plot してみる for Debug
+                    // 目的位置の static map plot
                     get_map.test_plot(l_x,l_y,r_yaw);
                 #endif
 
+                rc=true;
+                if(all_nav2_ == false){
+                    if(move_abs_auto_select_check(l_x,l_y,r_yaw)==1){
+                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                        obstacle_escape();
+                    }
+                    rc=move_abs_auto_select(l_x,l_y,r_yaw);
+                    if(rc==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
+                }
+                else{
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape();
+                    rc=drive_->navi_move(l_x,l_y,r_yaw);
+                    if(rc==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
+                }
+                if(rc==false){
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape();
+                }
+
                 #if defined(USE_TEST_PLOT_LOCAL_MAP2)
-                    // cur postion plot してみる for Debug
+                    // 現在位置の cost map plot
                     drive_->get_tf(2);
                     cur_origin = drive_->base_tf.getOrigin();
                     cur_x = cur_origin.getX();
                     cur_y = cur_origin.getY();
-                    get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+                    get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
                 #endif
-
-                if(all_nav2_ == false){
-                    if(move_abs_auto_select(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
-                }
-                else{
-                    if(drive_->navi_move(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
-                }
-
-                // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                obstacle_escape();
 
                 // 外側を向かせる
                 // l -> f の向きを求める
@@ -270,24 +306,24 @@ void ProControlMower::auto_mower(int m_type){
                 // l -> f  へ向かう
 
                 #if defined(USE_TEST_PLOT2)
-                    // target postion plot してみる for Debug
+                    // 目的位置の static map plot
                     get_map.test_plot(f_x,f_y,r_yaw);
                 #endif
 
-                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
-                    // cur postion plot してみる for Debug
-                    drive_->get_tf(2);
-                    cur_origin = drive_->base_tf.getOrigin();
-                    cur_x = cur_origin.getX();
-                    cur_y = cur_origin.getY();
-                    get_local_map.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
-                #endif
 
                 if(all_nav2_ == false){
+                    if(move_abs_auto_select_check(f_x,f_y,r_yaw)==1){
+                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                        obstacle_escape();
+                    }
                     if(move_abs_auto_select(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
                         std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
                 }
                 else{
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape();
                     if(drive_->navi_move(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
                         std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
                 }
