@@ -388,7 +388,8 @@ bool ProControl::move_abs_auto_select(float x,float y,float r_yaw,float robo_rad
 
     // (cur_x,cur_y) -> (x,y) 間のロボット幅+α の障害物をチェック
     //float robo_radian=0.2;
-    if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+    //if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+    if(check_cource_obstacle_comb(get_map,get_costmap,cur_x,cur_y,x,y,robo_radian,0)==0){
         std::cout << " #2 select drive_cmd" << std::endl;
         drive_cmd.rotate_abs(theta_r,true);
         drive_cmd.go_abs(x,y);
@@ -432,6 +433,11 @@ int ProControl::move_abs_auto_select_check(float x,float y,float r_yaw,float rob
         std::cout << "  get_map error occured , then move_abs_auto_select() is not executable!!" << std::endl;
         return -1;
     }
+    if(get_costmap.get() != true)
+    {
+        std::cout << "  get_costmap error occured , then move_abs_auto_select() is not executable!!" << std::endl;
+        return -1;
+    }
 
     drive_->get_tf(2);
     tf2::Vector3 start_origin = drive_->base_tf.getOrigin();
@@ -461,7 +467,8 @@ int ProControl::move_abs_auto_select_check(float x,float y,float r_yaw,float rob
 
     // (cur_x,cur_y) -> (x,y) 間のロボット幅+α の障害物をチェック
     //float robo_radian=0.2;
-    if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+    //if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+    if(check_cource_obstacle_comb(get_map,get_costmap,cur_x,cur_y,x,y,robo_radian,0)==0){
         std::cout << " #2 select drive_cmd" << std::endl;
         return rc;
     }

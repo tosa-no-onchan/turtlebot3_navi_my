@@ -90,13 +90,13 @@ void ProControlMower::auto_mower(int m_type){
 
     contbuilder.get_bolb(px,py,true);    // x,y,isCourceDisp
 
-    #define USE_TEST_PLOT
+    //#define USE_TEST_PLOT
     #if defined(USE_TEST_PLOT)
         // static map plot してみる for Debug
         get_map.test_plot(cur_x,cur_y,drive_->_rz);
     #endif
 
-    #define USE_TEST_PLOT_LOCAL_MAP
+    //#define USE_TEST_PLOT_LOCAL_MAP
     #if defined(USE_TEST_PLOT_LOCAL_MAP)
         // cost_map plot してみる for Debug
         get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");

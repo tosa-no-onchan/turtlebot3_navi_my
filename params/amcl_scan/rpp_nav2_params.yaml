@@ -233,7 +233,9 @@ local_costmap:
       # https://navigation.ros.org/configuration/packages/costmap-plugins/inflation.html
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
+        #cost_scaling_factor: 3.0
+        # changed by nishi 2024.9.3
+        cost_scaling_factor: 2.0
         inflation_radius: 0.40
 
       # https://github.com/ros-planning/navigation2/blob/foxy-devel/nav2_costmap_2d/plugins/voxel_layer.cpp
@@ -328,7 +330,10 @@ global_costmap:
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
+        #cost_scaling_factor: 3.0
+        # changed by nishi 2024.9.3
+        #cost_scaling_factor: 2.0
+        cost_scaling_factor: 1.5
         #inflation_radius: 0.45
         # changed 2024.3.2
         inflation_radius: 0.40

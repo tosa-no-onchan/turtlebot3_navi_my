@@ -226,4 +226,6 @@ public:
     }
 };
 
+int check_cource_obstacle_comb(GetMap &get_map,GetMap &get_costmap,float s_x,float s_y,float d_x,float d_y,float robo_radian,int black_thresh);
+
 #endif      // GET_MAP_HPP
