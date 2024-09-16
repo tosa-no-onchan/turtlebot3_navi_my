@@ -49,6 +49,9 @@ void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_costmap){
     if(use_costmap_==true)
         get_costmap.init(node,get_map_func_,"local_costmap/costmap");
 
+    // add by nishi 2024.9.4
+    drive_cmd.set_map(&get_costmap);
+
     std::cout << "ProControl::init():#2 " << std::endl;
 
     goalId = 0;
@@ -356,6 +359,11 @@ bool ProControl::move_abs_auto_select(float x,float y,float r_yaw,float robo_rad
         std::cout << "  get_map error occured , then move_abs_auto_select() is not executable!!" << std::endl;
         return false;
     }
+    //if(get_costmap.get() != true)
+    //{
+    //    std::cout << "  get_costmap error occured , then move_abs_auto_select() is not executable!!" << std::endl;
+    //    return -1;
+    //}
 
     drive_->get_tf(2);
     tf2::Vector3 start_origin = drive_->base_tf.getOrigin();
@@ -388,12 +396,21 @@ bool ProControl::move_abs_auto_select(float x,float y,float r_yaw,float robo_rad
 
     // (cur_x,cur_y) -> (x,y) 間のロボット幅+α の障害物をチェック
     //float robo_radian=0.2;
-    //if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
-    if(check_cource_obstacle_comb(get_map,get_costmap,cur_x,cur_y,x,y,robo_radian,0)==0){
+    if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+    //if(check_cource_obstacle_comb(get_map,get_costmap,cur_x,cur_y,x,y,robo_radian,0)==0){
         std::cout << " #2 select drive_cmd" << std::endl;
+
         drive_cmd.rotate_abs(theta_r,true);
-        drive_cmd.go_abs(x,y);
-        drive_cmd.rotate_abs(r_yaw,true);
+        // check obostacle changed by nishi 2024.9.4
+        if(drive_cmd.go_abs(x, y, false, true)==1){
+            #if defined(USE_NAV2)
+                std::cout << " #2.1 change drive_nav" << std::endl;
+                rc=drive_nav.navi_move(x,y,r_yaw);
+            #endif
+        }
+        else{
+            drive_cmd.rotate_abs(r_yaw,true);
+        }
     }
     else{
         #if defined(USE_NAV2)
@@ -430,14 +447,14 @@ int ProControl::move_abs_auto_select_check(float x,float y,float r_yaw,float rob
     // original nav2 mode
     if(get_map.get() != true)
     {
-        std::cout << "  get_map error occured , then move_abs_auto_select() is not executable!!" << std::endl;
+        std::cout << "  get_map error occured , then move_abs_auto_select_check() is not executable!!" << std::endl;
         return -1;
     }
-    if(get_costmap.get() != true)
-    {
-        std::cout << "  get_costmap error occured , then move_abs_auto_select() is not executable!!" << std::endl;
-        return -1;
-    }
+    //if(get_costmap.get() != true)
+    //{
+    //    std::cout << "  get_costmap error occured , then move_abs_auto_select_check() is not executable!!" << std::endl;
+    //    return -1;
+    //}
 
     drive_->get_tf(2);
     tf2::Vector3 start_origin = drive_->base_tf.getOrigin();
@@ -467,8 +484,8 @@ int ProControl::move_abs_auto_select_check(float x,float y,float r_yaw,float rob
 
     // (cur_x,cur_y) -> (x,y) 間のロボット幅+α の障害物をチェック
     //float robo_radian=0.2;
-    //if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
-    if(check_cource_obstacle_comb(get_map,get_costmap,cur_x,cur_y,x,y,robo_radian,0)==0){
+    if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+    //if(check_cource_obstacle_comb(get_map,get_costmap,cur_x,cur_y,x,y,robo_radian,0)==0){
         std::cout << " #2 select drive_cmd" << std::endl;
         return rc;
     }
@@ -533,12 +550,12 @@ m_move(self,m_list)
 mloop(self)
     self.goalList =[[func,x,y,d_yaw],....] or [[func,dist,d_yaw],....]
     func,x,y,d_yaw
-        func: 0 -> move point x,y, and rotate d_yaw
-            1 -> move point x,y only
-            2 -> rotate d_yaw only   rotate_abs()
-            3 -> roate_off()
-            10 -> navi move x,y,d_yaw
-            11 -> move_abs_auto_select x,y,d_yaw // add by nishi 2024.4.7
+        func: 0 -> rc=move_abs(x, y,d_yaw) : roate_abs(d_yaw) and go_abs(x, y)
+            1 -> rc=go_abs(x, y)
+            2 -> rotate_abs(d_yaw)
+            3 -> roate_off(d_yaw)
+            10 -> navi_move(x, y, d_yaw)
+            11 -> move_abs_auto_select(x,y,d_yaw) // add by nishi 2024.4.7
 
     func,dist,d_yaw
         func: 0 -> move dist and rotate d_yaw
@@ -568,11 +585,13 @@ mloop(self)
             73 -> set robo_r_
             80 -> navigation2 mode
             81 -> cmd_vel mode
+            82 -> disable error auto stop
             99 -> end
 */
 void ProControl::mloop(){
     bool f=true;
     u_int8_t func;
+    int rc;
     while(f){
         if(t_type==0)
             func = _goalList[goalId].func;
@@ -586,7 +605,11 @@ void ProControl::mloop(){
             case 3:
             case 10:
             case 11:        // add by nishi 2024.4.7
-                mloop_sub();
+                rc=mloop_sub();
+                if(rc != 0 && error_auto_stop_==true){
+                    std::cout << " stop moving by obstacle" << std::endl;
+                    f=false;
+                }
                 break;
             case 21:
                 // sleep
@@ -754,6 +777,11 @@ void ProControl::mloop(){
                 set_drive_mode(0);
                 break;
 
+            case 82:    // disable error auto stop
+                std::cout << "disable error auto stop" << std::endl;
+                error_auto_stop_=false;
+                break;
+
             case 99:
                 f = false;
                 break;
@@ -763,7 +791,7 @@ void ProControl::mloop(){
     }
 }
 
-void ProControl::mloop_sub(){
+int ProControl::mloop_sub(){
     sts=0;
     int r_ct =0;
 
@@ -778,12 +806,12 @@ void ProControl::mloop_sub(){
             y += start_pos_y;
         }
         if (_goalList[goalId].func == 0){
-            drive_->move_abs(x,y,d_yaw);    // changed by nishi 2024.2.28
+            r_ct = drive_->move_abs(x,y,d_yaw);    // changed by nishi 2024.2.28
             //self.goalMsg.pose.position.y = y;
             //self.goalMsg.pose.position.x = x;
         }
         else if (_goalList[goalId].func == 1){
-            drive_->go_abs(x,y);            // changed by nishi 2024.2.28
+            r_ct=drive_->go_abs(x,y);            // changed by nishi 2024.2.28
             //self.goalMsg.pose.position.y = y;
             //self.goalMsg.pose.position.x = x;
         }
@@ -809,7 +837,8 @@ void ProControl::mloop_sub(){
             //self.goalMsg.pose.position.x += dist * math.cos(math.radians(d_yaw));
         }
     }
-    sleep(1);   
+    sleep(1);
+    return r_ct;
 }
 
 #ifdef KKKKK_1

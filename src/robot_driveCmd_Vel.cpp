@@ -11,6 +11,9 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 
+#include <thread>
+#include <math.h>
+
 using std::placeholders::_1;
 
 using namespace std::chrono_literals;
@@ -60,6 +63,67 @@ void RobotDriveCmd_Vel::init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,boo
         _pub->publish(_vel_msg);
         i-=1;
     }
+}
+
+void RobotDriveCmd_Vel::th_check_cource_obstacle(float x, float y){
+    std::cout << "C th_check_cource_obstacle() "<< std::endl;
+    black_cnt_=0;
+    th_check_cource_obstacle_f=true;
+
+    rclcpp::WallRate rate(1.0);
+
+    int rc;
+    float x1=x;
+    float y1=y;
+
+    while(th_check_cource_obstacle_f==true){
+        rate.sleep();
+        std::cout << "C th_check_cource_obstacle(): wake up "<< std::endl;
+
+        if(get_costmap_->get() != true)
+        {
+            std::cout << "  getcost_map error occured , then move_abs_auto_select() is not executable!!" << std::endl;
+            //return false;
+        }
+        else if(true==getTF_->get()){
+            //base_tf=getTF_.base_tf;
+            tf2::Vector3 cur_origin = getTF_->base_tf.getOrigin();
+
+            float cx = cur_origin.getX();
+            float cy = cur_origin.getY();
+
+            //std::cout << " cx: " << cx << ", cy: " << cy << std::endl;
+
+            // 自分からの目的地のずれ
+            float off_x = x - cx;
+            float off_y = y - cy;
+
+            // 距離
+            double dist = std::sqrt(off_x*off_x + off_y*off_y);
+            // 距離が、 0.5[M] になるまでチェックする。
+            if(dist >= 0.5){
+
+                // 目的地の方角
+                float theta_r = std::atan2(off_y,off_x);   //  [radian]
+
+                //rc=check_cource_obstacle_comb(*get_map_, *get_costmap_, rx, ry,x, y, 0.3, 0);
+                //rc=check_cource_obstacle_comb_ptr(get_map_, get_costmap_, rx, ry,x, y, 0.3, 0);
+
+                // ロボットの前方 0.4 - 1.0[M] 以内のチェックをする。
+                x1 = 0.4 * std::cos(theta_r) + cx;
+                y1 = 0.4 * std::sin(theta_r) + cy;
+                //std::cout << " x1: " << x1 << ", y1: " << y1 << std::endl;
+                black_cnt_=get_costmap_->check_cource_obstacle(cx, cy, x1, y1, 0.3, 0);
+                std::cout << "  black_cnt:" << black_cnt_ << std::endl;
+
+            }
+        }
+        else{
+            std::cout << "C th_check_cource_obstacle(): getTF_->get() error "<< std::endl;
+        }
+    }
+    std::cout << "C th_check_cource_obstacle(): #99 end "<< std::endl;
+
 }
 
 /*
@@ -114,9 +178,10 @@ move_abs()
     x,y: 絶対番地への移動(基準座標)
     d_yaw: 基準座標での角度。 [degree]
 */
-void RobotDriveCmd_Vel::move_abs(float x,float y,float d_yaw){
+int RobotDriveCmd_Vel::move_abs(float x,float y,float d_yaw){
     rotate_abs(d_yaw);
-    go_abs(x,y);
+    int rc=go_abs(x,y);
+    return rc;
 }
 
 /*
@@ -211,11 +276,12 @@ bool RobotDriveCmd_Vel::get_tf(int func){
 go_abs(x,y,isBack=false,speed=0.05)
 直進する。
 */
-void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
+int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float speed){
 
     std::cout << "C go_abs() isBack:" << isBack;
 
     float i_spped;
+    int rc=0;
 
     // 前進です。
     if(!isBack)
@@ -267,6 +333,15 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
         _rz_cur=normalize_tf_rz(_rz+180.0/RADIANS_F);
     }
 
+    // 監視 thread を起動 add by nishi 2024.9.4
+    //std::thread th(&RobotDriveCmd_Vel::th_check_cource_obstacle, this, x ,y);
+
+    black_cnt_=0;
+    std::thread th;
+    if((obs_chk==true || _dumper==true) && start_distance >= 0.9){
+        th=std::thread(&RobotDriveCmd_Vel::th_check_cource_obstacle, this, x ,y);
+    }
+
     //Loop to move the turtle in an specified distance
     while(current_distance < start_distance){
         //std::cout << "pub cmd_vel" << std::endl;
@@ -301,21 +376,21 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
         }
 
         // dumper ON
-        if(_dumper==true){
-            cost=0;
-            //cost=navi_.check_cost(cur_x,cur_y);
-            if(cost>0){
-                std::cout << "cost=" << (unsigned int)cost << std::endl;
-                _vel_msg.linear.x = 0.0;
-                // Force the robot to stop
-                //_pub.publish(_vel_msg);
-                _pub->publish(_vel_msg);
-                //while(1){
-                //    rate.sleep();
-                //}
-                return;
-            }
-        }
+        //if(_dumper==true){
+        //    cost=0;
+        //    //cost=navi_.check_cost(cur_x,cur_y);
+        //    if(cost>0){
+        //        std::cout << "cost=" << (unsigned int)cost << std::endl;
+        //        _vel_msg.linear.x = 0.0;
+        //        // Force the robot to stop
+        //        //_pub.publish(_vel_msg);
+        //        _pub->publish(_vel_msg);
+        //        //while(1){
+        //        //    rate.sleep();
+        //        //}
+        //        return rc;
+        //    }
+        //}
 
         i+=1;
         if (i > 5){
@@ -324,7 +399,7 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
                 chk_cnt++;
                 if(chk_cnt > 3){
                     std::cout << " current_distance=" << round_my<float>(current_distance,3) << std::endl;
-                    std::cout << " time out" << std::endl;
+                    std::cout << " time out 1" << std::endl;
                     break;
                 }
             }
@@ -377,6 +452,13 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
                 j=0;
             }
             i=0;
+
+            // add by nishi 2024.9.5
+            if(black_cnt_ > 4){
+                std::cout << " found obstracle!!" << std::endl;
+                rc=1;
+                break;
+            }
         }    
         //ros::spinOnce();
         rclcpp::spin_some(node_);
@@ -387,6 +469,13 @@ void RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, float speed ){
     // Force the robot to stop
     //_pub.publish(_vel_msg);
     _pub->publish(_vel_msg);
+
+    //if((obs_chk==true || _dumper==true) && start_distance >= 1.0){
+    if(th_check_cource_obstacle_f==true){
+        th_check_cource_obstacle_f=false;
+        th.join();
+    }
+    return rc;
 }
 
 /*
@@ -561,8 +650,10 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
         float cur_rz_x = round_my<float>(cur_rz,3);
         if(cur_rz_x == 0.0){
             lp_cnt_chk++;
-            if(lp_cnt_chk >= 9){
-                std::cout << " time out" << std::endl;
+            //if(lp_cnt_chk >= 9){
+            // changed by nishi 2024.9.7
+            if(lp_cnt_chk >= rotate_lp_cnt_chk_2_){
+                std::cout << " time out 2" << std::endl;
                 break;
             }
         }
@@ -591,6 +682,7 @@ rotate_abs_last179()
     stop_dz(d_theta) : [deg] 基本座標上の角度  > 0 左回転 /  < 0 右回転
     rad_f : false -> deg / true -> radian
     speed :  5.0  [deg/s]
+    注)      speed >= 3.0
 */
 void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
     // 目的の角度と速度を設定
@@ -614,7 +706,11 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
     //stop_rz = round_my<float>(stop_rz,5);
     stop_rz=round_my_zero(stop_rz);
 
-    std::cout << "C rotate_abs_179() stop_dz=" << stop_rz*RADIANS_F << std::endl;
+    std::cout << "C rotate_abs_179() stop_dz=" << stop_rz*RADIANS_F << " speed:" << speed << std::endl;
+    if(speed < rotate_speed_min_){
+        std::cout << " speed < "<< rotate_speed_min_<< " ,then set speed:" << rotate_speed_min_ << std::endl;
+        speed = rotate_speed_min_;
+    }
 
     _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
     _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
@@ -682,7 +778,14 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
         //#self.vel_msg.angular.z = speed * 3.1415 / -180.0 # [rad]
         _vel_msg.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
     }
-    float speed_half=_vel_msg.angular.z * 0.5;
+
+    float speed_half = _vel_msg.angular.z * 0.5;
+    if(abs(speed_half) < (speed / RADIANS_F)){
+        if(speed_half >= 0.0)
+             speed_half = speed / RADIANS_F;
+        else
+             speed_half = speed / RADIANS_F * -1.0;
+    }
 
     if (abs(rz_off) <= 10.0/RADIANS_F){      //# 角度差が 10.0 度以内 であれば、補正回転にする
         std::cout << " adjust angle" << std::endl;
@@ -703,6 +806,10 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
     float rz_min = 10.0;
     bool ok_f = false;
     int lp_cnt=0;
+
+    int lp_cnt_chk=0;   // add by nishi 2024.9.7
+    float prev_rz_off_round=100.0;    // add by nishi 2024.9.7
+
     while(1){
         _pub->publish(_vel_msg);
 
@@ -765,6 +872,19 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
                 _vel_msg.angular.z *= -1.0;
                 ok_f = true;
             }
+        }
+        // ロボットの回転停止の監視 add by nishi 2024.9.7
+        float off_round_x=round_my<float>(rz_off,3);
+        if(prev_rz_off_round == off_round_x){
+            lp_cnt_chk++;
+            if(lp_cnt_chk > 20){
+                std::cout << " time up!!" << std::endl;
+                break;
+            }
+        }
+        else{
+            prev_rz_off_round=off_round_x;
+            lp_cnt_chk=0;
         }
         rate.sleep();
         //ros::spinOnce();
@@ -885,7 +1005,7 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
             lp_cnt_chk++;
             //if(lp_cnt_chk >= 6){
             if(lp_cnt_chk >= 12){
-                std::cout << " time out" << std::endl;
+                std::cout << " time out 3" << std::endl;
                 break;
             }
         }

@@ -24,6 +24,8 @@
 //#include "turtlebot3_navi_my/robot_navi.hpp"
 #include "turtlebot3_navi_my/com_lib.hpp"
 #include "turtlebot3_navi_my/robot_driveCore.hpp"
+#include "turtlebot3_navi_my/pro_control_sub.hpp"
+
 
 //#include <unistd.h>
 
@@ -69,6 +71,11 @@ public:
 
   HeartBeat heartBeat_;   // add by nishi 2023.3.8
 
+  // add by nishi 2024.9.3
+  bool th_check_cource_obstacle_f;
+  int black_cnt_;
+  GetMap *get_costmap_;
+
   //double _rx, _ry, _rz;
   //bool _course_correct;
   //bool _after_correct_wait;
@@ -79,6 +86,15 @@ public:
   RobotDriveCmd_Vel(){}
 
   void init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use=false);
+
+  void th_check_cource_obstacle(float x, float y);
+
+  void set_map(GetMap *get_costmap){
+    get_costmap_= get_costmap;
+
+    // 下記が、OK みたいだが? 死なない?
+    //int rc=check_cource_obstacle_comb(*get_map_, *get_costmap_, 0.0, 0.0, 1.0,1.0,0.3, 50);
+  }
 
   /*
   move()
@@ -95,7 +111,7 @@ public:
       x,y: 絶対番地への移動(基準座標)
       d_yaw: 基準座標での角度。 [degree]  > 0 左回転 /  < 0 右回転
   */
-  void move_abs(float x,float y,float d_yaw);
+  int move_abs(float x,float y,float d_yaw);
 
   /*
   comp_dad() : compute distanse and direction
@@ -130,7 +146,7 @@ public:
   go_abs(x,y,isBack=false,speed=0.05)
   直進する。
   */
-  void go_abs(float x,float y,bool isback=false,float speed=0.05 );
+  int go_abs(float x,float y,bool isback=false, bool obs_chk=false, float speed=0.05);
 
   /*
   rotate_abs()

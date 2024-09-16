@@ -240,6 +240,189 @@ int check_cource_obstacle_comb(GetMap &get_map,GetMap &get_costmap,float s_x,flo
 }
 
 
+/*-------------------------
+* check_cource_obstacle_comb()
+*  get_map と get_costmap の障害物を合成して、
+*  走行予定コース上の、Mapの障害物を、robo_radian*2 幅で、チェックする。
+*  GetMap &get_map: static map GetMap
+*  GetMap &get_costmap: local cost map GetMap
+*/
+int check_cource_obstacle_comb_ptr(GetMap *get_map,GetMap *get_costmap,float s_x,float s_y,float d_x,float d_y,float robo_radian,int black_thresh){
+
+    cv::Mat result,result2,mask;
+
+    std::cout << "start check_cource_obstacle_comb_ptr()" << std::endl;
+
+    std::cout << " get_map.mapm_.origin[0]:" << get_map->mapm_.origin[0] <<" get_map.mapm_.origin[1]:" << get_map->mapm_.origin[1] << std::endl;
+    // get_map.mapm_.origin[0]:-8.05 get_map.mapm_.origin[1]:-5.8
+    // map->info.width=321 map->info.height=232 map->info.resolution=0.05
+
+    std::cout << " get_costmap.mapm_.origin[0]:" << get_costmap->mapm_.origin[0] <<" get_costmap.mapm_.origin[1]:" << get_costmap->mapm_.origin[1] << std::endl;
+    // get_costmap.mapm_.origin[0]:-4.5 get_costmap.mapm_.origin[1]:-0.45
+    // map->info.width=60 map->info.height=60 map->info.resolution=0.05
+
+    // static map の 原点 p0(左、下) の位置から、cost map の p1(左、下) の off set を求める
+    // 注) map topic を cv::Mat に変換時には、Y 軸は、上下逆転している。
+    // off_x = p1.x - p0.x
+    // off_y = p1.y - p0.y
+    int offs_x,offs_y;
+    offs_x = (int)((get_costmap->mapm_.origin[0] - get_map->mapm_.origin[0]) / get_map->mapm_.resolution);
+    offs_y = (int)((get_costmap->mapm_.origin[1] - get_map->mapm_.origin[1]) / get_map->mapm_.resolution);
+
+    std::cout << " offs_x:" << offs_x <<" offs_y:" << offs_y << std::endl;
+    // offs_x:72 offs_y:107
+    // これを、static map に drow してみれば、わかる。
+
+    // 注) offs_x, off_y が 負 の時は、cost_map をその分だけ小さくする。
+
+
+    cv::Mat my_map_bin, my_cost_bin;
+    my_map_bin = get_map->mat_bin_map_.clone();
+    my_cost_bin = get_costmap->mat_bin_map_.clone();
+
+    //#define CHK_COURCE_OBSTACLE_COMB_TEST1_0
+    #if defined(CHK_COURCE_OBSTACLE_COMB_TEST1_0)
+        cv::rectangle(my_map_bin, cv::Point(offs_x,offs_y), cv::Point(offs_x+get_costmap->mat_bin_map_.cols,offs_y+get_costmap->mat_bin_map_.rows), cv::Scalar(255,0,0), 1);
+        cv::imshow("map.my_map_bin", my_map_bin);
+        cv::waitKey(100);
+
+    #endif
+
+    // 【Visual Studio】OpenCVで画像の部分処理（ROI
+    // https://qiita.com/kelbird/items/cc19a20840577da43dbe
+    // を参考に、static map に cost map を部分的に OR する。
+    // ROIは、「元画像のSRCの画像を参照しているだけ」ということを忘れないでください。
+    // つまり、元画像が変更されればROI画像も変更されます。また、ROI画像が変更されれば元画像も変更されます。
+
+    // static map で、static map から、はみ出さずに使える部分のを roi とする。
+    cv::Mat roi_cost;
+    int roi_cost_cols = my_cost_bin.cols;
+    int roi_cost_rows = my_cost_bin.rows;
+    int roi_cost_x0=0;
+    int roi_cost_y0=0;
+
+    // cost map が、 static map からの、はみ出しのチェックと補正をする。
+    if(offs_x < 0){
+        roi_cost_x0 -= offs_x;
+        roi_cost_cols += offs_x;
+        offs_x=0;
+    }
+    if(offs_y < 0){
+        roi_cost_y0 -= offs_y;
+        roi_cost_rows += offs_y;
+        offs_y=0;
+    }
+    if((offs_x + roi_cost_cols) >= my_map_bin.cols){
+        std::cout << " over cost map width:"<< offs_x + roi_cost_cols << " than map width"<< std::endl;
+        roi_cost_cols -=(my_map_bin.cols - (offs_x + roi_cost_cols));
+    }
+    if((offs_y + roi_cost_rows) >= my_map_bin.rows){
+        std::cout << " over cost map height:"<< offs_y + roi_cost_rows <<" than map height"<< std::endl;
+        roi_cost_rows -=(my_map_bin.rows - (offs_y + roi_cost_rows));
+    }
+
+    roi_cost = cv::Mat(my_cost_bin, cv::Rect(roi_cost_x0, roi_cost_y0, roi_cost_cols, roi_cost_rows));   //上部と似たような形での宣言
+
+
+    // static map 上の cost map が、重なる部分を、roi とする。
+    // 画像の部分処理・切り出し
+    cv::Mat roi_src;                                    //先に変数を宣言
+    roi_src = cv::Mat(my_map_bin, cv::Rect(offs_x, offs_y, roi_cost_cols, roi_cost_rows));   //上部と似たような形での宣言
+
+    //#define CHK_COURCE_OBSTACLE_COMB_ERROR_TEST1
+    #if defined(CHK_COURCE_OBSTACLE_COMB_ERROR_TEST1)
+        // 動作テスト
+        // roi_cost を all 1 にして動作確認します。
+        cv::Mat test_all1;
+        test_all1 = cv::Mat::ones(roi_cost.cols, roi_cost.rows,CV_8UC1);
+
+        cv::Mat test_all1_bin;
+        cv::threshold(test_all1, test_all1_bin, 10, 255, cv::THRESH_BINARY_INV);
+        test_all1_bin.copyTo(roi_cost);
+    #endif
+
+    // ピクセル毎の論理演算 AND NOT OR XOR
+    // https://cvtech.cc/bitwise/
+
+    cv::Mat img_or;
+    cv::bitwise_or(roi_src, roi_cost, img_or);
+
+    // cv::Matにおけるclone()とcopyTo()の挙動の違い
+    // https://13mzawa2.hateblo.jp/entry/2016/12/09/151205
+    img_or.copyTo(roi_src);   // img_or を ROIにコピー
+
+
+    // real world 座標を、Mat map 座標に変換 
+    int s_px = (int)((s_x - get_map->mapm_.origin[0]) / get_map->mapm_.resolution);
+    int s_py = (int)((s_y - get_map->mapm_.origin[1]) / get_map->mapm_.resolution);
+
+    int d_px = (int)((d_x - get_map->mapm_.origin[0]) / get_map->mapm_.resolution);
+    int d_py = (int)((d_y - get_map->mapm_.origin[1]) / get_map->mapm_.resolution);
+
+    int p_robo_radian = (int)(robo_radian/get_map->mapm_.resolution);
+
+    // Mask画像 を作成
+    mask = cv::Mat::zeros(get_map->mapm_.height, get_map->mapm_.width, CV_8UC1);
+
+    // 直線を引く。
+    cv::Point sp(s_px, s_py);	// 始点座標(x,y)
+    cv::Point dp(d_px, d_py);	// 終点座標(x,y)
+
+    // 両端を少し、扁平にしたいけど?
+    cv::line(mask, sp, dp, cv::Scalar(255), p_robo_radian*2, cv::LINE_AA);
+
+    //#define CHK_COURCE_OBSTACLE_COMB_TEST1
+    #if defined(CHK_COURCE_OBSTACLE_COMB_TEST1)
+        cv::imshow("map.my_map_bin", my_map_bin);
+        cv::waitKey(100);
+        //cv::destroyAllWindows();
+        cv::imshow("cost.mat_bin_map_", get_costmap->mat_bin_map_);
+        cv::waitKey(100);
+    #endif
+
+    #define CHK_COURCE_OBSTACLE_COMB_TEST2
+    #if defined(CHK_COURCE_OBSTACLE_COMB_TEST2)
+        cv::imshow("mask", mask);
+        cv::waitKey(100);
+        //cv::destroyAllWindows();
+    #endif
+
+    // 障害物 2値化画像に 円のマスクを実施
+    //get_map.mat_bin_map_.copyTo(result2,mask);
+    my_map_bin.copyTo(result2,mask);
+
+    #if defined(CHK_COURCE_OBSTACLE_COMB_TEST2)
+        cv::imshow("result2", result2);
+        cv::waitKey(100);
+        //cv::destroyAllWindows();
+    #endif
+
+    // 黒色領域の面積(ピクセル数)を計算する
+    int black_cnt = cv::countNonZero(result2);
+
+    std::cout << " black_cnt=" << black_cnt;
+
+    if(black_cnt <= black_thresh){
+        black_cnt=0;
+    }
+    std::cout << " adjust black_cnt=" << black_cnt << std::endl;
+
+    //#define TEST_WAIT_xx
+    #if defined(TEST_WAIT_xx)
+        while(1){
+            cv::imshow("result2", result2);
+            int key = cv::waitKey(100);
+            // esc key
+            if (key == 27){
+                exit(0);
+            }
+        }
+    #endif
+
+    return black_cnt;
+}
+
+
 #if defined(USE_CHECK_COLL)
 /*-------------------------
 * check_collision()
@@ -509,6 +692,8 @@ void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_fr
                 map_frame, 10, std::bind(&GetMap::topic_callback, this, _1));
         #endif
     }
+
+    init_ok=true;   // add by nishi 2024.9.4
 
 }
 
@@ -1134,7 +1319,7 @@ int GetMap::check_cource_obstacle(float s_x,float s_y,float d_x,float d_y,float 
     // 両端を少し、扁平にしたいけど?
     cv::line(mask, sp, dp, cv::Scalar(255), p_robo_radian*2, cv::LINE_AA);
 
-    //#define CHK_COURCE_OBSTACLE_TEST1
+    #define CHK_COURCE_OBSTACLE_TEST1
     #if defined(CHK_COURCE_OBSTACLE_TEST1)
         cv::imshow("mat_bin_map_", mat_bin_map_);
         cv::waitKey(100);

@@ -115,7 +115,7 @@ private:
 
     //Grid grid_;
 
-    bool init_ok=false;
+    //bool init_ok=false;
 
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr subscript_;
 
@@ -131,6 +131,8 @@ public:
     cv::Mat mat_bin_free_map_;  // map 非障害物の 2値化
     //Yaml yaml_;
     MapM mapm_;
+
+    bool init_ok=false;     // add by nishi 2024.9.4
 
     GetMap(){}
 
@@ -227,5 +229,6 @@ public:
 };
 
 int check_cource_obstacle_comb(GetMap &get_map,GetMap &get_costmap,float s_x,float s_y,float d_x,float d_y,float robo_radian,int black_thresh);
+int check_cource_obstacle_comb_ptr(GetMap *get_map,GetMap *get_costmap,float s_x,float s_y,float d_x,float d_y,float robo_radian,int black_thresh);
 
 #endif      // GET_MAP_HPP

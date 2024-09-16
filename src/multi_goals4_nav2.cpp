@@ -35,51 +35,79 @@ $ . install/setup.bash
 
 //#include <nav_msgs/OccupancyGrid.h>
 
-GoalList test1[] ={
+GoalList auto_select[] ={
             {60, 0.0, 0.0, 0.0},      // course correct ON
             {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
-            //{22, 0.0,0.0, 0.0},      // get map
-            //{11, 0.5, 0.0, 0.0},   // move_abs_auto_select
-            //{11, 0.5, 0.5, 0.0},   // move_abs_auto_select
-            {11,1.5, 1.5, 0.0},   // move_abs_auto_select
-            {99,0.0,0.0, 0.0},      // end
+            //{0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
+            {2, 0.0, 0.0, 90.0},  // rotate_abs 90
+            {2, 0.0, 0.0, 180.0},  // rotate_abs 180
+            {2, 0.0, 0.0, 270.0},  // rotate_abs 270
+            {2, 0.0, 0.0, 360},   // rotate_abs 360
 
-            {2, 0.0, 0.0, 90.0},    // rotate_abs 90
-            {22, 0.0,0.0, 0.0},      // get map
+            {11,1.0,0.0, 0.0},      // move_abs_auto_select (1.0,0.0) and rotate 0
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            {2,1.0,0.0, 270.0},    // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
 
-            {2, 0.0, 0.0, 180.0},   // rotate_abs 180
-            {22, 0.0,0.0, 0.0},      // get map
+            {11,2.0,0.0, 0.0},      // move_abs_auto_select (2.0,0.0) and rotate 0
+            {2,2.0,0.0, 90.0},     // rotate 90
+            {2,2.0,0.0, 180.0},    // rotate 180
+            {2,2.0,0.0, 270.0},    // rotate 270
+            {2,2.0,0.0, 360.0},    // rotate 360
+            {2,2.0,0.0, 90.0},     // rotate 90
 
-            {0,-0.5,0.0, 180.0},    // go (-0.5,0.8) and rotate 180
-            {22, 0.0,0.0, 0.0},      // get map
+            {11,2.0,0.5, 90.0},     // move_abs_auto_select (2.0,0.4) and rotate 90
+            {2,2.0,0.5, 180.0},    // rotate 180
+            {2,2.0,0.5, 270.0},    // rotate 270
 
-            {2, -0.5, 0.0, 270.0},   // rotate_abs 270
-            {22, 0.0,0.0, 0.0},      // get map
+            {11,2.0,0.0, 270.0},    // move_abs_auto_select (2.0,0.0) and rotate 270
+            {2,2.0,0.0, -180.0},   // rotate -180
 
-            {0,-0.5,-0.5, 270.0},    // go (-0.5,-0.5) and rotate 270
-            {22, 0.0,0.0, 0.0},      // get map
+            {11,1.0,0.0, -180.0 },  // move_abs_auto_select (1.0,0.0) and rotate -180
+            {2,1.0,0.0, 270.0 },   // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
 
-
-            //{2, 0.0, 0.0, 360},   // rotate_abs 360
-            {99,0.0,0.0, 0.0},      // end
-
-            {0,0.0,-0.4, 270.0},    // go (0.0,-0.4) and rotate 270
-            {22, 0.0,0.0, 0.0},      // get map
-
-            {0,0.0,-0.8, 270.0},    // go (0.0,-0.8) and rotate 270
-            {22, 0.0,0.0, 0.0},      // get map
-
-            {0,0.0,-0.8, 0.0},    // go (0.0,-0.8) and rotate 0
-            {22, 0.0,0.0, 0.0},      // get map
-
-            {0,0.0,-0.8, 90.0},    // go (0.0,-0.8) and rotate 90
-            {22, 0.0,0.0, 0.0},      // get map
-
-            {21, 0.0,0.0, 0.0},      // sleep
+            {11,0.0,0.0, 180.0},    // move_abs_auto_select (0.0,0.0) and rotate 180
+            {2,0.0,0.0, 270.0},    // rotate 270
+            {2,0.0,0.0, 360.0},    // rotate 360
+            //{21, 0.0,0.0, 0.0},      // sleep
             {99, 0.0,0.0, 0.0}       // end
         };
+
+GoalList auto_select2[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            //{0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
+            {2, 0.0, 0.0, 90.0},  // rotate_abs 90
+            {2, 0.0, 0.0, 180.0},  // rotate_abs 180
+            {2, 0.0, 0.0, 270.0},  // rotate_abs 270
+            {2, 0.0, 0.0, 360},   // rotate_abs 360
+
+            {11,2.0,0.0, 0.0},      // move_abs_auto_select (2.0,0.0) and rotate 0
+            {2,2.0,0.0, 90.0},     // rotate 90
+            {2,2.0,0.0, 180.0},    // rotate 180
+            {2,2.0,0.0, 270.0},    // rotate 270
+            {2,2.0,0.0, 360.0},    // rotate 360
+            {2,2.0,0.0, 90.0},     // rotate 90
+
+            {11,2.0,0.5, 90.0},     // move_abs_auto_select (2.0,0.4) and rotate 90
+            {2,2.0,0.5, 180.0},    // rotate 180
+            {2,2.0,0.5, 270.0},    // rotate 270
+
+            {11,2.0,0.0, 270.0},    // move_abs_auto_select (2.0,0.0) and rotate 270
+            {2,2.0,0.0, -180.0},   // rotate -180
+
+            {11,0.0,0.0, -180.0},    // move_abs_auto_select (0.0,0.0) and rotate -180
+            {2,0.0,0.0, 270.0},    // rotate 270
+            {2,0.0,0.0, 360.0},    // rotate 360
+            //{21, 0.0,0.0, 0.0},      // sleep
+            {99, 0.0,0.0, 0.0}       // end
+        };        
 
 GoalList goallist[] ={
             //{60, 0.0, 0.0, 0.0},      // course correct ON
@@ -88,24 +116,7 @@ GoalList goallist[] ={
 
             //{67, 0.0, 0.0, 0.0},      // set dumper ON
             {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
-            //{0, 0.0, 0.0, 90.0},   // go (0.0,0.0) and rotate 0
-            //{0, 0.0, 0.0, 180.0},   // go (0.0,0.0) and rotate 0
-            //{0, 0.0, 0.0, 270.0},   // go (0.0,0.0) and rotate 0
-            //{0, 0.0, 0.0, 360.0},   // go (0.0,0.0) and rotate 0
-            //{99,0.0,0.0, 0.0},      // end
-
-            //{0, 0.0, 0.0, -90.0},   // go (0.0,0.0) and rotate 0
-            //{0, 0.0, 0.0, -180.0},   // go (0.0,0.0) and rotate 0
-            //{0, 0.0, 0.0, -270.0},   // go (0.0,0.0) and rotate 0
-            //{0, 0.0, 0.0, -360.0},   // go (0.0,0.0) and rotate 0
-
-            //{99,0.0,0.0, 0.0},      // end
-
             {2, 0.0, 0.0, 90.0},  // rotate_abs 90
-
-            //{22,0.0,0.0, 0.0},      // get map
-            //{99,0.0,0.0, 0.0},      // end
-
             {2, 0.0, 0.0, 180.0},  // rotate_abs 180
             {2, 0.0, 0.0, 270.0},  // rotate_abs 270
             {2, 0.0, 0.0, 360},   // rotate_abs 360
@@ -380,10 +391,13 @@ int main(int argc, char **argv){
 
     ProControl mg_ex;
     //mg_ex.init(nh);
-    mg_ex.init(node);
+    //mg_ex.init(node);
+    // use local cost map changed by nishi 2024.9.6
+    mg_ex.init(node,true);
 
-    mg_ex.mloop_ex(goallist);
-    //mg_ex.mloop_ex(test1);
+    //mg_ex.mloop_ex(auto_select);
+    mg_ex.mloop_ex(auto_select2);
+    //mg_ex.mloop_ex(goallist);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(turtlebot3_house2);
     //mg_ex.mloop_ex(goallist_nav2_cmd);

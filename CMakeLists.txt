@@ -44,6 +44,7 @@ add_executable(multi_goals4_cmd_vel
 target_compile_options(multi_goals4_cmd_vel PRIVATE -Wno-unused-parameter)
 
 add_executable(drive_base src/drive_base.cpp 
+  src/pro_control_sub.cpp 
   src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
 target_compile_options(drive_base PRIVATE -Wno-unused-parameter)
@@ -199,6 +200,7 @@ ament_target_dependencies(drive_base
     tf2
     tf2_ros
     nav2_msgs
+    OpenCV
     sensor_msgs
     tf2_geometry_msgs
 )

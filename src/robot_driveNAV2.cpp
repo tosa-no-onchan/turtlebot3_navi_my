@@ -420,7 +420,7 @@ move_abs()
     x,y: 絶対番地への移動(基準座標)
     d_yaw: 基準座標での角度。 [degree]
 */
-void RobotDriveNAV2::move_abs(float x,float y,float d_yaw){
+int RobotDriveNAV2::move_abs(float x,float y,float d_yaw){
     std::cout << "RobotDriveNAV2::move_abs() called"<< std::endl;
     std::cout << "x:"<< x << " y:" << y << " d_yaw:" << d_yaw << std::endl;
     //rotate_f=false;
@@ -428,6 +428,7 @@ void RobotDriveNAV2::move_abs(float x,float y,float d_yaw){
     float r_yaw=d_yaw/RADIANS_F;
 
     exec_pub(x,y,r_yaw);
+    return 0;
 
 }
 
@@ -476,9 +477,10 @@ void RobotDriveNAV2::comp_dad(float x,float y,float &dist, float &r_yaw, float &
 go_abs(x,y,isBack=false,speed=0.05)
 直進する。
 */
-void RobotDriveNAV2::go_abs(float x,float y, bool isBack, float speed ){
+int RobotDriveNAV2::go_abs(float x,float y, bool isBack, bool obs_chk, float speed){
 
     std::cout << "N go_abs()" << std::endl;
+    return 0;
 
 }
 

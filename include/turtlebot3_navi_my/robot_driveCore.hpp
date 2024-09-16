@@ -23,6 +23,11 @@ public:
     bool _go_curve;             // dummy valable
     bool _dumper;               // dummy valable
 
+    // add by nishi 2024.9.7
+    //float rotate_speed_min_ = 3.0;
+    float rotate_speed_min_ = 2.0;
+    int rotate_lp_cnt_chk_2_ = 20*2;      //  for time out 2
+
     //! ROS node initialization
     Robot_DriveCore(){}
     virtual void init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use=false){};
@@ -42,7 +47,7 @@ public:
         x,y: 絶対番地への移動(基準座標)
         d_yaw: 基準座標での角度。 [degree]
     */
-    virtual void move_abs(float x,float y,float d_yaw){};
+    virtual int move_abs(float x,float y,float d_yaw){return 0;};
 
     /*
     comp_dad() : compute distanse and direction
@@ -63,7 +68,8 @@ public:
     go_abs(x,y,isBack=falsse,speed=0.05)
     直進する。
     */
-    virtual void go_abs(float x,float y,bool isBack=false,float speed=0.05 ){};
+    //virtual void go_abs(float x,float y,bool isBack=false,float speed=0.05 ){};
+    virtual int go_abs(float x,float y,bool isBack=false, bool obs_chk=false, float speed=0.05){return 0;};
 
     /*
     robot_driveCmd_vel

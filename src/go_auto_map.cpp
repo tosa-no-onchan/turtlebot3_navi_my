@@ -21,7 +21,7 @@ GoalList turtlebot3_auto_map[] ={
             {60, 0.0, 0.0, 0.0},      // course correct ON
             {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            {67, 0.0, 0.0, 0.0},      // set dumper ON
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON
             // 障害物からの距離の調整
             {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
             {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
@@ -40,7 +40,7 @@ GoalList turtlebot3_auto_map[] ={
 GoalList turtlebot3_auto_map_achor[] ={
             {60, 0.0, 0.0, 0.0},      // course correct ON
             {64, 0.0, 0.0, 0.0},      // go curve ON
-            {67, 0.0, 0.0, 0.0},      // set dumper ON
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON
             // 障害物からの距離の調整
             {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)

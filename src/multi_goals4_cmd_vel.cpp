@@ -160,8 +160,9 @@ GoalList goallist[] ={
             {60, 0.0, 0.0, 0.0},      // course correct ON
             {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
-            {67, 0.0, 0.0, 0.0},      // set dumper ON
-            {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON use local cost map
+            //{82, 0.0, 0.0, 0.0},      // disable error auto stop
+            //{0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},  // rotate 90
             {2, 0.0, 0.0, 180.0},  // rotate 180
             {2, 0.0, 0.0, 270.0},  // rotate 270
@@ -504,7 +505,9 @@ int main(int argc, char** argv)
 
     ProControl mg_ex;
     //mg_ex.init(nh);
-    mg_ex.init(node);
+    //mg_ex.init(node);
+    // use local cost map changed by nishi 2024.9.6
+    mg_ex.init(node,true);
 
     //ros::Rate rate(1);   //  1[Hz]
     //rclcpp::WallRate rate(1);

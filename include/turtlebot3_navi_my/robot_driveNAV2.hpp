@@ -115,7 +115,7 @@ public:
         x,y: 絶対番地への移動(基準座標)
         d_yaw: 基準座標での角度。 [degree]  > 0 左回転 /  < 0 右回転
     */
-    void move_abs(float x,float y,float d_yaw);
+    int move_abs(float x,float y,float d_yaw);
 
     /*
     comp_dad() : compute distanse and direction
@@ -154,7 +154,7 @@ public:
     go_abs(x,y,isBack=false,speed=0.05)
     直進する。
     */
-    void go_abs(float x,float y,bool isBack=false,float speed=0.05 );
+    int go_abs(float x,float y,bool isBack=false, bool obs_chk=false, float speed=0.05);
 
     /*
     rotate_abs()

@@ -332,8 +332,9 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         #cost_scaling_factor: 3.0
         # changed by nishi 2024.9.3
-        #cost_scaling_factor: 2.0
-        cost_scaling_factor: 1.5
+        cost_scaling_factor: 2.0
+        #cost_scaling_factor: 1.5
+        #cost_scaling_factor: 1.8
         #inflation_radius: 0.45
         # changed 2024.3.2
         inflation_radius: 0.40

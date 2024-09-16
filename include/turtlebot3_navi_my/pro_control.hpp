@@ -118,6 +118,8 @@ private:
     int mode_f;   // 1: navigation2 mode 0:vmd_vel mode
     int mode_f_origin;
 
+    bool error_auto_stop_=true;
+
 public:
 
     //! The node handle we'll be using
@@ -193,11 +195,12 @@ public:
     mloop(self)
       self.goalList =[[func,x,y,d_yaw],....] or [[func,dist,d_yaw],....]
         func,x,y,d_yaw
-            func: 0 -> move point x,y, and rotate d_yaw
-                1 -> move point x,y only
-                2 -> rotate d_yaw only
-                10 -> navi move x,y,d_yaw
-                11 -> move_abs_auto_select x,y,d_yaw // add by nishi 2024.4.7
+            func: 0 -> move_abs(x, y,d_yaw) : roate_abs(d_yaw) and go_abs(x, y)
+                1 -> go_abs(x, y)
+                2 -> rotate_abs(d_yaw)
+                3 -> roate_off(d_yaw)
+                10 -> navi_move(x, y, d_yaw)
+                11 -> move_abs_auto_select(x,y,d_yaw) // add by nishi 2024.4.7
 
         func,dist,d_yaw
             func: 0 -> move dist and rotate d_yaw
@@ -232,7 +235,7 @@ public:
     */
     void mloop();
 
-    void mloop_sub();
+    int mloop_sub();
 
     #ifdef KKKKK_1
     void get_odom(){
