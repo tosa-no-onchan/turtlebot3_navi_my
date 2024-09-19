@@ -278,7 +278,7 @@ go_abs(x,y,isBack=false,speed=0.05)
 */
 int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float speed){
 
-    std::cout << "C go_abs() isBack:" << isBack;
+    std::cout << "C go_abs() isBack:" << isBack << " obs_chk:" << obs_chk << " _dumper:"<<_dumper;
 
     float i_spped;
     int rc=0;
@@ -338,6 +338,7 @@ int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float 
 
     black_cnt_=0;
     std::thread th;
+    th_check_cource_obstacle_f=false;
     if((obs_chk==true || _dumper==true) && start_distance >= 0.9){
         th=std::thread(&RobotDriveCmd_Vel::th_check_cource_obstacle, this, x ,y);
     }
@@ -472,9 +473,11 @@ int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float 
 
     //if((obs_chk==true || _dumper==true) && start_distance >= 1.0){
     if(th_check_cource_obstacle_f==true){
+        std::cout << " call th.join()" << std::endl;
         th_check_cource_obstacle_f=false;
         th.join();
     }
+    std::cout << " rc:" << rc << std::endl;
     return rc;
 }
 
