@@ -38,6 +38,12 @@ def generate_launch_description():
         DeclareLaunchArgument('threshold',default_value='250.0', description='White threshold'),
         DeclareLaunchArgument('plann_test',default_value='false', description='Plann create test'),
         DeclareLaunchArgument('all_nav2',default_value='false', description='All Navigation2 cotroll'),
+        DeclareLaunchArgument('robo_radius',default_value='0.3', description='robot radius [M]'),
+        DeclareLaunchArgument('cource_harf_width',default_value='4', description='robot runs lines width [dot]'),
+        DeclareLaunchArgument('safe_margin',default_value='4', description='safe_margin [dot]'),
+        DeclareLaunchArgument('r_lng',default_value='0.6', description='obstacle aroud robot check radius [M]'),
+        DeclareLaunchArgument('move_l',default_value='0.12', description='robot escape distance[M]'),
+        DeclareLaunchArgument('robo_radian_marker',default_value='0.2', description='robot obstacle maker[dot]'),
 
         Node(
             package='turtlebot3_navi_my',executable='go_auto_mower',output="screen",
@@ -50,6 +56,12 @@ def generate_launch_description():
                          "threshold": LaunchConfiguration('threshold'),
                          "plann_test": LaunchConfiguration('plann_test'),
                          "all_nav2": LaunchConfiguration('all_nav2'),
+                         "robo_radius": LaunchConfiguration('robo_radius'),
+                         "cource_harf_width": LaunchConfiguration('cource_harf_width'),
+                         "safe_margin": LaunchConfiguration('safe_margin'),
+                         "r_lng": LaunchConfiguration('r_lng'),
+                         "move_l": LaunchConfiguration('move_l'),
+                         "robo_radian_marker": LaunchConfiguration('robo_radian_marker'),
                         }
             ]
         )

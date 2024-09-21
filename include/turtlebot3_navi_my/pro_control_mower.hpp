@@ -30,6 +30,10 @@ private:
 public:
     MapM mapm_;
 
+    // ロボットの自由領域を識別して、走行ラインの経路計画を作成します。
+    //   output -> robo_slice_bolb_clst_
+    //ContoBuilderMower contbuilder;
+
     void init(cv::Mat &mat_map,MapM mapm,double threshold=250){
         threshold_val_=threshold;
         plot_init_=false;
@@ -85,7 +89,18 @@ private:
     bool plann_test_;   // add by nishi 2024.4.24
     bool all_nav2_;     // add by nishi 2024.4.24
 
+    float robo_radius_=0.3;     // robot radius 0.3[M]
+    //int robo_radius_=4;      // robot raius [dot]   0.20[M] / 0.05[map resolution]
+    int cource_harf_width_=4;      // robot raius [dot]   0.20[M] / 0.05[map resolution]
+    //int safe_margin_=2;      // safty margin [dot] 2*0.05=0.1[M]
+    int safe_margin_=4;      // safty margin [dot] 4*0.05=0.2[M] changed by nishi 2024.4.7
+
+
 public:
+    // ロボットの自由領域を識別して、走行ラインの経路計画を作成します。
+    //   output -> robo_slice_bolb_clst_
+    ContoBuilderMower contbuilder_;
+
     ProControlMower(){}
     void init(std::shared_ptr<rclcpp::Node> node);  // add by nishi 2024.4.24
     void auto_mower(int m_type=1);

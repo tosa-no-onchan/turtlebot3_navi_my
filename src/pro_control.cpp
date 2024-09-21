@@ -166,7 +166,7 @@ void ProControl::check_obstacle_backaround(float r_lng,int black_thresh){
 
 /*
 * obstacle_escape(float r_lng,int black_thresh,float move_l)
-*  float r_lng: ロボットの周囲の半径[M]
+*  float r_lng: ロボットの周囲の半径[M] = 0.6
 *  int black_thresh: black count の閾値
 *  float move_l: 移動距離[M] =0.12
 *  ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。
@@ -345,7 +345,7 @@ move_abs_auto_select()
     走行コースの、障害物を判定して、cmd_vel と nav2 を選択して、 move_abs() を実行する。
     x,y: 絶対番地への移動(基準座標)
     r_yaw: 基準座標での角度。 [radian]
-    robo_radian: ロボットの半径 [M]
+    robo_radian: ロボットの半径 [M] =0.2
 */
 bool ProControl::move_abs_auto_select(float x,float y,float r_yaw,float robo_radian){
     std::cout << "ProControl::move_abs_auto_select() called"<< std::endl;
@@ -432,7 +432,7 @@ move_abs_auto_select_check()
     走行コースの、障害物を判定して、cmd_vel と nav2 のどちらを選択するか判定する。
     x,y: 絶対番地への移動(基準座標)
     r_yaw: 基準座標での角度。 [radian]
-    robo_radian: ロボットの半径 [M]
+    robo_radian: ロボットの半径 [M] = 0.2
     rc:
         0 : cmd_vel
         1 : navi
@@ -762,6 +762,7 @@ void ProControl::mloop(){
 
             case 73:    // set robo_r_
                 std::cout << "set robo_r_" << std::endl;
+                // For Auto Map
                 //blobFinder_.robo_r_=(int)_goalList[goalId].x;
                 //anchorFinder_.robo_r_=(int)_goalList[goalId].x;
                 set_robo_r(_goalList[goalId].x);

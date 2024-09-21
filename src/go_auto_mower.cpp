@@ -22,7 +22,7 @@ GoalList turtlebot3_auto_mower[] ={
             {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
             //{67, 0.0, 0.0, 0.0},      // set dumper ON
-            // 障害物からの距離の調整
+            // 障害物からの距離の調整 AutoMap の時有効だが!!
             {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
             {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},      // rotate 90
@@ -41,7 +41,7 @@ GoalList turtlebot3_auto_mower2[] ={
             {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
             //{67, 0.0, 0.0, 0.0},      // set dumper ON
-            // 障害物からの距離の調整
+            // 障害物からの距離の調整  AutoMap の時有効だが!!
             {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
             {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},      // rotate 90

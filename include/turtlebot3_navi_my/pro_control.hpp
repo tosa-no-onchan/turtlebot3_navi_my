@@ -122,6 +122,10 @@ private:
 
 public:
 
+    float r_lng_=0.6;       // add by nishi 2024.9.21
+    float move_l_=0.12;     // add by nishi 2024.9.21
+    float robo_radian_marker_=0.2;   // add by nishi 2024.9.21
+
     //! The node handle we'll be using
     //ros::NodeHandle nh_;
     std::shared_ptr<rclcpp::Node> node_;
@@ -186,6 +190,8 @@ public:
     virtual void set_border_top_right(float x, float y){};
     virtual void set_border_bottom_left(float x, float y){};
     virtual void set_line_w(float x){};
+    // set robo_r_
+    //  x: robot radius. waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4 [pixcel,dot]
     virtual void set_robo_r(float x){};
 
     // Auto mower 向けのメンバー
