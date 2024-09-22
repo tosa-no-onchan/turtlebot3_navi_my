@@ -123,7 +123,9 @@ void ProControlMower::auto_mower(int m_type){
     #define USE_OBSTACLE_ESCAPE
 
     std::cout << " start running" << std::endl;
+    //----
     // contbuilder_.cource_plan_vec_ に、走行プランが作成されるので、これに沿ってロボットを走行させます。
+    //----
     std::vector<Cource_Plan>::iterator cource_plan;
     for(cource_plan=contbuilder_.cource_plan_vec_.begin();cource_plan != contbuilder_.cource_plan_vec_.end(); cource_plan++){
         int blob_n = cource_plan->blob_n;
@@ -136,6 +138,13 @@ void ProControlMower::auto_mower(int m_type){
         //}
         std::vector<Robo_Slice_Compat>::iterator robo_slice_compat;
         int cur_idx=0;
+        //----
+        // robo_slice_clast の 同一ブロブを、走行させます。
+        // 今は、開始位置は、先頭ブロブの、f から、始めています。
+        // これを、ロボットの現在地から近い方から、走行させます。  by nishi 2024.9.22
+        //----
+        bool change_blob_f=true;
+        int start_f_or_l = 0;   // 0: f start / 1: l start
         for(robo_slice_compat=robo_slice_clast.robo_slice_vec.begin();robo_slice_compat!=robo_slice_clast.robo_slice_vec.end();robo_slice_compat++){
             cv::Point f = robo_slice_compat->f;
             cv::Point l = robo_slice_compat->l;
@@ -144,6 +153,7 @@ void ProControlMower::auto_mower(int m_type){
             contbuilder_.cource_plot(f,l);
 
             float f_x,f_y,l_x,l_y;
+            float s_x,s_y,e_x,e_y;  // start and end real position add by nishi 2024.9.22
             float yf,xf,r_yaw;
 
             // Mat map 座標 -> real world 座標に変換。
@@ -163,203 +173,175 @@ void ProControlMower::auto_mower(int m_type){
             l_x = round_my<float>(l_x,2);
             l_y = round_my<float>(l_y,2);
 
+            #if defined(USE_TEST_PLOT_LOCAL_MAP2)
+                // 現在位置の cost map plot
+                drive_->get_tf(2);
+                cur_origin = drive_->base_tf.getOrigin();
+                cur_x = cur_origin.getX();
+                cur_y = cur_origin.getY();
+                get_costmap.test_plot(cur_x,cur_y,drive_->_rz, robo_radius_ ,"-local");
+            #endif
+
+            // ブロブが、替わった時に、 先頭の Robo_Slice_Compat で、近い方(f or l)を、開始位置とする。 add by nishi 2024.9.22
+            if(change_blob_f==true){
+                // 現在位置
+                drive_->get_tf(2);
+                cur_origin = drive_->base_tf.getOrigin();
+                cur_x = cur_origin.getX();
+                cur_y = cur_origin.getY();
+
+                float off_x = f_x - cur_x;
+                float off_y = f_y - cur_y;
+                double distance_f = std::sqrt(off_x*off_x+off_y*off_y);
+
+                off_x = l_x - cur_x;
+                off_y = l_y - cur_y;
+                double distance_l = std::sqrt(off_x*off_x+off_y*off_y);
+
+                start_f_or_l = 0;
+                if(distance_l < distance_f)
+                    start_f_or_l = 1;
+                change_blob_f=false;
+            }
+
+            // 開始位置を決める。 add by nishi 2024.9.22
             // 偶数番です。 ロボットを f へ、呼び寄せる。
             if(cur_idx%2 == 0 || m_type==2){
-
-                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
-                    // 現在位置の cost map plot
-                    drive_->get_tf(2);
-                    cur_origin = drive_->base_tf.getOrigin();
-                    cur_x = cur_origin.getX();
-                    cur_y = cur_origin.getY();
-                    get_costmap.test_plot(cur_x,cur_y,drive_->_rz, robo_radius_ ,"-local");
-                #endif
-
-                // 外側を向かせる
-                // l -> f の向きを求める
-                yf = f_y - l_y;
-                xf = f_x - l_x;
-                // atan2(float y, float x);
-                r_yaw = std::atan2(yf,xf);
-
-                #if defined(USE_TEST_PLOT2)
-                    // 目的位置の static map plot
-                    get_map.test_plot(f_x,f_y,r_yaw, robo_radius_);
-                #endif
-
-                rc=true;
-                if(all_nav2_ == false){
-                    // drive_navi ?
-                    if(move_abs_auto_select_check(f_x,f_y,r_yaw, robo_radian_marker_)==1){
-                        #if defined(USE_OBSTACLE_ESCAPE)
-                            // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                            // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                            obstacle_escape(r_lng_,0,move_l_);
-                        #endif
-                    }
-                    rc=move_abs_auto_select(f_x,f_y,r_yaw,robo_radian_marker_);
-                    if(rc==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
+                if(start_f_or_l==0){
+                    // f -> l を走行
+                    s_x=f_x;
+                    s_y=f_y;
+                    e_x=l_x;
+                    e_y=l_y;
                 }
                 else{
-                    #if defined(USE_OBSTACLE_ESCAPE)
-                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                        obstacle_escape(r_lng_,0,move_l_);
-                    #endif
-                    rc=drive_->navi_move(f_x,f_y,r_yaw);
-                    if(rc==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
-                }
-                if(rc==false){
-                    #if defined(USE_OBSTACLE_ESCAPE)
-                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                        obstacle_escape(r_lng_,0,move_l_);
-                    #endif
-                }
-
-                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
-                    // 現在位置の cost map plot
-                    drive_->get_tf(2);
-                    cur_origin = drive_->base_tf.getOrigin();
-                    cur_x = cur_origin.getX();
-                    cur_y = cur_origin.getY();
-                    get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
-                #endif
-
-                // 外側を向かせる
-                // f -> l の向きを求める
-                yf = l_y - f_y;
-                xf = l_x - f_x;
-                // atan2(float y, float x);
-                r_yaw = std::atan2(yf,xf);
-                // f -> l へ向かう
-
-                #if defined(USE_TEST_PLOT2)
-                    // 目的位置の static map plot
-                    get_map.test_plot(l_x,l_y,r_yaw);
-                #endif
-
-                if(all_nav2_ == false){
-                    if(move_abs_auto_select_check(l_x,l_y,r_yaw,robo_radian_marker_)==1){
-                        #if defined(USE_OBSTACLE_ESCAPE)
-                            // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                            // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                            obstacle_escape(r_lng_,0,move_l_);
-                        #endif
-                    }
-                    if(move_abs_auto_select(l_x,l_y,r_yaw,robo_radian_marker_)==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
-                }
-                else{
-                    #if defined(USE_OBSTACLE_ESCAPE)
-                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                        obstacle_escape(r_lng_,0,move_l_);
-                    #endif
-                    if(drive_->navi_move(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
+                    // f <- l を走行
+                    s_x=l_x;
+                    s_y=l_y;
+                    e_x=f_x;
+                    e_y=f_y;
                 }
             }
             // ロボットを l へ、呼び寄せる
             else{
-
-                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
-                    // 現在位置の cost map plot
-                    drive_->get_tf(2);
-                    cur_origin = drive_->base_tf.getOrigin();
-                    cur_x = cur_origin.getX();
-                    cur_y = cur_origin.getY();
-                    get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
-                #endif
-
-                // 外側を向かせる
-                // f -> l の向きを求める
-                yf = l_y - f_y;
-                xf = l_x - f_x;
-                // atan2(float y, float x);
-                r_yaw = std::atan2(yf,xf);
-
-                #if defined(USE_TEST_PLOT2)
-                    // 目的位置の static map plot
-                    get_map.test_plot(l_x,l_y,r_yaw);
-                #endif
-
-                rc=true;
-                if(all_nav2_ == false){
-                    if(move_abs_auto_select_check(l_x,l_y,r_yaw,robo_radian_marker_)==1){
-                        #if defined(USE_OBSTACLE_ESCAPE)
-                            // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                            // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                            obstacle_escape(r_lng_,0,move_l_);
-                        #endif
-                    }
-                    rc=move_abs_auto_select(l_x,l_y,r_yaw,robo_radian_marker_);
-                    if(rc==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
+                if(start_f_or_l==0){
+                    // f <- l を走行
+                    s_x=l_x;
+                    s_y=l_y;
+                    e_x=f_x;
+                    e_y=f_y;
                 }
                 else{
-                    #if defined(USE_OBSTACLE_ESCAPE)
-                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                        obstacle_escape(r_lng_,0,move_l_);
-                    #endif
-                    rc=drive_->navi_move(l_x,l_y,r_yaw);
-                    if(rc==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #3 drive_->navi_move() error end"<< std::endl;
+                    // f -> l を走行
+                    s_x=f_x;
+                    s_y=f_y;
+                    e_x=l_x;
+                    e_y=l_y;
                 }
-                if(rc==false){
-                    #if defined(USE_OBSTACLE_ESCAPE)
-                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                        obstacle_escape(r_lng_,0,move_l_);
-                    #endif
-                }
+            }
 
-                #if defined(USE_TEST_PLOT_LOCAL_MAP2)
-                    // 現在位置の cost map plot
-                    drive_->get_tf(2);
-                    cur_origin = drive_->base_tf.getOrigin();
-                    cur_x = cur_origin.getX();
-                    cur_y = cur_origin.getY();
-                    get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+            // 呼び寄せ走行!!
+
+            // 外側を向かせる
+            // l -> f の向きを求める
+            //yf = f_y - l_y;
+            yf = s_y - e_y;
+            //xf = f_x - l_x;
+            xf = s_x - e_x;
+            // atan2(float y, float x);
+            r_yaw = std::atan2(yf,xf);
+
+            #if defined(USE_TEST_PLOT2)
+                // 目的位置の static map plot
+                //get_map.test_plot(f_x,f_y,r_yaw, robo_radius_);
+                get_map.test_plot(s_x,s_y,r_yaw, robo_radius_);
+            #endif
+
+            rc=true;
+            if(all_nav2_ == false){
+                // drive_navi ?
+                //if(move_abs_auto_select_check(f_x,f_y,r_yaw, robo_radian_marker_)==1){
+                if(move_abs_auto_select_check(s_x,s_y,r_yaw, robo_radian_marker_)==1){
+                    #if defined(USE_OBSTACLE_ESCAPE)
+                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                        obstacle_escape(r_lng_,0,move_l_);
+                    #endif
+                }
+                //rc=move_abs_auto_select(f_x,f_y,r_yaw,robo_radian_marker_);
+                rc=move_abs_auto_select(s_x,s_y,r_yaw,robo_radian_marker_);
+                if(rc==false)    // changed by nishi 2024.2.28
+                    std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
+            }
+            else{
+                #if defined(USE_OBSTACLE_ESCAPE)
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape(r_lng_,0,move_l_);
                 #endif
-
-                // 外側を向かせる
-                // l -> f の向きを求める
-                yf = f_y - l_y;
-                xf = f_x - l_x;
-                // atan2(float y, float x);
-                r_yaw = std::atan2(yf,xf);
-                // l -> f  へ向かう
-
-                #if defined(USE_TEST_PLOT2)
-                    // 目的位置の static map plot
-                    get_map.test_plot(f_x,f_y,r_yaw);
+                //rc=drive_->navi_move(f_x,f_y,r_yaw);
+                rc=drive_->navi_move(s_x,s_y,r_yaw);
+                if(rc==false)    // changed by nishi 2024.2.28
+                    std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
+            }
+            if(rc==false){
+                #if defined(USE_OBSTACLE_ESCAPE)
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape(r_lng_,0,move_l_);
                 #endif
+            }
+            // 呼び寄せ OK!!
 
+            #if defined(USE_TEST_PLOT_LOCAL_MAP2)
+                // 現在位置の cost map plot
+                drive_->get_tf(2);
+                cur_origin = drive_->base_tf.getOrigin();
+                cur_x = cur_origin.getX();
+                cur_y = cur_origin.getY();
+                get_costmap.test_plot(cur_x,cur_y,drive_->_rz, 0.3 ,"-local");
+            #endif
 
-                if(all_nav2_ == false){
-                    if(move_abs_auto_select_check(f_x,f_y,r_yaw,robo_radian_marker_)==1){
-                        #if defined(USE_OBSTACLE_ESCAPE)
-                            // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                            // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                            obstacle_escape(r_lng_,0,move_l_);
-                        #endif
-                    }
-                    if(move_abs_auto_select(f_x,f_y,r_yaw,robo_radian_marker_)==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
-                }
-                else{
+            // 外側を向かせる
+            // f -> l の向きを求める
+            //yf = l_y - f_y;
+            yf = e_y - s_y;
+            //xf = l_x - f_x;
+            xf = e_x - s_x;
+            // atan2(float y, float x);
+            r_yaw = std::atan2(yf,xf);
+            // f -> l へ向かう
+
+            #if defined(USE_TEST_PLOT2)
+                // 目的位置の static map plot
+                //get_map.test_plot(l_x,l_y,r_yaw);
+                get_map.test_plot(e_x,e_y,r_yaw);
+            #endif
+
+            // 草刈り走行!!
+
+            if(all_nav2_ == false){
+                //if(move_abs_auto_select_check(l_x,l_y,r_yaw,robo_radian_marker_)==1){
+                if(move_abs_auto_select_check(e_x,e_y,r_yaw,robo_radian_marker_)==1){
                     #if defined(USE_OBSTACLE_ESCAPE)
                         // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
                         // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
                         obstacle_escape(r_lng_,0,move_l_);
                     #endif
-                    if(drive_->navi_move(f_x,f_y,r_yaw)==false)    // changed by nishi 2024.2.28
-                        std::cout << ">> #4 drive_->navi_move() error end"<< std::endl;
                 }
+                //if(move_abs_auto_select(l_x,l_y,r_yaw,robo_radian_marker_)==false)    // changed by nishi 2024.2.28
+                if(move_abs_auto_select(e_x,e_y,r_yaw,robo_radian_marker_)==false)    // changed by nishi 2024.2.28
+                    std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
+            }
+            else{
+                #if defined(USE_OBSTACLE_ESCAPE)
+                    // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                    // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                    obstacle_escape(r_lng_,0,move_l_);
+                #endif
+                //if(drive_->navi_move(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                if(drive_->navi_move(e_x,e_y,r_yaw)==false)    // changed by nishi 2024.2.28
+                    std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
             }
             cur_idx++;
         }
