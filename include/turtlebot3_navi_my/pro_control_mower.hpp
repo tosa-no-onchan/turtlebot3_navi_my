@@ -91,10 +91,12 @@ private:
 
     float robo_radius_=0.3;     // robot radius 0.3[M]
     //int robo_radius_=4;      // robot raius [dot]   0.20[M] / 0.05[map resolution]
-    int cource_harf_width_=4;      // robot raius [dot]   0.20[M] / 0.05[map resolution]
+    int robo_radius_dot_=4;      // robot raius [dot]
+    int cource_width_=8;      // cource line width[dot]  8*0.05 = 0.4[M]
     //int safe_margin_=2;      // safty margin [dot] 2*0.05=0.1[M]
-    int safe_margin_=4;      // safty margin [dot] 4*0.05=0.2[M] changed by nishi 2024.4.7
-
+    int safe_margin_=5;      // safty margin [dot] 8*0.05=0.4[M] changed by nishi 2024.4.7
+    int safe_margin_dt_=5;
+    int min_path_width_n_=2;
 
 public:
     // ロボットの自由領域を識別して、走行ラインの経路計画を作成します。

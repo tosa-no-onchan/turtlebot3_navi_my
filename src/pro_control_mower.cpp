@@ -33,9 +33,12 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->declare_parameter<double>("threshold",250.0);
     node_->declare_parameter<bool>("plann_test",false);
     node_->declare_parameter<bool>("all_nav2",true);
-    node_->declare_parameter<float>("robo_radius",0.3);    // add by nishi 2024.9.20
-    node_->declare_parameter<int>("cource_harf_width",4);    // add by nishi 2024.9.20
-    node_->declare_parameter<int>("safe_margin",4);    // add by nishi 2024.9.20
+    node_->declare_parameter<float>("robo_radius",0.3);    // [M] 0.3/0.05= 5.9999[dot]
+    node_->declare_parameter<int>("cource_width",8);    // add by nishi 2024.9.20
+    node_->declare_parameter<int>("safe_margin",5);    // add by nishi 2024.9.20
+    node_->declare_parameter<int>("safe_margin_dt",5);    // add by nishi 2024.9.20
+    node_->declare_parameter<int>("min_path_width_n",2);    // add by nishi 2024.9.20
+
     node_->declare_parameter<float>("r_lng",0.6);    // add by nishi 2024.9.21
     node_->declare_parameter<float>("move_l",0.12);    // add by nishi 2024.9.21
     node_->declare_parameter<float>("robo_radian_marker",0.2);    // add by nishi 2024.9.21
@@ -44,15 +47,23 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->get_parameter<bool>("plann_test",plann_test_);
     node_->get_parameter<bool>("all_nav2",all_nav2_);
     node_->get_parameter<float>("robo_radius",robo_radius_);  // add by nishi 2024.9.20
-    node_->get_parameter<int>("cource_harf_width",cource_harf_width_);  // add by nishi 2024.9.20
+    node_->get_parameter<int>("cource_width",cource_width_);  // add by nishi 2024.9.20
     node_->get_parameter<int>("safe_margin",safe_margin_);  // add by nishi 2024.9.20
+    node_->get_parameter<int>("safe_margin_dt",safe_margin_dt_);  // add by nishi 2024.9.20
+    node_->get_parameter<int>("min_path_width_n",min_path_width_n_);  // add by nishi 2024.9.20
+
     node_->get_parameter<float>("r_lng",r_lng_);  // add by nishi 2024.9.21
     node_->get_parameter<float>("move_l",move_l_);  // add by nishi 2024.9.21
     node_->get_parameter<float>("robo_radian_marker",robo_radian_marker_);  // add by nishi 2024.9.21
 
-    contbuilder_.robo_radius=cource_harf_width_;  // 走行線の間隔[dot] を指定。 by nishi 2024.9.20
-    contbuilder_.safe_margin=safe_margin_;  // safty margin [dot] を指定。 by nishi 2024.9.20
+    robo_radius_dot_=int(round(robo_radius_/0.05*10)/10);
+    std::cout << " robo_radius_dot_:"<< robo_radius_dot_ << std::endl;
 
+    contbuilder_.robo_radius=robo_radius_dot_;  // 走行線の間隔[dot] を指定。 by nishi 2024.9.20
+    contbuilder_.cource_width=cource_width_;
+    contbuilder_.safe_margin=safe_margin_;  // safty margin [dot] を指定。 by nishi 2024.9.20
+    contbuilder_.safe_margin_dt=safe_margin_dt_;
+    contbuilder_.min_path_width_n=min_path_width_n_;
 }
 /*
 auto_mower(int m_type=1)

@@ -7,6 +7,8 @@
 * http://cvwww.ee.ous.ac.jp/opencv_practice4/  -> OpenCV 画像処理演習 ― 図形描画編
 * https://cvtech.cc/centroid/ -> 重心の求め方
 *
+* update 2024.9.23
+*   ラインの幅、マージンサイド、マージン前後のパラメータを追加
 * conto_builder.hpp
 */
 
@@ -102,10 +104,13 @@ public:
     int rows_;
     int cols_;
 
-    int robo_radius=4;      // robot raius [dot]   0.20[M] / 0.05[map resolution]
+    int cource_width=8;     // cource line width[dot]  8*0.05 = 0.4[M] add by nishi 2024.9.23
+    int robo_radius=4;      // robot raius [dot]   4*0.05[map resolution] = 0.2[M]
     //int safe_margin=2;      // safty margin [dot] 2*0.05=0.1[M]
-    int safe_margin=4;      // safty margin [dot] 4*0.05=0.2[M] changed by nishi 2024.4.7
+    int safe_margin=5;      // ロボットの side safty margin [dot] 8*0.05=0.4[M] changed by nishi 2024.4.7
     //int safe_margin=3;      // safty margin [dot] 3*0.05=0.15[M] changed by nishi 2024.4.7
+    int safe_margin_dt=5;      // ロボットの 前後(direction of travel) safty margin [dot] 8*0.05=0.4[M] changed by nishi 2024.4.23
+    int min_path_width_n=2;     // 狭小エリア minumum factor  最小幅 = safe_margin_dt*2+robot raius*min_path_width_n
     bool center_classfi=false;  // 分類基準 true:センター位置を基準にした分類  false:スタート位置を基準にした分類
 
     int start_x_,start_y_;
@@ -245,11 +250,13 @@ public:
         // 1. スライスの中点 をブロブ化する。
         cv::Mat tmp_slice_center=cv::Mat::zeros(map_gray_.size(), CV_8UC1);
 
-        // 1.1 スライス中点に半径 robo_radius*2+2 の円を描く
+        // 1.1 スライス中点に半径 robo_radius*2+2 の円を描く  -> cource_width_+2 の円(切り上げ)  changed by nishi 2024.9.23
         for( size_t i = 0; i< robo_slice_.size(); i++ ) {
             // # RotatedRect(中心座標, サイズ(x, y), 回転角度degree)
             //cv::RotatedRect rect1(cv::Point2f( 80, 80), cv::Size(60, 60), 0);
-    		cv::RotatedRect rect1(cv::Point2f( robo_slice_[i].c.x, robo_slice_[i].c.y), cv::Size(robo_radius*2+2, robo_radius*2+2), 0);
+    		//cv::RotatedRect rect1(cv::Point2f( robo_slice_[i].c.x, robo_slice_[i].c.y), cv::Size(robo_radius*2+2, robo_radius*2+2), 0);
+            // changed by nishi 2024.9.23
+    		cv::RotatedRect rect1(cv::Point2f( robo_slice_[i].c.x, robo_slice_[i].c.y), cv::Size(cource_width+2, cource_width+2), 0);
             // 楕円を描く
             // # ellipse(画像, RotatedRect, 色, 線幅, 連結)
             cv::ellipse(tmp_slice_center, rect1, cv::Scalar(255), -1, cv::LINE_AA);
@@ -492,9 +499,12 @@ public:
         tmp_line_mask=cv::Mat::zeros(tmp_gray.size(), CV_8UC1);
 
         // 2. ラインを引く領域のみ対象として、走行ラインを引きます。
-        //  top_left.y + robo_radius から bottom_right.y - robo_radius の間に robo_radius*2 毎にラインを引きます。
+        //  #top_left.y + robo_radius から bottom_right.y - robo_radius の間に robo_radius*2 毎にラインを引きます。
+        // changed by nishi 2024.9.23
+        //  top_left.y + safe_margin から bottom_right.y - safe_margin の間に cource_width 毎にラインを引きます。
         // 2.1 ラインのマスクを作成
-        for(int i = tl.y+robo_radius;i <= br.y-robo_radius; i += robo_radius*2){
+        //for(int i = tl.y+robo_radius;i <= br.y-robo_radius; i += robo_radius*2){
+        for(int i = tl.y+safe_margin;i <= br.y-safe_margin; i += cource_width){
 			// 線を引く
 			// # line(画像, 始点座標, 終点座標, 色, 線幅, 連結)
 			//cv::line(image, p1, p2, cv::Scalar(255, 0, 0), lineWidth, lineType);
@@ -534,15 +544,19 @@ public:
             cv::Point front = tmp_vv[i].front();
             cv::Point back = tmp_vv[i].back();
             // ロボット幅より短い ラインです
-            if((back.x - front.x) < robo_radius*2+safe_margin*2){
+            //if((back.x - front.x) < robo_radius*2+safe_margin*2){
+            // changed by nishi 2024.9.23
+            if((back.x - front.x) < robo_radius*min_path_width_n + safe_margin_dt*2){
                 std::cout <<" vv["<< i <<"].length=" << back.x - front.x << std::endl;
             }
             else{
                 // 対象となる スライスライン のみを、robo_slice_ へ残す。
                 robo_slice.f=tmp_vv[i].front();
-                robo_slice.f.x+=safe_margin;    // マージン分ずらす
+                //robo_slice.f.x+=safe_margin;    // マージン分ずらす
+                robo_slice.f.x+=safe_margin_dt;    // マージン分ずらす chnaged by nishi 2024.9.23
                 robo_slice.l=tmp_vv[i].back();
-                robo_slice.l.x -=safe_margin;    // マージン分ずらす
+                //robo_slice.l.x -=safe_margin;    // マージン分ずらす
+                robo_slice.l.x -=safe_margin_dt;    // マージン分ずらす chnaged by nishi 2024.9.23
                 robo_slice.c.y=tmp_vv[i].front().y;
                 int x_center;
                 if(center_classfi==true)
