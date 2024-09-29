@@ -45,8 +45,14 @@ def generate_launch_description():
         DeclareLaunchArgument('min_path_width_n',default_value='2', description='minimum path width factor N[times]'),
         # 狭小エリア minumum factor  最小幅 = safe_margin_dt*2+robot raius*min_path_width_n
         DeclareLaunchArgument('r_lng',default_value='0.6', description='obstacle aroud robot check radius [M]'),
-        DeclareLaunchArgument('move_l',default_value='0.12', description='robot escape distance[M]'),
-        DeclareLaunchArgument('robo_radian_marker',default_value='0.2', description='robot obstacle maker[dot]'),
+        DeclareLaunchArgument('move_l',default_value='0.12', description='robot escape distance [M]'),
+
+        DeclareLaunchArgument('robo_radian_marker',default_value='0.2', description='robot obstacle check maker [M]'),
+        DeclareLaunchArgument('obstacle_eye_start',default_value='0.05', description='obstacle check eye start distance [M]'),
+        DeclareLaunchArgument('obstacle_eye_stop',default_value='0.05', description='obstacle check eye stop distance [M]'),
+        DeclareLaunchArgument('obstacle_eye_range',default_value='0.4', description='obstacle check eye range distance [M]'),
+
+        DeclareLaunchArgument('map_orient_fix',default_value='true', description='local costmap global_frame:map or base_footpront'),
 
         Node(
             package='turtlebot3_navi_my',executable='go_auto_mower',output="screen",
@@ -67,6 +73,12 @@ def generate_launch_description():
                          "r_lng": LaunchConfiguration('r_lng'),
                          "move_l": LaunchConfiguration('move_l'),
                          "robo_radian_marker": LaunchConfiguration('robo_radian_marker'),
+
+                         "obstacle_eye_start": LaunchConfiguration('obstacle_eye_start'),
+                         "obstacle_eye_stop": LaunchConfiguration('obstacle_eye_stop'),
+                         "obstacle_eye_range": LaunchConfiguration('obstacle_eye_range'),
+
+                         "map_orient_fix": LaunchConfiguration('map_orient_fix'),
                         }
             ]
         )

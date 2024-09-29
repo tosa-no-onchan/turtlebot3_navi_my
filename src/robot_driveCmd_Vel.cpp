@@ -65,64 +65,101 @@ void RobotDriveCmd_Vel::init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,boo
     }
 }
 
-void RobotDriveCmd_Vel::th_check_cource_obstacle(float x, float y){
-    std::cout << "C th_check_cource_obstacle() "<< std::endl;
+void RobotDriveCmd_Vel::th_cource_obstacle_eye(float x, float y){
+    std::cout << "C th_cource_obstacle_eye() "<< std::endl;
     black_cnt_=0;
-    th_check_cource_obstacle_f=true;
+    th_cource_obstacle_eye_f=true;
 
     rclcpp::WallRate rate(1.0);
 
     int rc;
+    bool rc_b;
     float x1=x;
     float y1=y;
 
-    while(th_check_cource_obstacle_f==true){
+    tf2::Vector3 cur_origin;
+    float obstacle_eye_range_x;
+
+    while(th_cource_obstacle_eye_f==true){
         rate.sleep();
-        std::cout << "C th_check_cource_obstacle(): wake up "<< std::endl;
+        if(th_cource_obstacle_eye_active_f==true){
+            std::cout << "C th_cource_obstacle_eye(): wake up "<< std::endl;
 
-        if(get_costmap_->get() != true)
-        {
-            std::cout << "  getcost_map error occured , then move_abs_auto_select() is not executable!!" << std::endl;
-            //return false;
-        }
-        else if(true==getTF_->get()){
-            //base_tf=getTF_.base_tf;
-            tf2::Vector3 cur_origin = getTF_->base_tf.getOrigin();
+            if(get_costmap_->get() != true){
+                std::cout << "  getcost_map error occured , then move_abs_auto_select() is not executable!!" << std::endl;
+                //return false;
+            }
+            else{
+                std::cout << " th_cource_obstacle_eye(): #1 passed!! "<< std::endl;
+                getTF_->mtx_.lock();    // add by nishi 2024.9.28
+                rc_b=getTF_->get();
+                if(rc_b==true){
+                    cur_origin = getTF_->base_tf.getOrigin();
+                }
+                getTF_->mtx_.unlock();    // add by nishi 2024.9.28
 
-            float cx = cur_origin.getX();
-            float cy = cur_origin.getY();
+                if(true==rc_b){
+                    std::cout << " th_cource_obstacle_eye(): #2 passed!! "<< std::endl;
 
-            //std::cout << " cx: " << cx << ", cy: " << cy << std::endl;
+                    float cx = cur_origin.getX();
+                    float cy = cur_origin.getY();
 
-            // 自分からの目的地のずれ
-            float off_x = x - cx;
-            float off_y = y - cy;
+                    //tf2::Quaternion q = getTF_->base_tf.getRotation();
+                    //tf2::Matrix3x3 m(q);
+                    //double roll, pitch, yaw;
+                    //double rx,ry,rz;
+                    //m.getRPY(rx, ry, rz);
 
-            // 距離
-            double dist = std::sqrt(off_x*off_x + off_y*off_y);
-            // 距離が、 0.5[M] になるまでチェックする。
-            if(dist >= 0.5){
+                    //std::cout << " cx: " << cx << ", cy: " << cy << std::endl;
 
-                // 目的地の方角
-                float theta_r = std::atan2(off_y,off_x);   //  [radian]
+                    // 自分からの目的地のずれ
+                    float off_x = x - cx;
+                    float off_y = y - cy;
 
-                //rc=check_cource_obstacle_comb(*get_map_, *get_costmap_, rx, ry,x, y, 0.3, 0);
-                //rc=check_cource_obstacle_comb_ptr(get_map_, get_costmap_, rx, ry,x, y, 0.3, 0);
+                    // 残り距離
+                    double dist = std::sqrt(off_x*off_x + off_y*off_y);
+                    // 残り距離が、 0.5[M] になるまでチェックする。
+                    // go_abs() の方で、チェックしているが、時間ズレで、すり抜けてしまうと、いけないので、ここでもチェックする。
 
-                // ロボットの前方 0.4 - 1.0[M] 以内のチェックをする。
-                x1 = 0.4 * std::cos(theta_r) + cx;
-                y1 = 0.4 * std::sin(theta_r) + cy;
-                //std::cout << " x1: " << x1 << ", y1: " << y1 << std::endl;
-                black_cnt_=get_costmap_->check_cource_obstacle(cx, cy, x1, y1, 0.3, 0);
-                std::cout << "  black_cnt:" << black_cnt_ << std::endl;
+                    std::cout << " th_cource_obstacle_eye(): #3 passed!! "<< std::endl;
 
+                    if(dist >= obstacle_eye_stop_){
+                        // dist < obstacle_eye_range_ になったら、 obstacle_eye_range を小さくする。
+                        obstacle_eye_range_x = obstacle_eye_range_;
+                        if(dist < obstacle_eye_range_)
+                            obstacle_eye_range_x = dist;
+                        // 最短 robo_radian_marker_+0.01 に制限する。
+                        if(obstacle_eye_range_x < 0.01)
+                            obstacle_eye_range_x = 0.01;
+
+                        // 従来の処理
+                        // static map or cost map with global_frame: map
+                        if(get_costmap_->map_orient_fix_==true){
+                            // 目的地の方角 on tf
+                            float theta_r = std::atan2(off_y,off_x);   //  [radian]
+
+                            //rc=cource_obstacle_eye_comb(*get_map_, *get_costmap_, rx, ry,x, y, 0.3, 0);
+                            //rc=cource_obstacle_eye_comb_ptr(get_map_, get_costmap_, rx, ry,x, y, 0.3, 0);
+
+                            // ロボットの前方 0.4 - 1.0[M] 以内のチェックをする。
+                            x1 = obstacle_eye_range_x * std::cos(theta_r) + cx;
+                            y1 = obstacle_eye_range_x * std::sin(theta_r) + cy;
+                            //std::cout << " x1: " << x1 << ", y1: " << y1 << std::endl;
+                        }
+
+                        std::cout << " th_cource_obstacle_eye(): #4 passed!! "<< std::endl;
+
+                        black_cnt_=get_costmap_->cource_obstacle_eye(cx, cy, x1, y1, robo_radian_marker_, 0, obstacle_eye_range_x);
+                        std::cout << "  black_cnt:" << black_cnt_ << std::endl;
+                    }
+                }
+                else{
+                    std::cout << "C th_cource_obstacle_eye(): getTF_->get() error "<< std::endl;
+                }
             }
         }
-        else{
-            std::cout << "C th_check_cource_obstacle(): getTF_->get() error "<< std::endl;
-        }
     }
-    std::cout << "C th_check_cource_obstacle(): #99 end "<< std::endl;
+    std::cout << "C th_cource_obstacle_eye(): #99 end "<< std::endl;
 
 }
 
@@ -252,6 +289,7 @@ void RobotDriveCmd_Vel::comp_dad(float x,float y,float &dist, float &r_yaw, floa
 */
 bool RobotDriveCmd_Vel::get_tf(int func){
     bool rc;
+    getTF_->mtx_.lock();    // add by nishi 2024.9.28
     //getTF_.get(func);
     rc=getTF_->get(func);  // changed by nishi 2024.2.27
 
@@ -268,6 +306,8 @@ bool RobotDriveCmd_Vel::get_tf(int func){
         if(log_level>=3)
             std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
     }
+    getTF_->mtx_.unlock();    // add by nishi 2024.9.28
+
     return rc;
 }
 
@@ -334,13 +374,16 @@ int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float 
     }
 
     // 監視 thread を起動 add by nishi 2024.9.4
-    //std::thread th(&RobotDriveCmd_Vel::th_check_cource_obstacle, this, x ,y);
+    //std::thread th(&RobotDriveCmd_Vel::th_cource_obstacle_eye, this, x ,y);
 
     black_cnt_=0;
     std::thread th;
-    th_check_cource_obstacle_f=false;
-    if((obs_chk==true || _dumper==true) && start_distance >= 0.9){
-        th=std::thread(&RobotDriveCmd_Vel::th_check_cource_obstacle, this, x ,y);
+    th_cource_obstacle_eye_f=false;
+    th_cource_obstacle_eye_active_f=false;
+    //if((obs_chk==true || _dumper==true) && start_distance >= 0.9){
+    // chnaged by nishi 2024.9.27
+    if((obs_chk==true || _dumper==true) && start_distance >= obstacle_eye_start_){
+        th=std::thread(&RobotDriveCmd_Vel::th_cource_obstacle_eye, this, x ,y);
     }
 
     //Loop to move the turtle in an specified distance
@@ -454,8 +497,19 @@ int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float 
             }
             i=0;
 
-            // add by nishi 2024.9.5
-            if(black_cnt_ > 4){
+            // get_costmap_->cource_obstacle_eye() を実行させるか判断します。
+            if((current_distance > obstacle_eye_start_) && th_cource_obstacle_eye_active_f == false)
+                th_cource_obstacle_eye_active_f=true;
+
+            if((current_distance < (start_distance - obstacle_eye_stop_)) && th_cource_obstacle_eye_active_f==true){
+                //th_cource_obstacle_eye_active_f=false;
+            }
+
+            // add by nishi 2024.9.27
+            // RobotDriveCmd_Vel::obstacle_eye_start_, obstacle_eye_stop_, obstacle_eye_range_ の適切化に
+            // この、if を無効 にすると、テスト時は、便利
+            if(th_cource_obstacle_eye_active_f==true && black_cnt_ > 4){
+            //if(th_cource_obstacle_eye_active_f==true  && black_cnt_ > 10000){
                 std::cout << " found obstracle!!" << std::endl;
                 rc=1;
                 break;
@@ -472,9 +526,9 @@ int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float 
     _pub->publish(_vel_msg);
 
     //if((obs_chk==true || _dumper==true) && start_distance >= 1.0){
-    if(th_check_cource_obstacle_f==true){
+    if(th_cource_obstacle_eye_f==true){
         std::cout << " call th.join()" << std::endl;
-        th_check_cource_obstacle_f=false;
+        th_cource_obstacle_eye_f=false;
         th.join();
     }
     std::cout << " rc:" << rc << std::endl;

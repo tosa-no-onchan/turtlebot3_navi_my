@@ -649,12 +649,13 @@ bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm)
 * class GetMap
 --------------------------*/
 //void GetMap::init(ros::NodeHandle &nh,std::string map_frame)
-void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_frame)
+void GetMap::init(std::shared_ptr<rclcpp::Node> node,int func,std::string map_frame,bool is_static_map)
 {
     //nh_ = nh;
     node_=node;
     map_frame_ = map_frame;
     func_=func;
+    is_static_map_=is_static_map;   // add by nishi 2024.9.26
 
     std::cout << "GetMap::init() func="<< func << std::endl;
    
@@ -712,6 +713,7 @@ void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
     //auto data = map_msg.data;
     //printf("%s",info);
     //printf("%s",data);
+    mtx_.lock();    // add by nishi 2024.9.28
     if(map_ptr_cnt_==0){
         map_ptr_=std::make_shared<nav_msgs::msg::OccupancyGrid>(map_msg);
         map_ptr_cnt_=1;
@@ -720,6 +722,7 @@ void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
         map_ptr_.reset();
         map_ptr_=std::make_shared<nav_msgs::msg::OccupancyGrid>(map_msg);
     }
+    mtx_.unlock();  // add by nishi 2024.9.28
 }
 
 
@@ -773,8 +776,10 @@ bool GetMap::get(bool save_f){
     }
     // map は、不定期に、publish されている。
     else if(map_ptr_cnt_!=0){
+        mtx_.lock();    // add by nishi 2024.9.28
         nav_msgs::msg::OccupancyGrid *map_dt=map_ptr_.get();
         map = *map_dt;
+        mtx_.unlock();    // add by nishi 2024.9.28
         is_successful = true;
     }
     
@@ -793,11 +798,11 @@ bool GetMap::get(bool save_f){
         std::cout << " org_x=" << org_x;
         std::cout << " org_y=" << org_y;
 
-        //x_size = map->info.width / _line_w;
-        //y_size = map->info.height / _line_w;
-
         std::cout << " free_thresh=" << free_thresh << std::endl;
 
+        //x_size = map->info.width / _line_w;
+        //y_size = map->info.height / _line_w;
+        
         //grid_.init(map->info,_line_w,map->data);
 
         //conv_fmt2(map);
@@ -1212,7 +1217,7 @@ int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int bla
     std::cout << "start GetMap::check_obstacle() func=" << func;
 
 
-    // real world 座標を、Mat map 座標に変換 
+    // real world 座標を、Mat map 座標に変換
     int px = (int)((x - mapm_.origin[0]) / mapm_.resolution);
     int py = (int)((y - mapm_.origin[1]) / mapm_.resolution);
 
@@ -1226,7 +1231,9 @@ int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int bla
 	// ellipse(画像, 中心座標, Size(x径, y径), 楕円の回転角度, 始点角度, 終点角度, 色, 線幅, 連結)
 
     //int rr=12;
-    int rr=(int)(r_lng/0.05);
+    //int rr=(int)(r_lng/0.05);
+    // changed by nishi 2024.9.24
+    int rr=(int)(r_lng/mapm_.resolution);
 
     // ロボットの今の向き[degree]
     int dz=(int)(rz*RADIANS_F);
@@ -1293,21 +1300,51 @@ int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int bla
 
 /*-------------------------
 * class GetMap
-* check_cource_obstacle()
-*  走行予定コース上の、Mapの障害物を、robo_radian*2 幅で、チェックする。
+* cource_obstacle_eye()
+*  走行予定コース上の、Mapの障害物を、robo_radian_marker*2 幅で、チェックする。
 */
-int GetMap::check_cource_obstacle(float s_x,float s_y,float d_x,float d_y,float robo_radian,int black_thresh){
+int GetMap::cource_obstacle_eye(float s_x,float s_y,float d_x,float d_y,float robo_radian_marker,int black_thresh,float check_range){
 
     cv::Mat result,result2,mask;
 
-    // real world 座標を、Mat map 座標に変換 
-    int s_px = (int)((s_x - mapm_.origin[0]) / mapm_.resolution);
-    int s_py = (int)((s_y - mapm_.origin[1]) / mapm_.resolution);
+    std::cout << "GetMap::cource_obstacle_eye()" << std::endl;
 
-    int d_px = (int)((d_x - mapm_.origin[0]) / mapm_.resolution);
-    int d_py = (int)((d_y - mapm_.origin[1]) / mapm_.resolution);
+    std::cout << " map_frame_:"<<map_frame_<< std::endl;
+    std::cout << " map_orient_fix_:" << map_orient_fix_ << std::endl;
 
-    int p_robo_radian = (int)(robo_radian/mapm_.resolution);
+    int s_px,s_py,d_px,d_py,p_robo_radian;
+
+    p_robo_radian = (int)(robo_radian_marker/mapm_.resolution);
+
+    // 従来の処理
+    // static map or cost map with global_frame: map
+    if(map_orient_fix_==true){
+    //if(true){
+        // real world 座標を、Mat map 座標に変換 
+        s_px = (int)((s_x - mapm_.origin[0]) / mapm_.resolution);
+        s_py = (int)((s_y - mapm_.origin[1]) / mapm_.resolution);
+
+        d_px = (int)((d_x - mapm_.origin[0]) / mapm_.resolution);
+        d_py = (int)((d_y - mapm_.origin[1]) / mapm_.resolution);
+    }
+    // cost map with global_frame: base_footprint
+    // costmap の 中心が、ロボットの位置で、+x が、常にロボットの前方映像になる。
+    else{
+        // costmap cv:Mat の中心を、robo p0(0,0) とする。
+        s_px = (int)((0.0 - mapm_.origin[0]) / mapm_.resolution);
+        s_py = (int)((0.0 - mapm_.origin[1]) / mapm_.resolution);
+
+        // robo 前方 +x 、0.4[M] をマスクにする。
+        float x1 = check_range * std::cos(0.0);
+        float y1 = check_range * std::sin(0.0);
+
+        d_px = (int)((x1 - mapm_.origin[0]) / mapm_.resolution);
+        d_py = (int)((y1 - mapm_.origin[1]) / mapm_.resolution);
+    }
+
+    //std::cout << " mapm_.origin[0]:" << mapm_.origin[0] << std::endl;
+    //std::cout << " mapm_.origin[1]:" << mapm_.origin[1] << std::endl;
+    //std::cout << " mapm_.origin[2]:" << mapm_.origin[2] << std::endl;
 
     // Mask画像 を作成
     mask = cv::Mat::zeros(mapm_.height, mapm_.width, CV_8UC1);
@@ -1345,8 +1382,7 @@ int GetMap::check_cource_obstacle(float s_x,float s_y,float d_x,float d_y,float 
     // 黒色領域の面積(ピクセル数)を計算する
     int black_cnt = cv::countNonZero(result2);
 
-    std::cout << " black_cnt=" << black_cnt;
-
+    std::cout << " black_cnt=" << black_cnt<< std::endl;
     if(black_cnt <= black_thresh){
         black_cnt=0;
     }

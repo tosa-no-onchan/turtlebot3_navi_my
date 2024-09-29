@@ -73,6 +73,7 @@ void RobotDriveNAV2::feedbackCallback(GoalHandleNavigateToPose::SharedPtr pose,c
 */
 bool RobotDriveNAV2::get_tf(int func){
     bool rc;
+    getTF_->mtx_.lock();    // add by nishi 2024.9.28
     //rc=getTF_.get(func);
     rc=getTF_->get(func);       // changed by nishi 2024.2.27
 
@@ -89,6 +90,8 @@ bool RobotDriveNAV2::get_tf(int func){
         if(log_level>=3)
             std::cout << "_rx: " << _rx << ", _ry: " << _ry << ", _rz: " << _rz << std::endl;
     }
+    getTF_->mtx_.unlock();    // add by nishi 2024.9.28
+
     return rc;
 }
 

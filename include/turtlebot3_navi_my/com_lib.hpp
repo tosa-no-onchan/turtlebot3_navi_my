@@ -156,6 +156,8 @@ public:
     tf2::Stamped<tf2::Transform> base_tf;
     double _rx, _ry, _rz;
 
+    std::mutex mtx_;    // add by nishi 2024.9.28
+
 private:
     //! The node handle we'll be using
     //ros::NodeHandle nh_;

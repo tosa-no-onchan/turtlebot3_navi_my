@@ -26,6 +26,7 @@ bool compare_Cource_Plan_dist_min(Cource_Plan &s1,Cource_Plan &s2){
 init()
 */
 void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
+
     //ProControl::init(node);
     // changed by nishi 2024.8.31  use local_costmap
     ProControl::init(node,true);
@@ -42,6 +43,11 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->declare_parameter<float>("r_lng",0.6);    // add by nishi 2024.9.21
     node_->declare_parameter<float>("move_l",0.12);    // add by nishi 2024.9.21
     node_->declare_parameter<float>("robo_radian_marker",0.2);    // add by nishi 2024.9.21
+    node_->declare_parameter<float>("obstacle_eye_start",0.3);    // add by nishi 2024.9.29
+    node_->declare_parameter<float>("obstacle_eye_stop",0.42);    // add by nishi 2024.9.29
+    node_->declare_parameter<float>("obstacle_eye_range",0.4);    // add by nishi 2024.9.29
+
+    node_->declare_parameter<bool>("map_orient_fix",false);  // local_costmap -> global_frame: base_footprint のときは、false
 
     node_->get_parameter<double>("threshold",threshold_);
     node_->get_parameter<bool>("plann_test",plann_test_);
@@ -52,11 +58,16 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->get_parameter<int>("safe_margin_dt",safe_margin_dt_);  // add by nishi 2024.9.20
     node_->get_parameter<int>("min_path_width_n",min_path_width_n_);  // add by nishi 2024.9.20
 
+    node_->get_parameter<bool>("map_orient_fix",map_orient_fix_);
+
     node_->get_parameter<float>("r_lng",r_lng_);  // add by nishi 2024.9.21
     node_->get_parameter<float>("move_l",move_l_);  // add by nishi 2024.9.21
     node_->get_parameter<float>("robo_radian_marker",robo_radian_marker_);  // add by nishi 2024.9.21
+    node_->get_parameter<float>("obstacle_eye_start",obstacle_eye_start_);  // add by nishi 2024.9.29
+    node_->get_parameter<float>("obstacle_eye_stop",obstacle_eye_stop_);  // add by nishi 2024.9.29
+    node_->get_parameter<float>("obstacle_eye_range",obstacle_eye_range_);  // add by nishi 2024.9.29
 
-    robo_radius_dot_=int(round(robo_radius_/0.05*10)/10);
+    robo_radius_dot_=int(robo_radius_/0.05);    // 注) 後で、mapm.resolution を使うこと。 by nishi 2024.9.24
     std::cout << " robo_radius_dot_:"<< robo_radius_dot_ << std::endl;
 
     contbuilder_.robo_radius=robo_radius_dot_;  // 走行線の間隔[dot] を指定。 by nishi 2024.9.20
@@ -64,6 +75,12 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     contbuilder_.safe_margin=safe_margin_;  // safty margin [dot] を指定。 by nishi 2024.9.20
     contbuilder_.safe_margin_dt=safe_margin_dt_;
     contbuilder_.min_path_width_n=min_path_width_n_;
+
+    drive_cmd.set_robo_radian_marker_etc(robo_radian_marker_,
+                    obstacle_eye_start_,
+                    obstacle_eye_stop_,
+                    obstacle_eye_range_);
+    get_costmap.map_orient_fix_=map_orient_fix_;    // add by nishi 2024.9.26
 }
 /*
 auto_mower(int m_type=1)

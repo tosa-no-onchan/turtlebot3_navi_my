@@ -34,10 +34,14 @@
 
 
 #include "nav_msgs/msg/map_meta_data.hpp"
+// https://docs.ros2.org/foxy/api/nav_msgs/msg/OccupancyGrid.html
 #include "nav_msgs/msg/occupancy_grid.hpp"
 //#include "nav_msgs/srv/get_map.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
+
+// add by nishi 2024.9.26
+//#include "geometry_msgs/msg/pose.hpp"
 
 
 #include "com_def.hpp"
@@ -104,13 +108,11 @@ private:
     int _car_r;
     bool _match_rviz;
 
-    std::string map_frame_;
 
     //nav_msgs::MapMetaData map_info;
 
     float resolution;
     int free_thresh;
-    double org_x,org_y;
     //int x_size,y_size; 
 
     //Grid grid_;
@@ -125,6 +127,8 @@ private:
     int func_;
 
 public:
+    std::mutex mtx_;    // add by nishi 2024.9.28
+    std::string map_frame_;
 
     cv::Mat mat_map_;
     cv::Mat mat_bin_map_;   // map 障害物の　2値化
@@ -132,12 +136,19 @@ public:
     //Yaml yaml_;
     MapM mapm_;
 
+    double org_x,org_y;
+
     bool init_ok=false;     // add by nishi 2024.9.4
 
+    bool is_static_map_=true;   // map_frmae="map" の時 true    add by nishi 2-24.9.26
+    bool map_orient_fix_=true;   // costmap の時の、方角の基準 add by nishi 2024.9.26
+                                // true -> global_frame: map
+                                // false -> global_frame: base_footprint
     GetMap(){}
 
     //void init(ros::NodeHandle &nh,std::string map_frame="map");
-    void init(std::shared_ptr<rclcpp::Node> node, int func=0, std::string map_frame="map");
+    //void init(std::shared_ptr<rclcpp::Node> node, int func=0, std::string map_frame="map",bool is_static_map=true,bool map_orient_fix=true);
+    void init(std::shared_ptr<rclcpp::Node> node, int func=0, std::string map_frame="map",bool is_static_map=true);
     //void init(std::shared_ptr<rclcpp::Node> node,std::string map_frame="/map");
 
     void topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg);
@@ -161,7 +172,7 @@ public:
     void check_collision(float x,float y,float &ox,float &oy,int r=5,int func=0);
 
     int check_obstacle(float x,float y,float rz,float r_lng,int func=0,int black_thresh=15);
-    int check_cource_obstacle(float s_x,float s_y,float d_x,float d_y,float robo_radian,int black_thresh=15);
+    int cource_obstacle_eye(float s_x,float s_y,float d_x,float d_y,float robo_radian_marker,int black_thresh=15,float check_range=0.4);
 
     void test_plot(float x,float y,float r_yaw,float robot_r=0.3, std::string sub_title="");
 

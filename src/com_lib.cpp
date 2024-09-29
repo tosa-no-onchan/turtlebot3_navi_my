@@ -297,6 +297,7 @@ bool GetTF::get(int func,const std::string& target_frame, const std::string& sou
         break;
     }
     if (rc==true && (func==2 || func==12) ){
+        // https://answers.ros.org/question/339528/quaternion-to-rpy-ros2/
         //Quaternion getRotation()
         //tf::Quaternion q = base_tf.getRotation();
         tf2::Quaternion q = base_tf.getRotation();

@@ -215,24 +215,32 @@ local_costmap:
   local_costmap:
     ros__parameters:
       #update_frequency: 5.0
-      update_frequency: 3.0
-      publish_frequency: 2.0
+      #update_frequency: 3.0
+      # changed by nishi 2024.9.26
+      update_frequency: 5.0
+      #publish_frequency: 2.0
+      # changed by nishi 2024.9.26
+      publish_frequency: 5.0
       #global_frame: odom
       global_frame: map
+      # changed by nishi 2024.9.26
+      #global_frame: base_footprint
       robot_base_frame: base_link
       use_sim_time: True
       rolling_window: true
       width: 3
       height: 3
-      resolution: 0.05
+      #resolution: 0.05
+      # test by nishi 2024.9.25
+      resolution: 0.01
       robot_radius: 0.22
       # changed 2024.3.2
       #robot_radius: 0.20
       #plugins: ["voxel_layer", "inflation_layer"]
       #plugins: ["obstacle_layer", "inflation_layer"]
       #plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
-      #plugins: ["obstacle_layer", "inflation_layer"]
-      plugins: ["obstacle_layer"]
+      plugins: ["static_layer","obstacle_layer"]
+      #plugins: ["obstacle_layer"]
       # https://navigation.ros.org/configuration/packages/costmap-plugins/inflation.html
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -375,7 +383,7 @@ map_saver:
 planner_server:
   ros__parameters:
     #expected_planner_frequency: 20.0
-    expected_planner_frequency: 5.0
+    #expected_planner_frequency: 5.0
     use_sim_time: True
     #planner_plugins: ["GridBased"]
     #GridBased:
@@ -393,7 +401,6 @@ planner_server:
       w_traversal_cost: 2.0
       # add by nishi
       tolerance: 0.5
-
 
 smoother_server:
   ros__parameters:

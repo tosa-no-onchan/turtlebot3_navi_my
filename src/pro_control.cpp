@@ -46,8 +46,10 @@ void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_costmap){
 
     get_map.init(node,get_map_func_);
     // add by nishi 2024.9.1
-    if(use_costmap_==true)
-        get_costmap.init(node,get_map_func_,"local_costmap/costmap");
+    if(use_costmap_==true){
+        //get_costmap.init(node,get_map_func_,"local_costmap/costmap");
+        get_costmap.init(node,get_map_func_,"local_costmap/costmap",false); // changed by nishi 2024.9.26
+    }
 
     // add by nishi 2024.9.4
     drive_cmd.set_map(&get_costmap);
@@ -173,14 +175,48 @@ void ProControl::check_obstacle_backaround(float r_lng,int black_thresh){
 */
 void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
     bool all_black=true;
-    get_map.get();
+    GetMap *get_map_r;
+    // add by nishi 2024.9.25
+    // local_costmap を使う!!
+    if(use_costmap_==true)
+        get_map_r = &get_costmap;
+    else
+        get_map_r = &get_map;
+    
+    // static map or cost map with global_frame: map
+    if(get_map_r->map_orient_fix_==true){
+        obstacle_escape_map_orient(r_lng, black_thresh, move_l, get_map_r);
+    }
+    // cost map with global_frame: base_footprint
+    else{
+        obstacle_escape_robo_orient(r_lng, black_thresh, move_l, get_map_r);
+    }
+}
+
+/*
+* obstacle_escape_map_orient(float r_lng,int black_thresh,float move_l,GetMap *get_map_r)
+*
+*  static map or cost map with global_frame: map の時に実行します。
+*
+*  float r_lng: ロボットの周囲の半径[M] = 0.6
+*  int black_thresh: black count の閾値
+*  float move_l: 移動距離[M] =0.12
+*  ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。
+*  static map or cost map の方角が、tf-map と同じ。
+*   向きは、常に、tf-map(0,0) の向きと同じになります。
+*/
+void ProControl::obstacle_escape_map_orient(float r_lng,int black_thresh,float move_l,GetMap *get_map_r){
+
+    std::cout << "ProControl::obstacle_escape_map_orient() called" <<std::endl;
+
+    get_map_r->get();
     drive_->get_tf(2);  
     tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();  // changed by nishi 2024.2.28
 
     float cur_x_tmp = cur_origin.getX();    // World point(基本座標) [M]
     float cur_y_tmp = cur_origin.getY();    // World point(基本座標) [M]
     // ロボットの今の向き
-    std::cout << "drive->_rz*RADIANS_F: " << drive_->_rz*RADIANS_F <<std::endl;
+    std::cout << " drive->_rz*RADIANS_F: " << drive_->_rz*RADIANS_F <<std::endl;
 
     int black_counts[4];    // 前、後ろ、左、右
     int min_black_count=1000;
@@ -190,7 +226,7 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
     int slant_min_black_idx=-1;     // add by nhishi 2024.4.8
     // 全方向をチェックします。 前、後ろ、左、右
     for(int i=0;i<4;i++){
-        black_counts[i]= get_map.check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,i,0);
+        black_counts[i]= get_map_r->check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,i,0);
         if(black_counts[i] < min_black_count){
             min_black_count=black_counts[i];
             min_black_idx=i;
@@ -210,20 +246,20 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
             // 後ろ方向に障害物があります。
             if(black_counts[2] > black_thresh){
                 // 前に、0.1[M] 動かす。
-                std::cout << "go forward 0.12[M]" <<std::endl;
+                std::cout << "go forward "<<move_l <<"[M]" <<std::endl;
                 drive_->move(move_l,0.0);
             }
             // 左右に障害物があります。
             else if((black_counts[1] > 0 && black_counts[3] > 0) || (black_counts[1] > black_thresh) || (black_counts[3] > black_thresh)){
                 // 前に、0.1[M] 動かす。
-                std::cout << "go forward 0.12[M]" <<std::endl;
+                std::cout << "go forward "<<move_l <<"[M]" <<std::endl;
                 drive_->move(move_l,0.0);
             }
         }
         // 後ろの障害物が、有りません。
         else if(black_counts[2] <= black_thresh){
             // 後ろへ 0.12[M] 動かす。
-            std::cout << "go backward 0.12[M]" <<std::endl;
+            std::cout << "go backward "<<move_l <<"[M]" <<std::endl;
             drive_->move(-move_l,0.0);
 
             std::cout << "turn around 180" <<std::endl;
@@ -240,7 +276,7 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
                 // 右が、障害物あり
                 if(black_counts[3] > black_thresh){
                     // 前に、0.1[M] 動かす。
-                    std::cout << "go leftward 0.12[M]" <<std::endl;
+                    std::cout << "go leftward "<<move_l <<"[M]" <<std::endl;
                     drive_->move(move_l,0.0);
                 }
             }
@@ -253,7 +289,7 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
             // 左は、障害物がある。
             if(black_counts[1] > black_thresh){
                 // 前に、0.1[M] 動かす。
-                std::cout << "go rightward 0.12[M]" <<std::endl;
+                std::cout << "go rightward "<<move_l <<"[M]" <<std::endl;
                 drive_->move(move_l,0.0);
             }
         }
@@ -261,7 +297,7 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
     else{
         // 斜め方向をチェックします。 斜め前、斜め後ろ、斜め左、斜め後ろ add by nishi 2024.4.8
         for(int i=0;i<4;i++){
-            slant_black_counts[i]= get_map.check_obstacle(cur_x_tmp,cur_y_tmp,slant_rz,r_lng,i,0);
+            slant_black_counts[i]= get_map_r->check_obstacle(cur_x_tmp,cur_y_tmp,slant_rz,r_lng,i,0);
             if(slant_black_counts[i] < slant_min_black_count){
                 slant_min_black_count=slant_black_counts[i];
                 slant_min_black_idx=i;
@@ -273,7 +309,7 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
             switch(slant_min_black_idx){
                 case 0: // 斜め前方が空いている
                     // 斜め前に、0.12[M] 動かす。
-                    std::cout << " go slant forward 0.12[M]" <<std::endl;
+                    std::cout << " go slant forward "<<move_l <<"[M]" <<std::endl;
                     //左へ45向かせる。
                     drive_->rotate_off(45.0);
                     drive_->move(move_l,0.0);
@@ -282,12 +318,12 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
                     //斜め左へ向かせる。
                     drive_->rotate_off(90.0+45.0);
                     // 前に、0.02[M] 動かす。
-                    std::cout << " go slant leftward 0.12[M]" <<std::endl;
+                    std::cout << " go slant leftward "<<move_l <<"[M]" <<std::endl;
                     drive_->move(move_l,0.0);
                 break;
                 case 2:
                     // 斜め後ろに退避
-                    std::cout << " go slant back 0.12[M] and turn around 180" <<std::endl;
+                    std::cout << " go slant back "<<move_l <<"[M] and turn around 180" <<std::endl;
                     drive_->rotate_off(45.0);
                     drive_->move(-move_l,0.0);
                     // 斜め後ろを向かせる
@@ -298,7 +334,7 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
                     //斜め右へ向かせる。
                     drive_->rotate_off(45.0-90.0);
                     // 前に、0.02[M] 動かす。
-                    std::cout << " go slant rightward 0.12[M]" <<std::endl;
+                    std::cout << " go slant rightward "<<move_l <<"[M]" <<std::endl;
                     drive_->move(move_l,0.0);
                 break;
             }        
@@ -341,13 +377,203 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
 }
 
 /*
+* obstacle_escape_robo_orient(float r_lng,int black_thresh,float move_l,GetMap *get_map_r)
+*
+*  cost map with global_frame: base_footprint の時に実行します。
+*
+*  float r_lng: ロボットの周囲の半径[M] = 0.6
+*  int black_thresh: black count の閾値
+*  float move_l: 移動距離[M] =0.12
+*  ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。
+*
+*  cost map の方角が、robot と同じ向きになる。robot の動きに連動します。
+*/
+void ProControl::obstacle_escape_robo_orient(float r_lng,int black_thresh,float move_l,GetMap *get_map_r){
+
+    std::cout << "ProControl::obstacle_escape_robo_orient() called" <<std::endl;
+
+    get_map_r->get();
+    drive_->get_tf(2);  
+    //tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();  // changed by nishi 2024.2.28
+
+    //float cur_x_tmp = cur_origin.getX();    // World point(基本座標) [M]
+    //float cur_y_tmp = cur_origin.getY();    // World point(基本座標) [M]
+    float cur_x_tmp = 0.0;    // World point(基本座標) [M]
+    float cur_y_tmp = 0.0;    // World point(基本座標) [M]
+    // ロボットの今の向き
+    std::cout << " drive->_rz*RADIANS_F: " << drive_->_rz*RADIANS_F <<std::endl;
+
+    double rz=0.0;
+
+    int black_counts[4];    // 前、後ろ、左、右
+    int min_black_count=1000;
+    int min_black_idx=-1;
+    int slant_black_counts[4];  // 斜め前、斜め後ろ、斜め左、斜め後ろ add by nishi 2024.4.8
+    int slant_min_black_count=1000; // add by nhishi 2024.4.8
+    int slant_min_black_idx=-1;     // add by nhishi 2024.4.8
+    // 全方向をチェックします。 前、後ろ、左、右
+    for(int i=0;i<4;i++){
+        //black_counts[i]= get_map_r->check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,i,0);
+        black_counts[i]= get_map_r->check_obstacle(cur_x_tmp,cur_y_tmp,rz,r_lng,i,0);
+        if(black_counts[i] < min_black_count){
+            min_black_count=black_counts[i];
+            min_black_idx=i;
+        }
+    }
+    // 45度ずらして、斜め方向をチェックする。
+    //float slant_rz = normalize_tf_rz(drive_->_rz+45/RADIANS_F);
+    float slant_rz = normalize_tf_rz(rz+45/RADIANS_F);
+
+
+    set_drive_mode(0);      // set cmd_vel mode
+
+    // 全方向は、障害物が無い。
+    if(min_black_count <= black_thresh){
+        // 前方向は、障害物無し
+        if(black_counts[0] <= black_thresh){
+            std::cout << "stay forward" <<std::endl;
+            // 後ろ方向に障害物があります。
+            if(black_counts[2] > black_thresh){
+                // 前に、0.1[M] 動かす。
+                std::cout << "go forward "<<move_l <<"[M]" <<std::endl;
+                drive_->move(move_l,0.0);
+            }
+            // 左右に障害物があります。
+            else if((black_counts[1] > 0 && black_counts[3] > 0) || (black_counts[1] > black_thresh) || (black_counts[3] > black_thresh)){
+                // 前に、0.1[M] 動かす。
+                std::cout << "go forward "<<move_l <<"[M]" <<std::endl;
+                drive_->move(move_l,0.0);
+            }
+        }
+        // 後ろの障害物が、有りません。
+        else if(black_counts[2] <= black_thresh){
+            // 後ろへ 0.12[M] 動かす。
+            std::cout << "go backward "<<move_l <<"[M]" <<std::endl;
+            drive_->move(-move_l,0.0);
+
+            std::cout << "turn around 180" <<std::endl;
+            // 後ろを向かせる
+            drive_->rotate_off(180.0);
+        }
+        // 左が、右より障害物が少ない
+        else if(black_counts[1] < black_counts[3]){
+            // 左が障害物が無い
+            if(black_counts[1] <= black_thresh){
+                std::cout << "turn left" <<std::endl;
+                //左へ向かせる。
+                drive_->rotate_off(90.0);
+                // 右が、障害物あり
+                if(black_counts[3] > black_thresh){
+                    // 前に、0.1[M] 動かす。
+                    std::cout << "go leftward "<<move_l <<"[M]" <<std::endl;
+                    drive_->move(move_l,0.0);
+                }
+            }
+        }
+        // 右が、障害物が無い
+        else if(black_counts[3] <= black_thresh){
+            std::cout << "turn right" <<std::endl;
+            //右へ向かせる。
+            drive_->rotate_off(-90.0);
+            // 左は、障害物がある。
+            if(black_counts[1] > black_thresh){
+                // 前に、0.1[M] 動かす。
+                std::cout << "go rightward "<<move_l <<"[M]" <<std::endl;
+                drive_->move(move_l,0.0);
+            }
+        }
+    }
+    else{
+        // 斜め方向をチェックします。 斜め前、斜め後ろ、斜め左、斜め後ろ add by nishi 2024.4.8
+        for(int i=0;i<4;i++){
+            slant_black_counts[i]= get_map_r->check_obstacle(cur_x_tmp,cur_y_tmp,slant_rz,r_lng,i,0);
+            if(slant_black_counts[i] < slant_min_black_count){
+                slant_min_black_count=slant_black_counts[i];
+                slant_min_black_idx=i;
+            }
+        }
+
+        // 斜め方向は、障害物が無い。
+        if(slant_min_black_count <= black_thresh){
+            switch(slant_min_black_idx){
+                case 0: // 斜め前方が空いている
+                    // 斜め前に、0.12[M] 動かす。
+                    std::cout << " go slant forward "<<move_l <<"[M]" <<std::endl;
+                    //左へ45向かせる。
+                    drive_->rotate_off(45.0);
+                    drive_->move(move_l,0.0);
+                break;
+                case 1:
+                    //斜め左へ向かせる。
+                    drive_->rotate_off(90.0+45.0);
+                    // 前に、0.02[M] 動かす。
+                    std::cout << " go slant leftward "<<move_l <<"[M]" <<std::endl;
+                    drive_->move(move_l,0.0);
+                break;
+                case 2:
+                    // 斜め後ろに退避
+                    std::cout << " go slant back "<<move_l <<"[M] and turn around 180" <<std::endl;
+                    drive_->rotate_off(45.0);
+                    drive_->move(-move_l,0.0);
+                    // 斜め後ろを向かせる
+                    //drive_->rotate_off(90.0);
+                    drive_->rotate_off(180.0);
+                break;
+                case 3:
+                    //斜め右へ向かせる。
+                    drive_->rotate_off(45.0-90.0);
+                    // 前に、0.02[M] 動かす。
+                    std::cout << " go slant rightward "<<move_l <<"[M]" <<std::endl;
+                    drive_->move(move_l,0.0);
+                break;
+            }        
+        }
+        else{
+            std::cout << "all closed" <<std::endl;
+            // 実機だと、うごかすのは危険か?
+            // 一番空いている方へ移動させる。
+            switch(min_black_idx){
+                case 0: // 前方が空いている
+                    // 前に、0.02[M] 動かす。
+                    std::cout << " go forward 0.04[M]" <<std::endl;
+                    drive_->move(0.04,0.0);
+                break;
+                case 1:
+                    //左へ向かせる。
+                    drive_->rotate_off(90.0);
+                    // 前に、0.02[M] 動かす。
+                    std::cout << " go leftward 0.04[M]" <<std::endl;
+                    drive_->move(0.04,0.0);
+                break;
+                case 2:
+                    std::cout << " go back 0.04[M] and turn around 180" <<std::endl;
+                    drive_->move(-0.04,0.0);
+                    // 後ろを向かせる
+                    //drive_->rotate_off(90.0);
+                    drive_->rotate_off(180.0);
+                break;
+                case 3:
+                    //右へ向かせる。
+                    drive_->rotate_off(-90.0);
+                    // 前に、0.02[M] 動かす。
+                    std::cout << " go rightward 0.04[M]" <<std::endl;
+                    drive_->move(0.04,0.0);
+                break;
+            }
+        }
+    }
+    set_drive_mode(1);      // set nav2 mode
+}
+
+
+/*
 move_abs_auto_select()
     走行コースの、障害物を判定して、cmd_vel と nav2 を選択して、 move_abs() を実行する。
     x,y: 絶対番地への移動(基準座標)
     r_yaw: 基準座標での角度。 [radian]
-    robo_radian: ロボットの半径 [M] =0.2
+    robo_radian_marker: ロボットの半径 [M] =0.2
 */
-bool ProControl::move_abs_auto_select(float x,float y,float r_yaw,float robo_radian){
+bool ProControl::move_abs_auto_select(float x,float y,float r_yaw,float robo_radian_marker){
     std::cout << "ProControl::move_abs_auto_select() called"<< std::endl;
     std::cout << " x:"<< x << " y:" << y << " d_yaw:" << r_yaw*RADIANS_F << std::endl;
     //rotate_f=false;
@@ -396,7 +622,7 @@ bool ProControl::move_abs_auto_select(float x,float y,float r_yaw,float robo_rad
 
     // (cur_x,cur_y) -> (x,y) 間のロボット幅+α の障害物をチェック
     //float robo_radian=0.2;
-    if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+    if(get_map.cource_obstacle_eye(cur_x,cur_y,x,y,robo_radian_marker,0)==0){
     //if(check_cource_obstacle_comb(get_map,get_costmap,cur_x,cur_y,x,y,robo_radian,0)==0){
         std::cout << " #2 select drive_cmd" << std::endl;
 
@@ -432,13 +658,13 @@ move_abs_auto_select_check()
     走行コースの、障害物を判定して、cmd_vel と nav2 のどちらを選択するか判定する。
     x,y: 絶対番地への移動(基準座標)
     r_yaw: 基準座標での角度。 [radian]
-    robo_radian: ロボットの半径 [M] = 0.2
+    robo_radian_marker: ロボットの半径 [M] = 0.2
     rc:
         0 : cmd_vel
         1 : navi
        -1 : error
 */
-int ProControl::move_abs_auto_select_check(float x,float y,float r_yaw,float robo_radian){ // add by nishi 2024.4.7
+int ProControl::move_abs_auto_select_check(float x,float y,float r_yaw,float robo_radian_marker){ // add by nishi 2024.4.7
     std::cout << "ProControl::move_abs_auto_select_check() called"<< std::endl;
     std::cout << " x:"<< x << " y:" << y << " d_yaw:" << r_yaw*RADIANS_F << std::endl;
     //rotate_f=false;
@@ -484,7 +710,7 @@ int ProControl::move_abs_auto_select_check(float x,float y,float r_yaw,float rob
 
     // (cur_x,cur_y) -> (x,y) 間のロボット幅+α の障害物をチェック
     //float robo_radian=0.2;
-    if(get_map.check_cource_obstacle(cur_x,cur_y,x,y,robo_radian,0)==0){
+    if(get_map.cource_obstacle_eye(cur_x,cur_y,x,y,robo_radian_marker,0)==0){
     //if(check_cource_obstacle_comb(get_map,get_costmap,cur_x,cur_y,x,y,robo_radian,0)==0){
         std::cout << " #2 select drive_cmd" << std::endl;
         return rc;
@@ -556,6 +782,7 @@ mloop(self)
             3 -> roate_off(d_yaw)
             10 -> navi_move(x, y, d_yaw)
             11 -> move_abs_auto_select(x,y,d_yaw) // add by nishi 2024.4.7
+            12 -> ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l) // add by nishi 2024.9.28
 
     func,dist,d_yaw
         func: 0 -> move dist and rotate d_yaw
@@ -605,6 +832,7 @@ void ProControl::mloop(){
             case 3:
             case 10:
             case 11:        // add by nishi 2024.4.7
+            case 12:        // add by nishi 2024.9.28 for obstacle_escape test
                 rc=mloop_sub();
                 if(rc != 0 && error_auto_stop_==true){
                     std::cout << " stop moving by obstacle" << std::endl;
@@ -827,6 +1055,10 @@ int ProControl::mloop_sub(){
         }
         else if(_goalList[goalId].func == 11){
             move_abs_auto_select(x,y,d_yaw/RADIANS_F); // add by nishi 2024.4.7
+        }
+        else if(_goalList[goalId].func == 12){
+            // ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l)
+            obstacle_escape(_goalList[goalId].x, (int)_goalList[goalId].y, _goalList[goalId].d_yaw);
         }
     }
     else{

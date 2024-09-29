@@ -125,6 +125,11 @@ public:
     float r_lng_=0.6;       // add by nishi 2024.9.21
     float move_l_=0.12;     // add by nishi 2024.9.21
     float robo_radian_marker_=0.2;   // add by nishi 2024.9.21
+    float obstacle_eye_start_= 0.3;  // add by nishi 2024.9.27
+    float obstacle_eye_stop_= 0.42; // add by nishi 2024.9.27
+    float obstacle_eye_range_ = 0.4; // add by nishi 2024.9.27
+
+    bool map_orient_fix_=true;  // add by nishi 2024.9.25
 
     //! The node handle we'll be using
     //ros::NodeHandle nh_;
@@ -178,10 +183,13 @@ public:
 
     void obstacle_escape(float r_lng=0.60,int black_thresh=0,float move_l=0.12);
 
-    bool move_abs_auto_select(float x,float y,float r_yaw,float robo_radian=0.2); // add by nishi 2024.4.7
+    void obstacle_escape_map_orient(float r_lng,int black_thresh,float move_l,GetMap *get_map_r);
+    void obstacle_escape_robo_orient(float r_lng,int black_thresh,float move_l,GetMap *get_map_r);
+
+    bool move_abs_auto_select(float x,float y,float r_yaw,float robo_radian_marker=0.2); // add by nishi 2024.4.7
 
     // add by nishi 2024.9.1
-    int move_abs_auto_select_check(float x,float y,float r_yaw,float robo_radian=0.2); // add by nishi 2024.4.7
+    int move_abs_auto_select_check(float x,float y,float r_yaw,float robo_radian_marker=0.2); // add by nishi 2024.4.7
 
     // child class で使わない時は、ダミーを定義して下さい。
     // Auto map 向けのメンバー
@@ -207,6 +215,7 @@ public:
                 3 -> roate_off(d_yaw)
                 10 -> navi_move(x, y, d_yaw)
                 11 -> move_abs_auto_select(x,y,d_yaw) // add by nishi 2024.4.7
+                12 -> ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l) // add by nishi 2024.9.28
 
         func,dist,d_yaw
             func: 0 -> move dist and rotate d_yaw

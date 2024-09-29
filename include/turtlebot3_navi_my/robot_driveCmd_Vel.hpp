@@ -72,7 +72,8 @@ public:
   HeartBeat heartBeat_;   // add by nishi 2023.3.8
 
   // add by nishi 2024.9.3
-  bool th_check_cource_obstacle_f;
+  bool th_cource_obstacle_eye_f;
+  bool th_cource_obstacle_eye_active_f;
   int black_cnt_;
   GetMap *get_costmap_;
 
@@ -87,13 +88,13 @@ public:
 
   void init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use=false);
 
-  void th_check_cource_obstacle(float x, float y);
+  void th_cource_obstacle_eye(float x, float y);
 
   void set_map(GetMap *get_costmap){
     get_costmap_= get_costmap;
 
     // 下記が、OK みたいだが? 死なない?
-    //int rc=check_cource_obstacle_comb(*get_map_, *get_costmap_, 0.0, 0.0, 1.0,1.0,0.3, 50);
+    //int rc=cource_obstacle_eye_comb(*get_map_, *get_costmap_, 0.0, 0.0, 1.0,1.0,0.3, 50);
   }
 
   /*

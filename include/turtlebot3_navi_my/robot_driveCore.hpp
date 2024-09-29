@@ -28,6 +28,15 @@ public:
     float rotate_speed_min_ = 2.0;
     int rotate_lp_cnt_chk_2_ = 20*2;      //  for time out 2
 
+    float robo_radian_marker_=0.2;      // add by nishi 2024.9.25
+    // get_costmap_->cource_obstacle_eye() start disatnace
+    float obstacle_eye_start_= 0.25;  // add by nishi 2024.9.27
+    // get_costmap_->cource_obstacle_eye() stop disatnace
+    //  obstacle_eye_dist_+n
+    float obstacle_eye_stop_= 0.25; // add by nishi 2024.9.27
+    // get_costmap_->cource_obstacle_eye() check disatnace
+    float obstacle_eye_range_ = 0.4; // add by nishi 2024.9.27
+
     //! ROS node initialization
     Robot_DriveCore(){}
     virtual void init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use=false){};
@@ -99,6 +108,13 @@ public:
     virtual bool navi_move(float x,float y,float r_yaw,float r_yaw_off=0.0){return true;};
 
     virtual void navi_map_save(){};
+
+    void set_robo_radian_marker_etc(float robo_radian_marker, float obstacle_eye_start, float obstacle_eye_stop, float obstacle_eye_range){
+        robo_radian_marker_=robo_radian_marker;
+        obstacle_eye_start_=obstacle_eye_start;
+        obstacle_eye_stop_=obstacle_eye_stop;
+        obstacle_eye_range_=obstacle_eye_range;
+    }
 
     //void st_dumy();
 
