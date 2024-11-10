@@ -149,8 +149,8 @@ GoalList turtlebot3_auto_map_achor[] ={
 
 #### 4. YouTube に動画をアップしました。  
 
-[Auto Map II デモ](https://youtu.be/7o0vceDqD84?si=6Tb7DEqfdw9tuNvq)   
-[![alt設定](http://img.youtube.com/vi/7o0vceDqD84/0.jpg)](https://youtu.be/7o0vceDqD84?si=6Tb7DEqfdw9tuNvq)
+[Auto Map II デモ](https://www.youtube.com/watch?v=7o0vceDqD84)   
+[![alt設定](http://img.youtube.com/vi/7o0vceDqD84/0.jpg)](https://www.youtube.com/watch?v=7o0vceDqD84)
 
 
 #### 5. update  
