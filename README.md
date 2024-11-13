@@ -229,14 +229,14 @@ GoalList turtlebot3_auto_map_achor[] ={
             {31,0.0,0.0, 0.0},        // Auto map builder of anchor
             {99,0.0,0.0, 0.0},        // end
 };
-    {30,0.0,0.0, 0.0},        // Auto map builder  
-    と   
-    {31,0.0,0.0, 0.0},        // Auto map builder of anchor  
-    で、すべて行っている。
-    カスタマイズするのでれば、src/pro_control_map.cpp の方をいじる。  
+```
+{30,0.0,0.0, 0.0},        // Auto map builder  
+と   
+{31,0.0,0.0, 0.0},        // Auto map builder of anchor  
+で、すべて行っている。
+カスタマイズするのでれば、src/pro_control_map.cpp の方をいじる。  
 
 
-```   
     4) Auto Mower  
     src/go_auto_mower.cpp の GoalList turtlebot3_auto_mower[] で指定する。  
     こちらは、/cmd_vel と Navigation2 を適宜使って、ロボットを動かす。  
