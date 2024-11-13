@@ -48,6 +48,8 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->declare_parameter<float>("obstacle_eye_range",0.4);    // add by nishi 2024.9.29
 
     node_->declare_parameter<bool>("map_orient_fix",false);  // local_costmap -> global_frame: base_footprint のときは、false
+    node_->declare_parameter<bool>("ml_data",false);  // ML data の収集をする add by nishi 2024.10.8
+
 
     node_->get_parameter<double>("threshold",threshold_);
     node_->get_parameter<bool>("plann_test",plann_test_);
@@ -59,6 +61,7 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->get_parameter<int>("min_path_width_n",min_path_width_n_);  // add by nishi 2024.9.20
 
     node_->get_parameter<bool>("map_orient_fix",map_orient_fix_);
+    node_->get_parameter<bool>("ml_data",ml_data_);
 
     node_->get_parameter<float>("r_lng",r_lng_);  // add by nishi 2024.9.21
     node_->get_parameter<float>("move_l",move_l_);  // add by nishi 2024.9.21
@@ -285,6 +288,10 @@ void ProControlMower::auto_mower(int m_type){
                 get_map.test_plot(s_x,s_y,r_yaw, robo_radius_);
             #endif
 
+            // test by nishi 2024.10.5
+            if(ml_data_ == true)
+                ml_planer.make_plann(s_x,s_y,true);
+
             rc=true;
             if(all_nav2_ == false){
                 // drive_navi ?
@@ -347,6 +354,10 @@ void ProControlMower::auto_mower(int m_type){
             #endif
 
             // 草刈り走行!!
+
+            // test by nishi 2024.10.5
+            if(ml_data_ == true)
+                ml_planer.make_plann(e_x,e_y,true);
 
             if(all_nav2_ == false){
                 //if(move_abs_auto_select_check(l_x,l_y,r_yaw,robo_radian_marker_)==1){

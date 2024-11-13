@@ -1,5 +1,5 @@
 /*
-* com_def.h
+* com_def.hpp
 */
 
 #ifndef COM_DEF_HPP

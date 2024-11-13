@@ -66,6 +66,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "pro_control_sub.hpp"
+#include "ml_planner.hpp"
 
 // mulit_goals_sub.hpp の方で、定義します。
 #if defined(DEFINE_THIS_PARAM)
@@ -130,6 +131,7 @@ public:
     float obstacle_eye_range_ = 0.4; // add by nishi 2024.9.27
 
     bool map_orient_fix_=true;  // add by nishi 2024.9.25
+    bool ml_data_ = false;      // add by nishi 2024.10.8
 
     //! The node handle we'll be using
     //ros::NodeHandle nh_;
@@ -152,6 +154,10 @@ public:
     GetMap get_map;
     // add by nishi 2024.9.1
     GetMap get_costmap;
+
+    // add by nishi 2024.10.5
+    GetMap get_gcostmap;
+    ml_planner::MlPlanner ml_planer;
 
     ProControl(){}
 

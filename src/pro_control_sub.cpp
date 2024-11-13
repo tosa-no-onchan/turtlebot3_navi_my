@@ -734,7 +734,7 @@ void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
 * https://yomi322.hateblo.jp/entry/2012/04/17/223100
 * https://qiita.com/usagi/items/3563ddb01e4eb342485e
 */
-bool GetMap::get(bool save_f){
+bool GetMap::get(bool save_f,bool revers_f){
     int cnt=3;
     // for ROS
     //std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map=nullptr;
@@ -807,6 +807,9 @@ bool GetMap::get(bool save_f){
 
         //conv_fmt2(map);
         saveMap(map,save_f);
+        if(revers_f==true){
+            saveMapRaw(map);
+        }
 
         //2. 障害物を、2値画像 and 反転します。 add by nishi 2022.8.13
         //int thresh = 120;
@@ -938,6 +941,58 @@ free_thresh: 0.196
     //ROS_INFO("Done\n");
     //saved_map_ = true;
 }
+
+/*-----------------
+* class GetMap
+* saveMapRaw()
+*  生データを保存する
+*
+* https://answers.ros.org/question/163801/how-to-correctly-convert-occupancygrid-format-message-to-image/
+*
+* http://docs.ros.org/en/lunar/api/nav_msgs/html/msg/OccupancyGrid.html
+* 
+# The map data, in row-major order, starting with (0,0).  Occupancy
+# probabilities are in the range [0,100].  Unknown is -1.
+*  int8[] data
+-------------------*/
+void GetMap::saveMapRaw(const nav_msgs::msg::OccupancyGrid &map){
+    mat_map_raw_ = cv::Mat::zeros(map.info.height,map.info.width,CV_8UC1);
+    for(unsigned int y = 0; y < map.info.height; y++) {
+        unsigned int y2 = map.info.height - 1 - y;
+        for(unsigned int x = 0; x < map.info.width; x++) {
+            unsigned int i = x + (y * map.info.width);
+            unsigned int j = x + (y2 * map.info.width);
+            mat_map_raw_.data[j] = FREE_AREA;
+            //if(map.data[i]==0){
+            //    mat_map_raw_.data[j] = FREE_AREA;
+            //}
+            // Unknown is -1
+            //else if (map.data[i] < 0) {     // 未チェック領域
+            //    //fputc(128, out);
+            //    mat_map_raw_.data[j] = UNKNOWN_AREA;
+            //}
+            //else{                       // 障害領域
+            //    mat_map_raw_.data[j] = 100-map.data[i];
+            //}
+            // 100 -> black
+            //   0 -> white
+            // 黒 -> グレー の グラデーションにしたい。
+            //if(map.data[i] > 90){   // 障害領域
+            //if(map.data[i] > 95){   // 障害領域
+            if(map.data[i] > 97){   // 障害領域
+                char dtx = 100-map.data[i];
+                //mat_map_raw_.data[j] = dtx*6;
+                mat_map_raw_.data[j] = dtx*40;
+            }
+        }
+    }
+
+    //cv::imshow("ml_mat_map_raw_", mat_map_raw_);
+    //cv::waitKey(100);
+
+
+}
+
 
 /*-------------------------
 * class GetMap
@@ -1356,16 +1411,16 @@ int GetMap::cource_obstacle_eye(float s_x,float s_y,float d_x,float d_y,float ro
     // 両端を少し、扁平にしたいけど?
     cv::line(mask, sp, dp, cv::Scalar(255), p_robo_radian*2, cv::LINE_AA);
 
-    #define CHK_COURCE_OBSTACLE_TEST1
+    //#define CHK_COURCE_OBSTACLE_TEST1
     #if defined(CHK_COURCE_OBSTACLE_TEST1)
-        cv::imshow("mat_bin_map_", mat_bin_map_);
+        cv::imshow("eye_bin_map_", mat_bin_map_);
         cv::waitKey(100);
         //cv::destroyAllWindows();
     #endif
 
-    #define CHK_COURCE_OBSTACLE_TEST2
+    //#define CHK_COURCE_OBSTACLE_TEST2
     #if defined(CHK_COURCE_OBSTACLE_TEST2)
-        cv::imshow("mask", mask);
+        cv::imshow("eye_mask", mask);
         cv::waitKey(100);
         //cv::destroyAllWindows();
     #endif
@@ -1374,7 +1429,7 @@ int GetMap::cource_obstacle_eye(float s_x,float s_y,float d_x,float d_y,float ro
     mat_bin_map_.copyTo(result2,mask);
 
     #if defined(CHK_COURCE_OBSTACLE_TEST2)
-        cv::imshow("result2", result2);
+        cv::imshow("eye_result2", result2);
         cv::waitKey(100);
         //cv::destroyAllWindows();
     #endif

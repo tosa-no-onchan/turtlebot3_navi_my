@@ -49,10 +49,14 @@ void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_costmap){
     if(use_costmap_==true){
         //get_costmap.init(node,get_map_func_,"local_costmap/costmap");
         get_costmap.init(node,get_map_func_,"local_costmap/costmap",false); // changed by nishi 2024.9.26
+        get_gcostmap.init(node,get_map_func_,"global_costmap/costmap",false); // changed by nishi 2024.10.5
     }
 
     // add by nishi 2024.9.4
     drive_cmd.set_map(&get_costmap);
+
+    // add by nishi 2024.10.5
+    ml_planer.init(node_, drive_, &get_gcostmap);
 
     std::cout << "ProControl::init():#2 " << std::endl;
 

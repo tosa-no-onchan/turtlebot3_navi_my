@@ -29,6 +29,11 @@
 #   $ export TURTLEBOT3_MODEL=waffle
 #   $ . /usr/share/gazebo/setup.sh
 #   $ ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py
+#
+#   Gass Station
+#     ~/colcon_ws/src/turtlebot3_simulations/turtlebot3_gazebo/launch/turtlebot3_world_nav_nishi2.launch.py
+#    $ ros2 launch turtlebot3_gazebo turtlebot3_world_nav_nishi2.launch.py
+#
 #   how to kill Gazeb server
 #   $ killall gzserver
 #
@@ -50,7 +55,7 @@
 #   $ ros2 launch turtlebot3_navi_my go_auto_map.launch.py use_sim_time:=True
 #
 #  6. C++ Auto Mower [localization and  navigation]
-#   $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True cource_width:=20 [plann_test:=True]
+#   $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True cource_width:=20 [plann_test:=True] [ml_data:=True]
 #
 # append.
 # how to map save

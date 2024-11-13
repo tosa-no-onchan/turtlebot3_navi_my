@@ -405,3 +405,39 @@ void GetTF::get2(int func,const std::string& target_frame, const std::string& so
     }
 }
 
+/**
+* @brief フォルダ以下のファイル一覧を取得する関数
+* @param[in]    folderPath  フォルダパス
+* @param[out]   file_names  ファイル名一覧
+* return        true:成功, false:失敗
+*
+* https://phst.hateblo.jp/entry/2019/02/17/003027
+* https://qiita.com/tes2840/items/8d295b1caaf10eaf33ad
+* sort
+* https://cpprefjp.github.io/reference/algorithm/sort.html
+*/
+bool getFileNames(std::string folderPath, std::vector<std::string> &file_names)
+{
+    //using namespace std::filesystem;
+    namespace fs = std::filesystem;
+
+    fs::path path1(folderPath);
+
+    // https://en.cppreference.com/w/cpp/filesystem/path/filename
+
+    //ファイルをリスト化
+    if (fs::is_directory(path1)) {
+        //std::cout << "Directory: " << fs::absolute(path1).string() << std::endl;
+        //std::cout << "Files: " << std::endl;
+        auto dir_it = fs::directory_iterator(path1);
+        for (auto &p : dir_it) {
+            std::string s = p.path().filename().string();
+            //std::cout <<" p.path().filename().string():"<< s << std::endl;
+            file_names.push_back(s);
+        }
+    }
+    else
+        return false;
+
+    return true;
+}

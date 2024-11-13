@@ -122,6 +122,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr subscript_;
 
     // https://qiita.com/hmito/items/db3b14917120b285112f
+    // https://docs.ros2.org/foxy/api/nav_msgs/msg/OccupancyGrid.html
     std::shared_ptr<nav_msgs::msg::OccupancyGrid> map_ptr_;
     int map_ptr_cnt_=0;
     int func_;
@@ -133,6 +134,8 @@ public:
     cv::Mat mat_map_;
     cv::Mat mat_bin_map_;   // map 障害物の　2値化
     cv::Mat mat_bin_free_map_;  // map 非障害物の 2値化
+
+    cv::Mat mat_map_raw_;    // mat_map_ の上下逆転 toicp の生データ add by nishi 2024.10.5
     //Yaml yaml_;
     MapM mapm_;
 
@@ -158,7 +161,7 @@ public:
     * https://answers.ros.org/question/293890/how-to-use-waitformessage-properly/
     * http://docs.ros.org/en/lunar/api/nav_msgs/html/msg/OccupancyGrid.html
     */
-    bool get(bool save_f=false);
+    bool get(bool save_f=false,bool revers_f=false);
 
     /*
     * conv_fmt2(nav_msgs::OccupancyGrid_ map_msg)
@@ -168,6 +171,8 @@ public:
 
     //void saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
     void saveMap(const nav_msgs::msg::OccupancyGrid &map,bool save_f=false);
+
+    void saveMapRaw(const nav_msgs::msg::OccupancyGrid &map);
 
     void check_collision(float x,float y,float &ox,float &oy,int r=5,int func=0);
 

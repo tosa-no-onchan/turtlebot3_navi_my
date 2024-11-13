@@ -38,7 +38,8 @@ find_package(tf2_geometry_msgs REQUIRED)
 add_executable(multi_goals4_cmd_vel 
   src/multi_goals4_cmd_vel.cpp 
   src/pro_control.cpp
-  src/pro_control_sub.cpp 
+  src/pro_control_sub.cpp
+  src/ml_planner.cpp 
   src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
 target_compile_options(multi_goals4_cmd_vel PRIVATE -Wno-unused-parameter)
@@ -57,7 +58,8 @@ add_executable(subscribe_test src/subscribe_test.cpp src/com_lib.cpp)
 
 add_executable(multi_goals4_nav2 src/multi_goals4_nav2.cpp 
   src/pro_control.cpp 
-  src/pro_control_sub.cpp 
+  src/pro_control_sub.cpp
+  src/ml_planner.cpp 
   src/robot_driveNAV2.cpp 
   src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
@@ -68,7 +70,8 @@ target_compile_options(multi_goals4_nav2 PRIVATE -Wno-unused-parameter)
 
 add_executable(go_auto_map src/go_auto_map.cpp 
   src/pro_control.cpp 
-  src/pro_control_sub.cpp 
+  src/pro_control_sub.cpp
+  src/ml_planner.cpp 
   src/pro_control_map.cpp 
   src/robot_driveNAV2.cpp 
   src/robot_driveCmd_Vel.cpp 
@@ -81,7 +84,8 @@ target_compile_options(go_auto_map PRIVATE -Wno-unused-parameter)
 
 add_executable(go_auto_mower src/go_auto_mower.cpp 
   src/pro_control.cpp 
-  src/pro_control_sub.cpp 
+  src/pro_control_sub.cpp
+  src/ml_planner.cpp 
   src/pro_control_mower.cpp 
   src/robot_driveNAV2.cpp 
   src/robot_driveCmd_Vel.cpp 

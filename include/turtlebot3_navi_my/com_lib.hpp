@@ -21,6 +21,8 @@
 #include <string>
 #include <math.h>
 
+#include <filesystem>
+
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/u_int32.hpp"
@@ -99,6 +101,18 @@ float reverse_tf_rz(float rz);
 
 
 float adjust_tf_rz(float stop_rz,float r_theta,float _rz);
+
+/**
+* @brief フォルダ以下のファイル一覧を取得する関数
+* @param[in]    folderPath  フォルダパス
+* @param[out]   file_names  ファイル名一覧
+* return        true:成功, false:失敗
+*
+* https://phst.hateblo.jp/entry/2019/02/17/003027
+* https://qiita.com/tes2840/items/8d295b1caaf10eaf33ad
+*/
+bool getFileNames(std::string folderPath, std::vector<std::string> &file_names);
+
 
 class HeartBeat{
 public:

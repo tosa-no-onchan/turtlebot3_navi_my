@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-# turtlebot3_navi_my/launch/go_auto_mower.launch.py
+# turtlebot3_navi_my/launch/go_auto_mower_foxbot.launch.py
+#  for foxbot_core
 #
 # 1. build on SBC and PC
 #  $ colcon build --symlink-install --parallel-workers 1 --packages-select turtlebot3_navi_my
 #  $ . install/setup.bash
 #
 # 2. run
-# $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py
+# $ ros2 launch turtlebot3_navi_my go_auto_mower_foxbot.launch.py
 #
 import os
 
@@ -38,23 +39,22 @@ def generate_launch_description():
         DeclareLaunchArgument('threshold',default_value='250.0', description='White threshold'),
         DeclareLaunchArgument('plann_test',default_value='false', description='Plann create test'),
         DeclareLaunchArgument('all_nav2',default_value='false', description='All Navigation2 cotroll'),
-        DeclareLaunchArgument('robo_radius',default_value='0.3', description='robot radius [M]'),
-        DeclareLaunchArgument('cource_width',default_value='8', description='robot runs lines width [dot]'),
-        DeclareLaunchArgument('safe_margin',default_value='5', description='safe_margin robot side [dot]'),
+        DeclareLaunchArgument('robo_radius',default_value='0.2', description='robot radius [M]'),
+        DeclareLaunchArgument('cource_width',default_value='4', description='robot runs lines width [dot]'),
+        DeclareLaunchArgument('safe_margin',default_value='4', description='safe_margin robot side [dot]'),
         DeclareLaunchArgument('safe_margin_dt',default_value='5', description='safe_margin_dt direction of travel [dot]'),
         DeclareLaunchArgument('min_path_width_n',default_value='2', description='minimum path width factor N[times]'),
         # 狭小エリア minumum factor  最小幅 = safe_margin_dt*2+robot raius*min_path_width_n
-        DeclareLaunchArgument('r_lng',default_value='0.6', description='obstacle aroud robot check radius [M]'),
-        DeclareLaunchArgument('move_l',default_value='0.12', description='robot escape distance [M]'),
+        DeclareLaunchArgument('r_lng',default_value='0.25', description='obstacle aroud robot check radius [M]'),
+        DeclareLaunchArgument('move_l',default_value='0.06', description='robot escape distance [M]'),
 
-        DeclareLaunchArgument('robo_radian_marker',default_value='0.2', description='robot obstacle check maker [M]'),
+        DeclareLaunchArgument('robo_radian_marker',default_value='0.1', description='robot obstacle check maker [M]'),
         DeclareLaunchArgument('obstacle_eye_start',default_value='0.05', description='obstacle check eye start distance [M]'),
         DeclareLaunchArgument('obstacle_eye_stop',default_value='0.05', description='obstacle check eye stop distance [M]'),
         DeclareLaunchArgument('obstacle_eye_range',default_value='0.4', description='obstacle check eye range distance [M]'),
 
         DeclareLaunchArgument('map_orient_fix',default_value='true', description='local costmap global_frame:map or base_footpront'),
         DeclareLaunchArgument('ml_data',default_value='false', description='ML data collection'),
-
 
         Node(
             package='turtlebot3_navi_my',executable='go_auto_mower',output="screen",
