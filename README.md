@@ -81,6 +81,7 @@ Turtlebot3 amcl and scan の launch を追加しました。
     $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py [use_sim_time:=True] 
 
 #### 3. 各 C++プログラムのコースを設定する。  
+/cmd_vel と、navigation2 は、GoalList xxxlist[] を書き換えれば、自由にロボットをうごかせるぞね。  
 
     1) /cmd_vel  
     src/multi_goals4_cmd_vel.cpp の GoalList goallist[] で、指定する。  
