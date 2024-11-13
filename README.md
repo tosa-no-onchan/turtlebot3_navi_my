@@ -59,7 +59,7 @@ Turtlebot3 amcl and scan の launch を追加しました。
     1) ROS2 Gazebo Turtlebot3 、 ROS2 Turtlebot3 、 自作 Turtlebot3(foxbot_core3_r2.ino) を起動しておく。  
 
   launch ファイル  
-  launch/turtlebot3_amcl_scan.launch.py  -- Turtlebot3 original slam,localization and navigation launch  
+  [launch/turtlebot3_amcl_scan.launch.py](https://github.com/tosa-no-onchan/rtabmap_ros_my/blob/main/launch/turtlebot3_rgbd_sync.launch.py)  -- Turtlebot3 original slam,localization and navigation launch  
   [tosa-no-onchan/rtabmap_ros_my](https://github.com/tosa-no-onchan/rtabmap_ros_my)  -- Rtabmap_ros Depth Camera launch  
 
 
