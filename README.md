@@ -79,13 +79,76 @@ Turtlebot3 amcl and scan の launch を追加しました。
 
     $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py [use_sim_time:=True] 
 
-#### 3. コースを設定。  
+#### 3. 各 C++プログラムのコースを設定する。  
 
     1) /cmd_vel  
-    multi_goals4_cmd_vel.cpp の GoalList goallist[] で、指定する。  
+    src/multi_goals4_cmd_vel.cpp の GoalList goallist[] で、指定する。  
+    テーブルの中味を変えれば、自由にロボットを動かせる。  
+    こちらは、/cmd_vel を使って、ロボットを動かせる。  
+    こちらは、/cmd_vel が使えれば、動かせる。  
+```
+GoalList goallist[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON use local cost map
+            //{82, 0.0, 0.0, 0.0},      // disable error auto stop
+            //{0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
+            {2, 0.0, 0.0, 90.0},  // rotate 90
+            {2, 0.0, 0.0, 180.0},  // rotate 180
+            {2, 0.0, 0.0, 270.0},  // rotate 270
+            {2, 0.0, 0.0, 360},   // rotate 360
+
+            //{50,0.0,0.0, 0.0},      // set Navigation mode
+            //{22,0.0,0.0, 0.0},      // get map
+            //{99,0.0,0.0, 0.0},      // end
+
+            {0,1.0,0.0, 0.0},      // go (1.0,0.0) and rotate 0
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            {2,1.0,0.0, 270.0},    // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            //{2,0.0,0.0, 0.0},
+            //{99,0.0,0.0, 0.0},      // end
+
+            {0,2.0,0.0, 0.0},      // go (2.0,0.0) and rotate 0
+            {2,2.0,0.0, 90.0},     // rotate 90
+
+            {0,2.0,0.4, 90.0},     // go (2.0,0.4) and rotate 90
+            {2,2.0,0.4, 180.0},    // rotate 180
+            {2,2.0,0.4, 270.0},    // rotate 270
+
+            {0,2.0,0.0, 270.0},    // go (2.0,0.0) and rotate 270
+            {2,2.0,0.0, -180.0},   // rotate -180
+            //{99,0.0,0.0, 0.0},      // end
+
+            //{50,0.0,0.0, 0.0},     // set Navigation mode
+
+            //{2,0.0,0.0, 0.0},
+            //{99,0.0,0.0, 0.0},
+
+            //{50,0.0,0.0, 0.0},
+
+            {0,1.0,0.0, -180.0 },  // go (1.0,0.0) and rotate -180
+            {2,1.0,0.0, 270.0 },   // rotate 270
+            {2,1.0,0.0, 360.0},    // rotate 360
+            {2,1.0,0.0, 90.0},     // rotate 90
+            {2,1.0,0.0, 180.0},    // rotate 180
+            //{2,0.0,0.0, 0.0},
+
+            {0,0.0,0.0, 180.0},    // (0.0,0.0) and rotate 180
+            {2,0.0,0.0, 270.0},    // rotate 270
+            {2,0.0,0.0, 360.0},    // rotate 360
+            //{22,0.0,0.0, 0.0},
+            {99,0.0,0.0, 0.0}       // end
+            };
+```
 
     2) navigation2  
-    mulit_goals4_nav2.cpp の GoalList goallist[] で、指定する。  
+    src/mulit_goals4_nav2.cpp の GoalList goallist[] で、指定する。  
+    テーブルの中味を変えれば、自由にロボットを動かせる。  
+    こちらは、ROS2 Navigation2 を使って、ロボットを動かせる。  
+    なので、Navigation 用の launch が必要。  
 ```
 GoalList goallist[] ={
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
@@ -148,6 +211,11 @@ GoalList turtlebot3_auto_map_achor[] ={
 ```   
     4) Auto Mower  
     src/go_auto_mower.cpp の GoalList turtlebot3_auto_mower[] で指定する。  
+    こちらは、/cmd_vel と Navigation2 を適宜使って、ロボットを動かす。  
+    ROS2 Navigation2 と Static Map が必要。  
+    こちらは、{35,0.0,0.0, 0.0},        // Auto Mower  
+    で、全て、 src/pro_control_mower.cpp で実行する。  
+    カスタマイズするのであれば、src/pro_control_mower.cpp の方をいじる。  
 ```
 // Auto Mower ( nav2 and cmd_vel mode)
 GoalList turtlebot3_auto_mower[] ={
