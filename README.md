@@ -176,7 +176,7 @@ GoalList turtlebot3_auto_map_achor[] ={
 
 2024.11.13 Version r5  
 
-    1) Support automower save the obsatcle image files ,which are the part of Global cost map.  
+    1) Support automower saves the obsatcle image files ,which are the part of Global cost map.  
     They are used for trained data of opp_with_lstm and opp_with_transformer_cpp.  
 
     i) Edit turtlebot3_navi_my/include/ml_planner.hpp  
