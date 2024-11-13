@@ -176,7 +176,16 @@ GoalList turtlebot3_auto_map_achor[] ={
 
 2024.11.13 Version r5  
 
-    1) support automower save the obsatcle image files ,which are the part of Global cost map.  
+    1) Support automower save the obsatcle image files ,which are the part of Global cost map.  
     They are used for trained data of opp_with_lstm and opp_with_transformer_cpp.  
+
+    i) Edit turtlebot3_navi_my/include/ml_planner.hpp  
+    std::string data_path_="/home/nishi/colcon_ws/src/turtlebot3_navi_my/ml_data/image";  // chage for your pc path.  
+    
+    $ colcon build --symlink-install --parallel-workers 1 --packages-select turtlebot3_navi_my  
+    $ . install/setup.bash  
+
+    ii) run accroding to top memo of turtlebot3_navi_my/launch/turtlebbot3_amcl_scan.launch.py   
+    $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True ml_data:=True
     
     
