@@ -173,5 +173,10 @@ GoalList turtlebot3_auto_map_achor[] ={
 
     1) Auto Mower , Turtlebot3 amcl and scan の launch を追加しました。  
     launch/turtlebot3_amcl_scan.launch.py  
+
+2024.11.13 Version r5  
+
+    1) support automower save the obsatcle image files ,which are the part of Global cost map.  
+    They are used for trained data of opp_with_lstm and opp_with_transformer_cpp.  
     
     
