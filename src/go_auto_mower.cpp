@@ -28,8 +28,9 @@ GoalList test_obstacle_escape[] ={
             //{0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, -90.0},      // rotate -90
             {1, 0.0, -0.7, -90.0},     // go_abs(x, y)
-            //{2, 0.0, -0.7, 0.0},      // rotate 0
-            {2, 0.0, -0.7, -45.0},      // rotate -45.0
+            //{2, 0.0, -0.7, 0.0},      // rotate 0       right obstacle test  -> OK 2025.1.1
+            {2, 0.0, -0.7, -180.0},      // rotate -180   left obstacle test  ->  OK 2025.1.1
+            //{2, 0.0, -0.7, -45.0},      // rotate -45.0
             //{2, 0.0, 0.0, 270.0},     // rotate 270
             //{2, 0.0, 0.0, 0.0},       // rotate 360
             //{10,0.0,1.0,90.0},         // navi move
@@ -93,7 +94,7 @@ int main(int argc, char **argv){
     ProControlMower mg_ex;
     mg_ex.init(node);
 
-    mg_ex.mloop_ex(turtlebot3_auto_mower);
+    mg_ex.mloop_ex(turtlebot3_auto_mower);  // こちらが、通常
     //mg_ex.mloop_ex(turtlebot3_auto_mower2);
     //mg_ex.mloop_ex(test_obstacle_escape);
 

@@ -86,10 +86,11 @@ bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp);
 void check_collision(float x,float y,float &ox,float &oy,cv::Mat& mat_bin_map,MapM& mapm,int func);
 #endif
 //void gridToWorld(int gx, int gy, float& wx, float& wy,Yaml& yaml);
-void gridToWorld(int gx, int gy, float& wx, float& wy,MapM& mapm);
+void gridToWorld(int gx, int gy, float& wx, float& wy,MapM& mapm,bool y_reverse=true);
 //bool worldToGrid(float wx, float wy,int& gx,int& gy,Yaml& yaml);
-bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm);
+bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm,bool y_reverse=true);
 
+bool tf_world2MatMap(float w_x, float w_y,int& m_x,int& m_y,MapM& mapm,bool y_reverse=true);
 
 /*----------------------------
 - class GetMap
@@ -97,17 +98,12 @@ bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm);
 class GetMap
 {
 private:
-    //ros::NodeHandle nh_;
     std::shared_ptr<rclcpp::Node> node_;
-
-    //ros::Subscriber _sub;
-
     int _free_thresh;
 
     int _line_w;
     int _car_r;
     bool _match_rviz;
-
 
     //nav_msgs::MapMetaData map_info;
 
@@ -140,45 +136,48 @@ public:
     MapM mapm_;
 
     double org_x,org_y;
-
     bool init_ok=false;     // add by nishi 2024.9.4
 
     bool is_static_map_=true;   // map_frmae="map" の時 true    add by nishi 2-24.9.26
     bool map_orient_fix_=true;   // costmap の時の、方角の基準 add by nishi 2024.9.26
                                 // true -> global_frame: map
                                 // false -> global_frame: base_footprint
+    bool y_reverse_=false;      // for saveMap() mat_map_  default y order by nishi 2024.12.30
     GetMap(){}
 
-    //void init(ros::NodeHandle &nh,std::string map_frame="map");
     //void init(std::shared_ptr<rclcpp::Node> node, int func=0, std::string map_frame="map",bool is_static_map=true,bool map_orient_fix=true);
     void init(std::shared_ptr<rclcpp::Node> node, int func=0, std::string map_frame="map",bool is_static_map=true);
     //void init(std::shared_ptr<rclcpp::Node> node,std::string map_frame="/map");
 
     void topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg);
 
- 
-    /*
+     /*
+    * get(bool save_f=false,bool costmap_f=false, bool reverse_f=true)
+    *   bool save_f :  true -> save 
+    *   bool inflation_f : true -> get costmap reduced inflation size
+    *   bool y_reverse  : y axis reverse
+    *       true -> map => cv::Mat 変換で、y軸を逆順にコピーする。 
+    *           見た目 Rviz2 と同じ。
+    *           y_map = y_cv::Mat が一致するので処理するには簡単。
+    *           map saver の通常の保存時の処理。
+    *       false -> map => cv::Mat 変換で、y軸をそのままコピーする。 
+    *           見た目 Rviz2 と、上下逆になる。
+    *           y_map = map_height - y_cv::Mat - 1 の関係になる。
+    * 
     * https://answers.ros.org/question/293890/how-to-use-waitformessage-properly/
     * http://docs.ros.org/en/lunar/api/nav_msgs/html/msg/OccupancyGrid.html
     */
-    bool get(bool save_f=false,bool revers_f=false);
+    bool get(bool save_f=false, bool inflation_f=false, bool y_reverse=true, int inf_size=97);
 
     /*
     * conv_fmt2(nav_msgs::OccupancyGrid_ map_msg)
     */
-    //void conv_fmt2(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
     void conv_fmt2(std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map);
-
-    //void saveMap(boost::shared_ptr<const nav_msgs::OccupancyGrid_<std::allocator<void>>> map);
     void saveMap(const nav_msgs::msg::OccupancyGrid &map,bool save_f=false);
-
-    void saveMapRaw(const nav_msgs::msg::OccupancyGrid &map);
-
+    void saveMapRaw(const nav_msgs::msg::OccupancyGrid &map, bool y_reverse=true, int inf_size=97);
     void check_collision(float x,float y,float &ox,float &oy,int r=5,int func=0);
-
     int check_obstacle(float x,float y,float rz,float r_lng,int func=0,int black_thresh=15);
     int cource_obstacle_eye(float s_x,float s_y,float d_x,float d_y,float robo_radian_marker,int black_thresh=15,float check_range=0.4);
-
     void test_plot(float x,float y,float r_yaw,float robot_r=0.3, std::string sub_title="");
 
     #ifdef XXXX_X

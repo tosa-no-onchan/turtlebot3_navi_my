@@ -73,6 +73,13 @@ public:
     * bool get_tf(int func)
     */
     virtual bool get_tf(int func=0){return true;};
+
+    /*
+    int go_path(Path_plan *path_plan, bool obs_chk=true, float speed=0.05)
+    path_plan に従った走行をする。
+    */
+    virtual int go_path(Path_plan *path_plan, bool obs_chk=true, float speed=0.05){return 0;};
+
     /*
     go_abs(x,y,isBack=falsse,speed=0.05)
     直進する。
@@ -116,7 +123,6 @@ public:
         obstacle_eye_range_=obstacle_eye_range;
     }
 
-    //void st_dumy();
 
 
 

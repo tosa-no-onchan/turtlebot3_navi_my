@@ -55,7 +55,8 @@
 #   $ ros2 launch turtlebot3_navi_my go_auto_map.launch.py use_sim_time:=True
 #
 #  6. C++ Auto Mower [localization and  navigation]
-#   $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True cource_width:=20 [plann_test:=True] [ml_data:=True]
+#   $ export LD_LIBRARY_PATH=/home/nishi/usr/local/lib/tensorflow-2.16.2-lite-flex:$LD_LIBRARY_PATH
+#   $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True cource_width:=18 [plann_test:=True] [ml_data:=True] [opp_on:=True]
 #
 # append.
 # how to map save
@@ -73,7 +74,6 @@ from launch_ros.actions import Node
 from launch.conditions import IfCondition, UnlessCondition
 
 #TURTLEBOT3_MODEL = os.environ['TURTLEBOT3_MODEL']
-
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')

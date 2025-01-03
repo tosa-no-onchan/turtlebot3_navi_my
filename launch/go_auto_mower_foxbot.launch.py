@@ -55,6 +55,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument('map_orient_fix',default_value='true', description='local costmap global_frame:map or base_footpront'),
         DeclareLaunchArgument('ml_data',default_value='false', description='ML data collection'),
+        DeclareLaunchArgument('opp_on',default_value='false', description='Opp with Lstm ON'),
 
         Node(
             package='turtlebot3_navi_my',executable='go_auto_mower',output="screen",
@@ -82,6 +83,7 @@ def generate_launch_description():
 
                          "map_orient_fix": LaunchConfiguration('map_orient_fix'),
                          "ml_data": LaunchConfiguration('ml_data'),
+                         "opp_on": LaunchConfiguration('opp_on'),
                         }
             ]
         )

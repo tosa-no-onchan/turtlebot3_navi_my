@@ -45,15 +45,16 @@ typedef struct{
 
 /*-----------------------
 Robo_Slice classify table
-  ロボットの走行ラインブロブの分類テーブル
+  ロボットの走行ラインブロブ(走行ブロック)の分類テーブル
 ------------------------*/
 typedef struct{
     int ctl;        // 制御情報 : -1 > 無効
     int blob_n;     // ブロブ番号
     cv::Point g;    // ブロブの重心点
-    std::vector<Robo_Slice_Compat> robo_slice_vec;  // このブロブに属する、 Robo_Slice
+    // このブロブ(走行ブロック)に属する、 Robo_Slice。このベクターの登録順に、ロボットが走行します。
+    // この走行ブロックの中で、走行順を逆にするには、このベクターを逆にします。 by nishi 2025.1.3
+    std::vector<Robo_Slice_Compat> robo_slice_vec;
 } Robo_Slice_Clast;
-
 
 /*-----------------------
 Robo_Cource Plan
@@ -65,12 +66,10 @@ typedef struct{
     float dist;     // ロボットからの距離 -> 単純に、top-left から、 down -> left の順が良いかも
 } Cource_Plan;
 
-
 bool compare_Cource_Plan_dist_min(Cource_Plan &s1,Cource_Plan &s2);
 //bool compare_Cource_Plan_dist_min(Cource_Plan &s1,Cource_Plan &s2){
 //    return s1.dist < s2.dist;
 //}
-
 
 /*
 * Contours Builder
@@ -98,8 +97,10 @@ public:
     //  double threshold_val_=200;      // Stereo Camera で Map すると グレー領域(未知領域) になるので、205 
 
     cv::Mat  map_gray_;
-    std::vector<Robo_Slice_Clast> robo_slice_clast_vec_;     // ロボットの走行ラインの分類テーブル
-    std::vector<Cource_Plan> cource_plan_vec_;       // ロボット走行プラン
+    std::vector<Cource_Plan> cource_plan_vec_;       // ロボット走行プラン 全体の走行順(走行ブロックの処理順)。
+    std::vector<Robo_Slice_Clast> robo_slice_clast_vec_;     // ロボットの走行ラインの分類テーブル(走行ブロック)
+
+    bool courser_revers_ = true;    // 同一走行ラインの分類テーブル(走行ブロック) の中での走行順位を逆にする。 add by nishi 2025.1.3
 
     int rows_;
     int cols_;
@@ -262,6 +263,7 @@ public:
             cv::ellipse(tmp_slice_center, rect1, cv::Scalar(255), -1, cv::LINE_AA);
         }
 
+        // 引いたラインで重なる部分が確認できる。重なったラインは、同一ブロブとして纏められる。
         //#define TEST_SLICE_1
         #if defined(TEST_SLICE_1)
             cv::imshow("tmp_slice_center", tmp_slice_center);
@@ -373,6 +375,7 @@ public:
                 //robo_slice_clast_vec_[blob_n].robo_slice_vec.reserve(20);
                 robo_slice_clast_vec_[blob_n].robo_slice_vec.reserve(5);
             }
+            // 同じ走行グループ[blob_n] 毎に、走行ラインを纏める。
             robo_slice_clast_vec_[blob_n].robo_slice_vec.push_back(slice_compat);
         }
         // 検証してみる。
@@ -406,7 +409,8 @@ public:
                 #else
                     // 左上から、下 - 右 の順
                     // 注) y 軸は、上下逆にする -> 昇順ソートでうまく処理出来ない
-                    cplan.dist =(float)(x*rows_ + (rows_ -y));
+                    //cplan.dist =(float)(x*rows_ + (rows_ -y));      // これは、間違いでは?  2025.1.2
+                    cplan.dist =(float)(x*rows_ + y);      // こちらにする。 by nishi 2025.1.2
                 #endif
                 cplan.blob_n = robo_slice_clast_vec_[i].blob_n;
                 cource_plan_vec_.push_back(cplan);
@@ -416,6 +420,16 @@ public:
         // dist でソート 小さい順
         std::sort(cource_plan_vec_.begin(),cource_plan_vec_.end(),compare_Cource_Plan_dist_min);
 
+        // 6 同一走行ラインの分類テーブル内 の走行順位を変更する。add by nishi 2025.1.3
+        // robo_slice_clast_vec_[n].robo_slice_vec の登録順に走行順が決まる。
+        // 同一走行ラインの分類テーブル の中での走行順位を逆にする。
+        if(courser_revers_ == true){
+            for( size_t i = 0; i< cource_plan_vec_.size(); i++ ) {
+                int blob_n = cource_plan_vec_[i].blob_n;
+                if(robo_slice_clast_vec_[blob_n].robo_slice_vec.size() > 0)
+                    std::reverse(robo_slice_clast_vec_[blob_n].robo_slice_vec.begin(), robo_slice_clast_vec_[blob_n].robo_slice_vec.end());
+            }
+        }
 
         // 描画して、検証してみる
         //#define USE_COURSE_DISP
@@ -433,9 +447,13 @@ public:
                 cv::Scalar color = cv::Scalar(tmp_rng.uniform(0, 256), tmp_rng.uniform(0,256), tmp_rng.uniform(0,256));
                 // 該当 Robo_Slice_Clast を処理
                 // ここは、ロボットの今の位置から近い順にしたほうが良いみたい。
+                // ここの処理順によって、同一ブロブ内の走行順が決まる。いまは、逆になっているみたい。 by nishi 2025.1.3
                 for(size_t j = 0; j < robo_slice_clast_vec_[blob_n].robo_slice_vec.size(); j++){
-                    cv::Point f = robo_slice_clast_vec_[blob_n].robo_slice_vec[j].f;
-                    cv::Point l = robo_slice_clast_vec_[blob_n].robo_slice_vec[j].l;
+                    int p=j;    // 下石成の順番
+                    // 逆に順にする。
+                    //p = robo_slice_clast_vec_[blob_n].robo_slice_vec.size() - j -1;
+                    cv::Point f = robo_slice_clast_vec_[blob_n].robo_slice_vec[p].f;
+                    cv::Point l = robo_slice_clast_vec_[blob_n].robo_slice_vec[p].l;
                     // 線を引く
                     // # line(画像, 始点座標, 終点座標, 色, 線幅, 連結)
                     //cv::line(image, p1, p2, cv::Scalar(255, 0, 0), lineWidth, lineType);
@@ -451,7 +469,6 @@ public:
 
         tmp_slice_center.release();
         tmp_center_blob_assign.release();
-
         tmp_center_blob_vec.clear();
     }
 
@@ -511,12 +528,13 @@ public:
             cv::line(tmp_line_mask,cv::Point(tl.x,i),cv::Point(br.x,i),cv::Scalar(255),1);
         }
 
-        //cv::imshow("line_mask", line_mask);
+        //cv::imshow("tmp_line_mask", tmp_line_mask);
         //cv::waitKey(0);
 
         // 2.2 binary と　ラインのマスク の AND を取って 走行ラインを求める
         cv::bitwise_and(tmp_binary,tmp_line_mask,tmp_lines);
 
+        // 対象となる、走行ラインが確認できる。 by nishi 2025.1.1
         //#define LINE_SLICE_TEST1
         #if defined(LINE_SLICE_TEST1)
             cv::imshow("tmp_lines", tmp_lines);

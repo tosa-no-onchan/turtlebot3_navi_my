@@ -66,7 +66,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "pro_control_sub.hpp"
-#include "ml_planner.hpp"
+//#include "ml_planner.hpp"
 
 // mulit_goals_sub.hpp の方で、定義します。
 #if defined(DEFINE_THIS_PARAM)
@@ -100,7 +100,6 @@ private:
 
     u_int8_t t_type;
 
-
     GoalList *_goalList;
     GoalList2 *_goalList2;
 
@@ -111,7 +110,6 @@ private:
     float start_rot_rz;   // start 時の tf-map への オフセット 角度 add by nishi 2022.11.15
 
     tf2::Vector3 cur_pos;
-
 
     int get_map_func_=0;
 
@@ -132,6 +130,7 @@ public:
 
     bool map_orient_fix_=true;  // add by nishi 2024.9.25
     bool ml_data_ = false;      // add by nishi 2024.10.8
+    bool opp_on_ = false;      // add by nishi 2024.12.24
 
     //! The node handle we'll be using
     //ros::NodeHandle nh_;
@@ -157,7 +156,7 @@ public:
 
     // add by nishi 2024.10.5
     GetMap get_gcostmap;
-    ml_planner::MlPlanner ml_planer;
+    //ml_planner::MlPlanner ml_planer;
 
     ProControl(){}
 
@@ -166,7 +165,6 @@ public:
     //void init(std::shared_ptr<rclcpp::Node> node);
     // changed by nishi 2024.8.31
     void init(std::shared_ptr<rclcpp::Node> node,bool use_costmap=false);
-
 
     /*
     mloop_ex(GoalList *goalList)

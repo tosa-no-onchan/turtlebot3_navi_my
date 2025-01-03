@@ -16,6 +16,7 @@
 
 #include "conto_builder.hpp"
 #include "pro_control.hpp"
+#include "ml_planner.hpp"
 
 /*----------------------------
 - class ContoBuilderMower: public ContoBuilder
@@ -62,17 +63,21 @@ public:
         cv::waitKey(100);
         //cv::destroyWindow("plann_mat_");
     }
-
     /*
     * map2tr_real(int x,int y,float &f_x, float &f_y)
     *    Mat map 座標 -> real world 座標に変換。
     *     contbuilder.init() を実行した時の情報を使うこと。
     *     ratbamap localization:=true で起動しても、 Static Map がリサイズされるから。
     */
-    void map2tr_real(int x,int y,float &f_x, float &f_y){
+    void map2tr_real(int x,int y,float &f_x, float &f_y, bool y_reverse=false){
         f_x = ((float)x + 0.5)  * mapm_.resolution + mapm_.origin[0];
-        f_y = ((float)y + 0.5)  * mapm_.resolution + mapm_.origin[1];
-
+        //f_y = ((float)y + 0.5)  * mapm_.resolution + mapm_.origin[1];
+        if(y_reverse==true){
+            f_y = ((float)(mapm_.height - y) + 0.5) * mapm_.resolution + mapm_.origin[1];      // y軸が反転している場合。 
+        }
+        else{
+            f_y = ((float)y + 0.5) * mapm_.resolution + mapm_.origin[1];      // y軸が反転していない場合。
+        }
     }
 };
 
@@ -102,10 +107,17 @@ public:
     // ロボットの自由領域を識別して、走行ラインの経路計画を作成します。
     //   output -> robo_slice_bolb_clst_
     ContoBuilderMower contbuilder_;
+    // add by nishi 2024.12.26
+    Path_plan path_plan_;
+    // add by nishi 2024.12.25
+    ml_planner::MlPlanner ml_planner_;
 
     ProControlMower(){}
     void init(std::shared_ptr<rclcpp::Node> node);  // add by nishi 2024.4.24
     void auto_mower(int m_type=1);
+    // add by nishi 2024.12.26
+    bool move_with_path_plan(float x,float y,float r_yaw);
+    bool move_with_path_plan_exp(float x,float y,float r_yaw);
 
 };
 

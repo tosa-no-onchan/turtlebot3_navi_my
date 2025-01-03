@@ -56,7 +56,7 @@ void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_costmap){
     drive_cmd.set_map(&get_costmap);
 
     // add by nishi 2024.10.5
-    ml_planer.init(node_, drive_, &get_gcostmap);
+    //ml_planer.init(node_, drive_, &get_gcostmap);
 
     std::cout << "ProControl::init():#2 " << std::endl;
 
@@ -228,7 +228,7 @@ void ProControl::obstacle_escape_map_orient(float r_lng,int black_thresh,float m
     int slant_black_counts[4];  // 斜め前、斜め後ろ、斜め左、斜め後ろ add by nishi 2024.4.8
     int slant_min_black_count=1000; // add by nhishi 2024.4.8
     int slant_min_black_idx=-1;     // add by nhishi 2024.4.8
-    // 全方向をチェックします。 前、後ろ、左、右
+    // 4方向をチェックします。 前、後ろ、左、右
     for(int i=0;i<4;i++){
         black_counts[i]= get_map_r->check_obstacle(cur_x_tmp,cur_y_tmp,drive_->_rz,r_lng,i,0);
         if(black_counts[i] < min_black_count){
@@ -239,10 +239,9 @@ void ProControl::obstacle_escape_map_orient(float r_lng,int black_thresh,float m
     // 45度ずらして、斜め方向をチェックする。
     float slant_rz = normalize_tf_rz(drive_->_rz+45/RADIANS_F);
 
-
     set_drive_mode(0);      // set cmd_vel mode
 
-    // 全方向は、障害物が無い。
+    // 4方向のいずれかに、障害物が無い。
     if(min_black_count <= black_thresh){
         // 前方向は、障害物無し
         if(black_counts[0] <= black_thresh){
@@ -274,32 +273,43 @@ void ProControl::obstacle_escape_map_orient(float r_lng,int black_thresh,float m
         else if(black_counts[1] < black_counts[3]){
             // 左が障害物が無い
             if(black_counts[1] <= black_thresh){
-                std::cout << "turn left" <<std::endl;
-                //左へ向かせる。
-                drive_->rotate_off(90.0);
+                std::cout << "escape to left" <<std::endl;
                 // 右が、障害物あり
                 if(black_counts[3] > black_thresh){
-                    // 前に、0.1[M] 動かす。
-                    std::cout << "go leftward "<<move_l <<"[M]" <<std::endl;
-                    drive_->move(move_l,0.0);
+                    // 右に向かせる。 changed by nishi 2025.1.1
+                    std::cout << "turn to right" <<std::endl;
+                    drive_->rotate_off(-90.0);
+                    // 後ろに、0.1[M] 動かす。changed by nishi 2025.1.1
+                    std::cout << "go backward "<< move_l <<"[M]" <<std::endl;
+                    drive_->move(move_l* -1.0,0.0);
+                    //左へ向かせる。changed by nishi 2025.1.1
+                    drive_->rotate_off(90.0);
                 }
+                //左へ向かせる。
+                //drive_->rotate_off(90.0);
             }
         }
         // 右が、障害物が無い
         else if(black_counts[3] <= black_thresh){
-            std::cout << "turn right" <<std::endl;
-            //右へ向かせる。
-            drive_->rotate_off(-90.0);
+            std::cout << "escape to right" <<std::endl;
             // 左は、障害物がある。
             if(black_counts[1] > black_thresh){
-                // 前に、0.1[M] 動かす。
-                std::cout << "go rightward "<<move_l <<"[M]" <<std::endl;
-                drive_->move(move_l,0.0);
+                //左へ向かせる。changed by nishi 2025.1.1
+                std::cout << "turn to left" <<std::endl;
+                drive_->rotate_off(90.0);
+                // 後ろ、0.1[M] 動かす。changed by nishi 2025.1.1
+                std::cout << "go backward "<<move_l <<"[M]" <<std::endl;
+                drive_->move(move_l* -1.0,0.0);
+                //右へ向かせる。changed by nishi 2025.1.1
+                drive_->rotate_off(-90.0);
             }
+            //右へ向かせる。
+            //drive_->rotate_off(-90.0);
         }
     }
+    // 4方向は、ふさがっている。
     else{
-        // 斜め方向をチェックします。 斜め前、斜め後ろ、斜め左、斜め後ろ add by nishi 2024.4.8
+        // 斜め4方向をチェックします。 斜め前、斜め後ろ、斜め左、斜め後ろ add by nishi 2024.4.8
         for(int i=0;i<4;i++){
             slant_black_counts[i]= get_map_r->check_obstacle(cur_x_tmp,cur_y_tmp,slant_rz,r_lng,i,0);
             if(slant_black_counts[i] < slant_min_black_count){
@@ -307,7 +317,6 @@ void ProControl::obstacle_escape_map_orient(float r_lng,int black_thresh,float m
                 slant_min_black_idx=i;
             }
         }
-
         // 斜め方向は、障害物が無い。
         if(slant_min_black_count <= black_thresh){
             switch(slant_min_black_idx){
@@ -1078,7 +1087,7 @@ int ProControl::mloop_sub(){
     return r_ct;
 }
 
-#ifdef KKKKK_1
+#if defined(KKKKK_1)
 void ProControl::get_odom(){
     odom_msg=None;
     int cnt=30;

@@ -34,12 +34,16 @@ find_package(OpenCV REQUIRED )
 find_package(sensor_msgs REQUIRED )
 find_package(tf2_geometry_msgs REQUIRED)
 
+# add by nishi 2024.12.23
+list(APPEND CMAKE_MODULE_PATH "/home/nishi/Documents/VisualStudio-CPP/tflite/opp_tflite/cmake")
+#list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+find_package(Tflite REQUIRED) # TFLITE_INCLUDE_DIR, TFLITE_LIBRARY
+find_package(Opp_tflite REQUIRED)
 
 add_executable(multi_goals4_cmd_vel 
   src/multi_goals4_cmd_vel.cpp 
   src/pro_control.cpp
   src/pro_control_sub.cpp
-  src/ml_planner.cpp 
   src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
 target_compile_options(multi_goals4_cmd_vel PRIVATE -Wno-unused-parameter)
@@ -59,7 +63,6 @@ add_executable(subscribe_test src/subscribe_test.cpp src/com_lib.cpp)
 add_executable(multi_goals4_nav2 src/multi_goals4_nav2.cpp 
   src/pro_control.cpp 
   src/pro_control_sub.cpp
-  src/ml_planner.cpp 
   src/robot_driveNAV2.cpp 
   src/robot_driveCmd_Vel.cpp 
   src/com_lib.cpp)
@@ -71,7 +74,6 @@ target_compile_options(multi_goals4_nav2 PRIVATE -Wno-unused-parameter)
 add_executable(go_auto_map src/go_auto_map.cpp 
   src/pro_control.cpp 
   src/pro_control_sub.cpp
-  src/ml_planner.cpp 
   src/pro_control_map.cpp 
   src/robot_driveNAV2.cpp 
   src/robot_driveCmd_Vel.cpp 
@@ -117,6 +119,8 @@ target_include_directories(go_auto_mower PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${OpenCV_INCLUDE_DIRS}
+  ${Tflite_INCLUDE_DIR}
+  ${Opp_tflite_INCLUDE_DIR}
   )
 
 target_include_directories(drive_base PUBLIC
@@ -134,7 +138,6 @@ target_include_directories(tf_rate_checker PUBLIC
 target_include_directories(subscribe_topic_once PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-
 
 target_include_directories(subscribe_test PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -184,6 +187,12 @@ ament_target_dependencies(go_auto_map
   tf2_geometry_msgs
 )
 
+# link tf-lite and opp_tflite
+target_link_libraries(go_auto_mower
+  -Wl,--no-as-needed
+  ${Opp_tflite_LIBRARY} # 同一パッケージの共有ライブラリ名(add_libraryの名前)
+  ${Tflite_LIBRARY}
+)
 ament_target_dependencies(go_auto_mower
   rclcpp
   std_msgs 
@@ -251,7 +260,6 @@ ament_target_dependencies(subscribe_test
     tf2_geometry_msgs
 )
 
-
 #ament_target_dependencies(nav2_send_goal
 #    rclcpp
 #    std_msgs 
@@ -265,7 +273,6 @@ install(TARGETS
   multi_goals4_cmd_vel
   DESTINATION lib/${PROJECT_NAME})
 
-
 install(TARGETS
   drive_base
   DESTINATION lib/${PROJECT_NAME})
@@ -278,7 +285,6 @@ install(TARGETS
   tf_rate_checker
   DESTINATION lib/${PROJECT_NAME})
 
-
 install(TARGETS
   subscribe_topic_once
   DESTINATION lib/${PROJECT_NAME})
@@ -287,11 +293,9 @@ install(TARGETS
   subscribe_test
   DESTINATION lib/${PROJECT_NAME})
 
-
 #install(TARGETS
 #  nav2_send_goal
 #  DESTINATION lib/${PROJECT_NAME})
-
 
 install(TARGETS
   multi_goals4_nav2

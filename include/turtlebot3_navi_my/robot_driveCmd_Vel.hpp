@@ -143,6 +143,19 @@ public:
   * bool get_tf(int func)
   */
   bool get_tf(int func=0);
+
+  /*
+  go_abs_core(x,y,isBack=false,speed=0.05)
+  直進する。
+  */
+  int go_abs_core(float x,float y,bool chk_thred=false,bool isback=false, bool obs_chk=false, float speed=0.05);
+
+  /*
+  int go_path(Path_plan *path_plan, bool obs_chk=true, float speed=0.05)
+  path_plan に従った走行をする。
+  */
+  int go_path(float x,float y,Path_plan *path_plan, bool obs_chk=true, float speed=0.05);
+
   /*
   go_abs(x,y,isBack=false,speed=0.05)
   直進する。

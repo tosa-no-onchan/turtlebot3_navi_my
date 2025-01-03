@@ -31,6 +31,9 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     // changed by nishi 2024.8.31  use local_costmap
     ProControl::init(node,true);
 
+    // add by nishi 2024.12.25
+    ml_planner_.init(node, drive_, &get_gcostmap, &path_plan_);
+
     node_->declare_parameter<double>("threshold",250.0);
     node_->declare_parameter<bool>("plann_test",false);
     node_->declare_parameter<bool>("all_nav2",true);
@@ -49,6 +52,7 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
 
     node_->declare_parameter<bool>("map_orient_fix",false);  // local_costmap -> global_frame: base_footprint のときは、false
     node_->declare_parameter<bool>("ml_data",false);  // ML data の収集をする add by nishi 2024.10.8
+    node_->declare_parameter<bool>("opp_on",false);  // opp with Lstm を行う add by nishi 2024.12.23
 
 
     node_->get_parameter<double>("threshold",threshold_);
@@ -62,6 +66,7 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
 
     node_->get_parameter<bool>("map_orient_fix",map_orient_fix_);
     node_->get_parameter<bool>("ml_data",ml_data_);
+    node_->get_parameter<bool>("opp_on",opp_on_);
 
     node_->get_parameter<float>("r_lng",r_lng_);  // add by nishi 2024.9.21
     node_->get_parameter<float>("move_l",move_l_);  // add by nishi 2024.9.21
@@ -84,6 +89,9 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
                     obstacle_eye_stop_,
                     obstacle_eye_range_);
     get_costmap.map_orient_fix_=map_orient_fix_;    // add by nishi 2024.9.26
+    //get_costmap.y_reverse_=true;          // 注) local costmap は、 y_reverse_=false のまま使うこと。
+    // Auto Mower の コースプラン　図を、Rviz2 と同じにするには、下記をセット
+    get_map.y_reverse_=true;                    // add by nishi 2024.12.30
 }
 /*
 auto_mower(int m_type=1)
@@ -100,15 +108,13 @@ void ProControlMower::auto_mower(int m_type){
     bool rc;
 
     //get_map.get(true);
-    if(get_map.get() != true)
-    {
+    if(get_map.get() != true){
         std::cout << "  get_map error occured , then Auto Mower is not executable!!" << std::endl;
         return;
     }
 
     // test by nishi 2024.8.31
-    if(get_costmap.get() != true)
-    {
+    if(get_costmap.get() != true){
         std::cout << "  get_local_map error occured , then Auto Mower is not executable!!" << std::endl;
         return;
     }
@@ -123,12 +129,13 @@ void ProControlMower::auto_mower(int m_type){
     contbuilder_.init(get_map.mat_map_,get_map.mapm_,threshold_);
 
     // real world 座標を、Mat map 座標に変換 
-    int px = (int)((cur_x - get_map.mapm_.origin[0]) / get_map.mapm_.resolution);
-    int py = (int)((cur_y - get_map.mapm_.origin[1]) / get_map.mapm_.resolution);
+    //int px = (int)((cur_x - get_map.mapm_.origin[0]) / get_map.mapm_.resolution);
+    //int py = (int)((cur_y - get_map.mapm_.origin[1]) / get_map.mapm_.resolution);
+    int px,py;
+    tf_world2MatMap(cur_x, cur_y, px, py, get_map.mapm_, get_map.y_reverse_);
 
     std::cout << " px=" << px << " py="<< py << std::endl;
     // px=87 py=94
-
 
     contbuilder_.get_bolb(px,py,true);    // x,y,isCourceDisp
 
@@ -148,8 +155,11 @@ void ProControlMower::auto_mower(int m_type){
     if(plann_test_)
         return;
 
-    #define USE_TEST_PLOT2
-    #define USE_TEST_PLOT_LOCAL_MAP2
+    // GetMap::test_plot() を使うとき、有効にする。 by nishi 2024.12.26
+    // こちらは、Map 全体
+    //#define USE_TEST_PLOT2
+    // こちらは、拡大鏡
+    //#define USE_TEST_PLOT_LOCAL_MAP2
 
     #define USE_OBSTACLE_ESCAPE
 
@@ -167,7 +177,7 @@ void ProControlMower::auto_mower(int m_type){
         //int num = robo_slice_clast.robo_slice_vec.size();
         //for(int num=0;num < robo_slice_clast.robo_slice_vec.size() ;num++){
         //}
-        std::vector<Robo_Slice_Compat>::iterator robo_slice_compat;
+        //std::vector<Robo_Slice_Compat>::iterator robo_slice_compat;
         int cur_idx=0;
         //----
         // robo_slice_clast の 同一ブロブを、走行させます。
@@ -176,9 +186,12 @@ void ProControlMower::auto_mower(int m_type){
         //----
         bool change_blob_f=true;
         int start_f_or_l = 0;   // 0: f start / 1: l start
-        for(robo_slice_compat=robo_slice_clast.robo_slice_vec.begin();robo_slice_compat!=robo_slice_clast.robo_slice_vec.end();robo_slice_compat++){
-            cv::Point f = robo_slice_compat->f;
-            cv::Point l = robo_slice_compat->l;
+        // for(robo_slice_compat=robo_slice_clast.robo_slice_vec.begin();robo_slice_compat!=robo_slice_clast.robo_slice_vec.end();robo_slice_compat++){
+        for(Robo_Slice_Compat robo_slice_compat : robo_slice_clast.robo_slice_vec){
+            //cv::Point f = robo_slice_compat->f;
+            cv::Point f = robo_slice_compat.f;
+            //cv::Point l = robo_slice_compat->l;
+            cv::Point l = robo_slice_compat.l;
 
             // コースを描画してみる。
             contbuilder_.cource_plot(f,l);
@@ -190,11 +203,12 @@ void ProControlMower::auto_mower(int m_type){
             // Mat map 座標 -> real world 座標に変換。
             // ただし、 contbuilder_.init() を実行した時の情報を使うこと。
             // ratbamap localization:=true で起動しても、 Static Map がリサイズされるから。
-            contbuilder_.map2tr_real(f.x,f.y,f_x,f_y);
+            contbuilder_.map2tr_real(f.x,f.y,f_x,f_y,get_map.y_reverse_);
+
             //f_x = ((float)f.x + 0.5)  * contbuilder_.mapm_.resolution + contbuilder_.mapm_.origin[0];
             //f_y = ((float)f.y + 0.5)  * contbuilder_.mapm_.resolution + contbuilder_.mapm_.origin[1];
 
-            contbuilder_.map2tr_real(l.x,l.y,l_x,l_y);
+            contbuilder_.map2tr_real(l.x,l.y,l_x,l_y,get_map.y_reverse_);
             //l_x = ((float)l.x + 0.5)  * contbuilder_.mapm_.resolution + contbuilder_.mapm_.origin[0];
             //l_y = ((float)l.y + 0.5)  * contbuilder_.mapm_.resolution + contbuilder_.mapm_.origin[1];
 
@@ -288,25 +302,36 @@ void ProControlMower::auto_mower(int m_type){
                 get_map.test_plot(s_x,s_y,r_yaw, robo_radius_);
             #endif
 
+            // test by nishi 2024.12.24
+            if(opp_on_ == true)
+                // opp-tflite の predict を行う。
+                ml_planner_.make_plann(s_x,s_y,false,true);
             // test by nishi 2024.10.5
-            if(ml_data_ == true)
-                ml_planer.make_plann(s_x,s_y,true);
+            else if(ml_data_ == true)
+                ml_planner_.make_plann(s_x,s_y,true);
 
             rc=true;
             if(all_nav2_ == false){
-                // drive_navi ?
-                //if(move_abs_auto_select_check(f_x,f_y,r_yaw, robo_radian_marker_)==1){
-                if(move_abs_auto_select_check(s_x,s_y,r_yaw, robo_radian_marker_)==1){
-                    #if defined(USE_OBSTACLE_ESCAPE)
-                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                        obstacle_escape(r_lng_,0,move_l_);
-                    #endif
+                // ml_planner のコース走行をしない。
+                if(opp_on_ == false || path_plan_.is_all_valid() == false){
+                    // drive_navi ?
+                    if(move_abs_auto_select_check(s_x,s_y,r_yaw, robo_radian_marker_)==1){
+                        #if defined(USE_OBSTACLE_ESCAPE)
+                            // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                            // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                            obstacle_escape(r_lng_,0,move_l_);
+                        #endif
+                    }
+                    rc=move_abs_auto_select(s_x,s_y,r_yaw,robo_radian_marker_);
+                    if(rc==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
                 }
-                //rc=move_abs_auto_select(f_x,f_y,r_yaw,robo_radian_marker_);
-                rc=move_abs_auto_select(s_x,s_y,r_yaw,robo_radian_marker_);
-                if(rc==false)    // changed by nishi 2024.2.28
-                    std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
+                // opp-tflite の path plan を使う
+                else{ 
+                    rc= move_with_path_plan_exp(s_x,s_y,r_yaw);
+                    if(rc != true)
+                        std::cout << ">> #1 move_with_path_plan() error end"<< std::endl;
+                }
             }
             else{
                 #if defined(USE_OBSTACLE_ESCAPE)
@@ -314,7 +339,6 @@ void ProControlMower::auto_mower(int m_type){
                     // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
                     obstacle_escape(r_lng_,0,move_l_);
                 #endif
-                //rc=drive_->navi_move(f_x,f_y,r_yaw);
                 rc=drive_->navi_move(s_x,s_y,r_yaw);
                 if(rc==false)    // changed by nishi 2024.2.28
                     std::cout << ">> #1 drive_->navi_move() error end"<< std::endl;
@@ -355,22 +379,32 @@ void ProControlMower::auto_mower(int m_type){
 
             // 草刈り走行!!
 
+            // test by nishi 2024.12.24
+            if(opp_on_ == true)
+                ml_planner_.make_plann(e_x,e_y,false,true);
             // test by nishi 2024.10.5
-            if(ml_data_ == true)
-                ml_planer.make_plann(e_x,e_y,true);
+            else if(ml_data_ == true)
+                ml_planner_.make_plann(e_x,e_y,true);
 
             if(all_nav2_ == false){
-                //if(move_abs_auto_select_check(l_x,l_y,r_yaw,robo_radian_marker_)==1){
-                if(move_abs_auto_select_check(e_x,e_y,r_yaw,robo_radian_marker_)==1){
-                    #if defined(USE_OBSTACLE_ESCAPE)
-                        // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
-                        // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                        obstacle_escape(r_lng_,0,move_l_);
-                    #endif
+                // ml_planner のコース走行をしない。
+                if(opp_on_ == false || path_plan_.is_all_valid() == false){
+                    if(move_abs_auto_select_check(e_x,e_y,r_yaw,robo_radian_marker_)==1){
+                        #if defined(USE_OBSTACLE_ESCAPE)
+                            // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                            // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                            obstacle_escape(r_lng_,0,move_l_);
+                        #endif
+                    }
+                    if(move_abs_auto_select(e_x,e_y,r_yaw,robo_radian_marker_)==false)    // changed by nishi 2024.2.28
+                        std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
                 }
-                //if(move_abs_auto_select(l_x,l_y,r_yaw,robo_radian_marker_)==false)    // changed by nishi 2024.2.28
-                if(move_abs_auto_select(e_x,e_y,r_yaw,robo_radian_marker_)==false)    // changed by nishi 2024.2.28
-                    std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
+                // opp-tflite の path plan を使う
+                else{
+                    rc=move_with_path_plan_exp(e_x,e_y,r_yaw);
+                    if(rc== false)
+                        std::cout << ">> #2 move_with_path_plan() error end"<< std::endl;
+                }
             }
             else{
                 #if defined(USE_OBSTACLE_ESCAPE)
@@ -378,7 +412,6 @@ void ProControlMower::auto_mower(int m_type){
                     // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
                     obstacle_escape(r_lng_,0,move_l_);
                 #endif
-                //if(drive_->navi_move(l_x,l_y,r_yaw)==false)    // changed by nishi 2024.2.28
                 if(drive_->navi_move(e_x,e_y,r_yaw)==false)    // changed by nishi 2024.2.28
                     std::cout << ">> #2 drive_->navi_move() error end"<< std::endl;
             }
@@ -386,3 +419,66 @@ void ProControlMower::auto_mower(int m_type){
         }
     }
 }
+
+/*
+move_with_path_plan(float x,float y,float r_yaw)
+    x,y: 絶対番地への移動(基準座標)
+    r_yaw: 基準座標での角度。 [radian]
+*/
+bool ProControlMower::move_with_path_plan(float x,float y,float r_yaw){
+    std::cout << "ProControlMower::move_with_path_plan() called"<< std::endl;
+    bool rc_f=true;
+    bool rc_f0;
+    float x_r,y_r;
+    float dist0, r_yaw0, r_yaw_off0;
+
+    if(path_plan_.is_all_valid() == false)
+        return false;
+    for(Path_val dt : path_plan_.path_val_){
+        x_r = round_my<float>(dt.x_ar,2);
+        y_r = round_my<float>(dt.y_ar,2);
+        std::cout << " x_r:"<< x_r << " y_r:" << y_r << std::endl;
+        drive_cmd.comp_dad(x_r,y_r,dist0, r_yaw0, r_yaw_off0);
+        if(dist0 >= 0.15){
+            drive_cmd.rotate_abs(r_yaw0,true);
+            drive_cmd.go_abs(x_r,y_r);
+        }
+    }
+    drive_cmd.comp_dad(x,y,dist0, r_yaw0, r_yaw_off0);
+    if(dist0 > 0.05){
+        drive_cmd.rotate_abs(r_yaw0,true);
+        drive_cmd.go_abs(x,y);
+    }
+    drive_cmd.rotate_abs(r_yaw,true);
+    return rc_f;
+}
+
+/*
+move_with_path_plan_exp(float x,float y,float r_yaw)
+    x,y: 絶対番地への移動(基準座標)
+    r_yaw: 基準座標での角度。 [radian]
+*/
+bool ProControlMower::move_with_path_plan_exp(float x,float y,float r_yaw){
+    std::cout << "ProControlMower::move_with_path_plan_exp() called"<< std::endl;
+    bool rc_f=true;
+    bool rc_f0;
+    float x_r,y_r;
+
+    if(path_plan_.is_all_valid() == false)
+        return false;
+    int rc=drive_cmd.go_path(x,y,&path_plan_);
+    if(rc == 0){
+        float dist0, r_yaw0, r_yaw_off0;
+        drive_cmd.comp_dad(x,y,dist0, r_yaw0, r_yaw_off0);
+        if(dist0 > 0.05){
+            drive_cmd.rotate_abs(r_yaw0,true);
+            drive_cmd.go_abs(x,y);
+        }
+        drive_cmd.rotate_abs(r_yaw,true);
+    }
+    else
+        rc_f=false;
+
+    return rc_f;
+}
+

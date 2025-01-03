@@ -113,6 +113,190 @@ float adjust_tf_rz(float stop_rz,float r_theta,float _rz);
 */
 bool getFileNames(std::string folderPath, std::vector<std::string> &file_names);
 
+struct Path_val {
+    int x,y;        // off set x,y [dot]
+    float x_r,y_r;  // off set tf real [M]
+    float theta_r;  // off set [radian]
+    bool valid;
+    float x_ar,y_ar;  // aboslute tf real [M]
+};
+
+class Path_plan{
+public:
+    std::vector<Path_val> path_val_;
+    std::vector<Path_val> path_val_conde_;
+
+    // sx,sy -> start : roboto の、現在位置 (tf real 空間)
+    float sx_,sy_;
+    float off_x_,off_y_;
+
+    float master_res_ = 0.05;
+    float res_ = 0.025;
+
+    float theta_r_;
+    int cur_p=0;
+
+    bool y_revert_;
+    bool plan_done_ = false;
+
+    Path_plan(){}
+
+    void reset(){
+        if(path_val_.empty() == false){
+            path_val_.clear();
+        }
+        if(path_val_conde_.empty() == false){
+            path_val_conde_.clear();
+        }
+        condense_done=false;
+        plan_done_=false;
+        cur_p=0;
+    }
+
+    /*
+    * sx,sy -> start : roboto の、現在位置 (tf real 空間)
+    *
+    * y_revert : false -> cost map => cv::Mat 変換時に、 y軸を逆転させていない。見た目の上下が同じ。
+    *           true -> y軸を逆転 させる。 通常の方法
+    */
+    void init(float sx, float sy, float off_x, float off_y, bool y_revert=false ,float master_res=0.05,float res=0.025){
+        sx_=sx;
+        sy_=sy;
+        off_x_ = off_x;
+        off_y_ = off_y;
+        master_res_=master_res;
+        res_= res;
+        y_revert_ = y_revert;
+
+        // 目的地の方角 on tf
+        theta_r_ = std::atan2(off_y,off_x);   //  [radian]
+        reset();
+    }
+    /*
+    * void append(int x, int y, bool valid=true)
+    *   int x: opp_with_lstm predict
+    * 
+    *  opp_tflite predict 結果の、 x,y を、tf-real に変換して path_val_ に登録する。
+    * 
+    *  注1) 今は、下記計算が加味されていません。 by nishi 2024.12.26
+    *  Mat map 座標 -> real world 座標に変換 の処理は、下記を参考にする。
+    *  gridToWorld(int gx, int gy, float& wx, float& wy,MapM& mapm)
+    *    wx = ((float)gx + 0.5) * mapm.resolution + mapm.origin[0];
+    *    wy = ((float)gy + 0.5) * mapm.resolution + mapm.origin[1];      // y軸が反転している場合。 
+    *    wy = ((float)(yaml.img_height-gy) + 0.5) * yaml.resolution + yaml.origin[1];   <-- y軸が反転していない場合。
+    * 
+    *  注2) 今回は、 sx_, sy_ 自体が、 tf-real 空間の値だから、
+    *    そこからのオフセットを求めるから、上記 
+    *       + contbuilder_.mapm_.origin[0]
+    *       + contbuilder_.mapm_.origin[1]
+    *    は、必要無い。
+    */
+    void append(int x, int y, bool valid=true){
+        Path_val p_val;
+        p_val.x = x;
+        p_val.y = y;
+        if(valid == true){
+            // ロボットの進行方向を x軸とする。
+            // + 0.5 は、必要か? 今は、とりあえず加えておく。
+            p_val.x_r = ((float)x + 0.5) * res_;    // real [M]
+            p_val.y_r = ((float)y + 0.5) * res_;    // real [M]
+
+            // ロボットの進行方向を robo x軸とした場合の、cur plot 位置の角度
+            p_val.theta_r = std::atan2(p_val.y_r, p_val.x_r);   //  [radian]
+            // test by nishi 2024.12.27
+            //p_val.theta_r = std::atan2(p_val.y_r * (-1.0), p_val.x_r);   //  [radian]
+
+            // robot start 位置 の robo x 軸を、 tf-map の x軸と並行にした場合の
+            //  cur plot の角度 --> th  tf-x 軸との角度
+            float th = theta_r_ + p_val.theta_r;
+
+            // robot start 位置から cur plot までの、距離を求める
+            float dist = std::sqrt((float)(p_val.x_r*p_val.x_r + p_val.y_r*p_val.y_r));
+
+            // tf real アドレスを求める [M] origin tf-map(0,0)
+            p_val.x_ar = dist * std::cos(th) + sx_;
+            p_val.y_ar = dist * std::sin(th) + sy_;
+
+            //std::cout << " x:"<< x <<" y:"<< y << std::endl;
+            //std::cout << " p_val.x_r:"<< p_val.x_r <<" p_val.y_r:"<< p_val.y_r << std::endl;
+        }
+        else{
+            p_val.x_r = 0.0;
+            p_val.y_r = 0.0;
+            p_val.theta_r = 0.0;   //  [radian]
+        }
+        p_val.valid = valid;
+        path_val_.push_back(p_val);
+    }
+
+    bool is_all_valid(){
+        bool rc=true;
+        if(plan_done_ == false)
+            return false;
+        for(int i = 0; i < path_val_.size(); i++){
+            if(path_val_[i].valid == false){
+                return false;
+            }
+        }
+        return rc;
+    }
+
+    /*
+    * path_val_ を圧縮する。
+    *   同じ、Path_val.x は纏める。
+    */
+    bool condense(){
+        if(is_all_valid() == false)
+            return false;
+
+        if(condense_done == true)
+            return true;
+
+        if(path_val_conde_.empty() == false){
+            path_val_conde_.clear();
+        }
+        bool first=true;
+        Path_val pv_prev;
+        for(Path_val pv: path_val_){
+            if(first==true){
+                pv_prev=pv;
+                first = false;
+                continue;
+            }
+            if(pv_prev.y == pv.y){
+                pv_prev=pv;
+            }
+            else{
+                path_val_conde_.push_back(pv_prev);
+                pv_prev=pv;
+            }
+        }
+        path_val_conde_.push_back(pv_prev);
+        condense_done=true;
+        return true;
+    }
+
+    bool get_r(float &x_r, float &y_r){
+        bool rc_f=true;
+        if(cur_p==0){
+            if(condense_done == false){
+                rc_f=condense();
+            }
+            if(path_val_conde_.empty() == true)
+                return false;
+        }
+        if(cur_p >= path_val_conde_.size())
+            return false;
+        // 精度  0.00 [M]
+        x_r = round_my<float>(path_val_conde_[cur_p].x_ar,2);
+        y_r = round_my<float>(path_val_conde_[cur_p].y_ar,2);
+        cur_p++;
+        return rc_f;
+    }
+
+private:
+    bool condense_done;
+};
 
 class HeartBeat{
 public:

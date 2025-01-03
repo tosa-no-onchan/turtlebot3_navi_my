@@ -56,7 +56,6 @@ bool find_Gpoint(float x,float y,std::vector<Gpoint> &gp){
     return false;
 }
 
-
 /*-------------------------
 * check_cource_obstacle_comb()
 *  get_map と get_costmap の障害物を合成して、
@@ -92,7 +91,6 @@ int check_cource_obstacle_comb(GetMap &get_map,GetMap &get_costmap,float s_x,flo
 
     // 注) offs_x, off_y が 負 の時は、cost_map をその分だけ小さくする。
 
-
     cv::Mat my_map_bin, my_cost_bin;
     my_map_bin = get_map.mat_bin_map_.clone();
     my_cost_bin = get_costmap.mat_bin_map_.clone();
@@ -102,7 +100,6 @@ int check_cource_obstacle_comb(GetMap &get_map,GetMap &get_costmap,float s_x,flo
         cv::rectangle(my_map_bin, cv::Point(offs_x,offs_y), cv::Point(offs_x+get_costmap.mat_bin_map_.cols,offs_y+get_costmap.mat_bin_map_.rows), cv::Scalar(255,0,0), 1);
         cv::imshow("map.my_map_bin", my_map_bin);
         cv::waitKey(100);
-
     #endif
 
     // 【Visual Studio】OpenCVで画像の部分処理（ROI
@@ -139,7 +136,6 @@ int check_cource_obstacle_comb(GetMap &get_map,GetMap &get_costmap,float s_x,flo
     }
 
     roi_cost = cv::Mat(my_cost_bin, cv::Rect(roi_cost_x0, roi_cost_y0, roi_cost_cols, roi_cost_rows));   //上部と似たような形での宣言
-
 
     // static map 上の cost map が、重なる部分を、roi とする。
     // 画像の部分処理・切り出し
@@ -238,8 +234,6 @@ int check_cource_obstacle_comb(GetMap &get_map,GetMap &get_costmap,float s_x,flo
 
     return black_cnt;
 }
-
-
 /*-------------------------
 * check_cource_obstacle_comb()
 *  get_map と get_costmap の障害物を合成して、
@@ -275,7 +269,6 @@ int check_cource_obstacle_comb_ptr(GetMap *get_map,GetMap *get_costmap,float s_x
 
     // 注) offs_x, off_y が 負 の時は、cost_map をその分だけ小さくする。
 
-
     cv::Mat my_map_bin, my_cost_bin;
     my_map_bin = get_map->mat_bin_map_.clone();
     my_cost_bin = get_costmap->mat_bin_map_.clone();
@@ -285,7 +278,6 @@ int check_cource_obstacle_comb_ptr(GetMap *get_map,GetMap *get_costmap,float s_x
         cv::rectangle(my_map_bin, cv::Point(offs_x,offs_y), cv::Point(offs_x+get_costmap->mat_bin_map_.cols,offs_y+get_costmap->mat_bin_map_.rows), cv::Scalar(255,0,0), 1);
         cv::imshow("map.my_map_bin", my_map_bin);
         cv::waitKey(100);
-
     #endif
 
     // 【Visual Studio】OpenCVで画像の部分処理（ROI
@@ -323,7 +315,6 @@ int check_cource_obstacle_comb_ptr(GetMap *get_map,GetMap *get_costmap,float s_x
 
     roi_cost = cv::Mat(my_cost_bin, cv::Rect(roi_cost_x0, roi_cost_y0, roi_cost_cols, roi_cost_rows));   //上部と似たような形での宣言
 
-
     // static map 上の cost map が、重なる部分を、roi とする。
     // 画像の部分処理・切り出し
     cv::Mat roi_src;                                    //先に変数を宣言
@@ -350,7 +341,6 @@ int check_cource_obstacle_comb_ptr(GetMap *get_map,GetMap *get_costmap,float s_x
     // cv::Matにおけるclone()とcopyTo()の挙動の違い
     // https://13mzawa2.hateblo.jp/entry/2016/12/09/151205
     img_or.copyTo(roi_src);   // img_or を ROIにコピー
-
 
     // real world 座標を、Mat map 座標に変換 
     int s_px = (int)((s_x - get_map->mapm_.origin[0]) / get_map->mapm_.resolution);
@@ -600,24 +590,48 @@ void check_collision(float x,float y,float &ox,float &oy,cv::Mat& mat_bin_map,Ma
 }
 #endif
 
-void gridToWorld(int gx, int gy, float& wx, float& wy,MapM& mapm)
-{
+void gridToWorld(int gx, int gy, float& wx, float& wy,MapM& mapm,bool y_reverse){
     //wx = ((float)gx + 0.5) * yaml.resolution + yaml.origin[0];
-    //wy = ((float)(yaml.img_height-gy) + 0.5) * yaml.resolution + yaml.origin[1];
-
+    //wy = ((float)(yaml.img_height-gy) + 0.5) * yaml.resolution + yaml.origin[1];  // y軸が反転していない場合。
     wx = ((float)gx + 0.5) * mapm.resolution + mapm.origin[0];
-    wy = ((float)gy + 0.5) * mapm.resolution + mapm.origin[1];
+    if(y_reverse==true){
+        wy = ((float)gy + 0.5) * mapm.resolution + mapm.origin[1];      // y軸が反転している場合。 
+    }
+    else{
+        wy = ((float)(mapm.height - gy) + 0.5) * mapm.resolution + mapm.origin[1];      // y軸が反転していない場合。 
+    }
 }
 
-bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm)
-{
+bool worldToGrid(float wx, float wy,int& gx,int& gy,MapM& mapm,bool y_reverse){
     if (wx < mapm.origin[0] || wy < mapm.origin[1])
         return false;
     gx = (int)((wx - mapm.origin[0]) / mapm.resolution);
     gy = (int)((wy - mapm.origin[1]) / mapm.resolution);
-
     if (gx < mapm.width && gy < mapm.height)
         return true;
+    return false;
+}
+
+/*
+* bool tf_world2MatMap(float w_x, float w_y,int& m_x,int& m_y,MapM& mapm,bool y_reverse)
+*   real world -> Mat map 座標 に変換
+*
+*   bool y_reverse :  Map -> cv::Mat 変換時の y軸の反転
+*           true -> y軸を反転する。 上下反転する。 Rviz2 と同じ表示。通常の変換 
+*           false -> y軸そのまま。
+*/
+bool tf_world2MatMap(float w_x, float w_y,int& m_x,int& m_y,MapM& mapm,bool y_reverse){
+    if (w_x < mapm.origin[0] || w_y < mapm.origin[1])
+        return false;
+    m_x = (int)((w_x - mapm.origin[0]) / mapm.resolution);
+    m_y = (int)((w_y - mapm.origin[1]) / mapm.resolution);
+    if (m_x < mapm.width && m_y < mapm.height){
+        // Map -> cv::Mat の時、y軸を逆転している。
+        if(y_reverse==true)
+            // cv::Mat の y 軸を逆転させる。
+            m_y = mapm.height - m_y - 1;
+        return true;
+    }
     return false;
 }
 
@@ -727,6 +741,18 @@ void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
 
 
 /*
+* get(bool save_f=false,bool costmap_f=false, bool revers_f2=true)
+*   bool save_f :  true -> save 
+*   bool inflation_f : true -> get costmap reduced inflation size
+*   bool y_reverse  : y axis reverse
+*       true -> map => cv::Mat 変換で、y軸を逆順にコピーする。 
+*           見た目 Rviz2 と同じ。
+*           y_map = y_cv::Mat が一致するので処理するには簡単。
+*           map saver の通常の保存時の処理。
+*       false -> map => cv::Mat 変換で、y軸をそのままコピーする。 
+*           見た目 Rviz2 と、上下逆になる。
+*           y_map = map_height - y_cv::Mat - 1 の関係になる。
+*
 * https://answers.ros.org/question/293890/how-to-use-waitformessage-properly/
 * http://docs.ros.org/en/lunar/api/nav_msgs/html/msg/OccupancyGrid.html
 * http://docs.ros.org/en/jade/api/map_server/html/map__saver_8cpp_source.html
@@ -734,7 +760,7 @@ void GetMap::topic_callback(const nav_msgs::msg::OccupancyGrid & map_msg)
 * https://yomi322.hateblo.jp/entry/2012/04/17/223100
 * https://qiita.com/usagi/items/3563ddb01e4eb342485e
 */
-bool GetMap::get(bool save_f,bool revers_f){
+bool GetMap::get(bool save_f,bool inflation_f,bool y_reverse, int inf_size){
     int cnt=3;
     // for ROS
     //std::shared_ptr<const nav_msgs::msg::OccupancyGrid> map=nullptr;
@@ -807,8 +833,10 @@ bool GetMap::get(bool save_f,bool revers_f){
 
         //conv_fmt2(map);
         saveMap(map,save_f);
-        if(revers_f==true){
-            saveMapRaw(map);
+
+        // get costmap reduced inflation size
+        if(inflation_f==true){
+            saveMapRaw(map,y_reverse,inf_size);
         }
 
         //2. 障害物を、2値画像 and 反転します。 add by nishi 2022.8.13
@@ -834,6 +862,11 @@ bool GetMap::get(bool save_f,bool revers_f){
 }
 
 /*
+*　GetMap::saveMap(const nav_msgs::msg::OccupancyGrid &map,bool save_f)
+*    reverse_f : true -> map => cv::Mat 変換で、y軸を逆順にコピーする。 
+*           見た目 Rviz2 と同じ。
+*           y_map = y_cv::Mat が一致するので処理するには簡単。
+*           map saver の通常の保存時の処理。
 *
 * http://docs.ros.org/en/jade/api/map_server/html/map__saver_8cpp_source.html
 *
@@ -864,12 +897,23 @@ void GetMap::saveMap(const nav_msgs::msg::OccupancyGrid &map,bool save_f){
     }
     for(unsigned int y = 0; y < map.info.height; y++) {
         for(unsigned int x = 0; x < map.info.width; x++) {
+            // in ptr for map file
             unsigned int i = x + (map.info.height - y - 1) * map.info.width;
+            // put ptr for mat_map_
+            unsigned int i_mat;
+            if(y_reverse_ == false){
+                i_mat = i;
+            }
+            else{
+                i_mat = x + y * map.info.width;
+            }
+            unsigned int i2;
+
             if (map.data[i] == 0) { //occ [0,0.1)
                 //fputc(254, out);
                 //fputc(255, out);    // 0xff  white
                 if(save_f) fputc(FREE_AREA, out);
-                mat_map_.data[i] = FREE_AREA;
+                mat_map_.data[i_mat] = FREE_AREA;
             } 
             //else if (map->data[i] == +100) { //occ (0.65,1]
             //    fputc(000, out);
@@ -880,19 +924,16 @@ void GetMap::saveMap(const nav_msgs::msg::OccupancyGrid &map,bool save_f){
             else if (map.data[i] < 0) {     // 未チェック領域
                 //fputc(128, out);
                 if(save_f) fputc(UNKNOWN_AREA, out);
-                mat_map_.data[i] = UNKNOWN_AREA;
+                mat_map_.data[i_mat] = UNKNOWN_AREA;
             } 
             else{                       // 障害領域
                 if(save_f) fputc(100-map.data[i],out);
-                mat_map_.data[i] = 100-map.data[i];
+                mat_map_.data[i_mat] = 100-map.data[i];
             }
         }
     }
-
     if(save_f) fclose(out);
-
     std::string mapmetadatafile = mapname_ + ".yaml";
-
     if(save_f){
         //ROS_INFO("Writing map occupancy data to %s", mapmetadatafile.c_str());
         RCLCPP_INFO(node_->get_logger(), "Writing map occupancy data to %s", mapmetadatafile.c_str());
@@ -943,9 +984,17 @@ free_thresh: 0.196
 }
 
 /*-----------------
-* class GetMap
-* saveMapRaw()
-*  生データを保存する
+* GetMap::saveMapRaw(const nav_msgs::msg::OccupancyGrid &map, bool reverse_f)
+*  cost map の インフレーションを処理して保存する
+*   nav_msgs::msg::OccupancyGrid &map
+*   bool y_reverse  : y axis reverse
+*       true -> map => cv::Mat 変換で、y軸を逆順にコピーする。 
+*           見た目 Rviz2 と同じ。
+*           y_map = y_cv::Mat が一致するので処理するには簡単。
+*           map saver の通常の保存時の処理。
+*       false -> map => cv::Mat 変換で、y軸をそのままコピーする。 
+*           見た目 Rviz2 と、上下逆になる。
+*           y_map = map_height - y_cv::Mat - 1 の関係になる。
 *
 * https://answers.ros.org/question/163801/how-to-correctly-convert-occupancygrid-format-message-to-image/
 *
@@ -955,10 +1004,15 @@ free_thresh: 0.196
 # probabilities are in the range [0,100].  Unknown is -1.
 *  int8[] data
 -------------------*/
-void GetMap::saveMapRaw(const nav_msgs::msg::OccupancyGrid &map){
+void GetMap::saveMapRaw(const nav_msgs::msg::OccupancyGrid &map, bool y_reverse, int inf_size){
     mat_map_raw_ = cv::Mat::zeros(map.info.height,map.info.width,CV_8UC1);
+    unsigned int y2;
     for(unsigned int y = 0; y < map.info.height; y++) {
-        unsigned int y2 = map.info.height - 1 - y;
+        if(y_reverse == true)
+            y2 = map.info.height - 1 - y;  // y軸を逆順にコピー 見た目 Rviz2 と同じになる。
+        else
+            y2 = y;  // そのままコピー。見た目 Rviz2 と、上下逆になる。 
+
         for(unsigned int x = 0; x < map.info.width; x++) {
             unsigned int i = x + (y * map.info.width);
             unsigned int j = x + (y2 * map.info.width);
@@ -975,24 +1029,22 @@ void GetMap::saveMapRaw(const nav_msgs::msg::OccupancyGrid &map){
             //    mat_map_raw_.data[j] = 100-map.data[i];
             //}
             // 100 -> black
-            //   0 -> white
+            //   0 -> white : 自由領域
+            // 0 から 100 に近付くにつれて、障害度が大きい
             // 黒 -> グレー の グラデーションにしたい。
             //if(map.data[i] > 90){   // 障害領域
             //if(map.data[i] > 95){   // 障害領域
-            if(map.data[i] > 97){   // 障害領域
+            //if(map.data[i] > 97){   // 障害領域
+            if(map.data[i] > inf_size){   // 障害領域
                 char dtx = 100-map.data[i];
                 //mat_map_raw_.data[j] = dtx*6;
                 mat_map_raw_.data[j] = dtx*40;
             }
         }
     }
-
     //cv::imshow("ml_mat_map_raw_", mat_map_raw_);
     //cv::waitKey(100);
-
-
 }
-
 
 /*-------------------------
 * class GetMap
@@ -1030,6 +1082,12 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int r,int func)
     int px = (int)((x - mapm_.origin[0]) / mapm_.resolution);
     int py = (int)((y - mapm_.origin[1]) / mapm_.resolution);
 
+    // add by nishi 2024.12.30
+    if(y_reverse_==true){    // Map -> cv::Mat の時、y軸を逆転している。
+        // cv::Mat の y 軸を逆転させる。
+        py = mapm_.height - py - 1;
+    }
+
     //ロボットの移動先を、マスクの中心にします。
     center_p.x = px;
     center_p.y = py;
@@ -1057,10 +1115,8 @@ void GetMap::check_collision(float x,float y,float &ox,float &oy,int r,int func)
             cv::destroyWindow("GetMap::check_collision");
         #endif
 
-
         // 障害物と接しています。
         if(white_cnt > 0){
-
             std::cout << " white_cnt=" << white_cnt << std::endl;
 
             // 4. 見つかった障害物の重心を求めます。
@@ -1271,10 +1327,15 @@ int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int bla
 
     std::cout << "start GetMap::check_obstacle() func=" << func;
 
-
     // real world 座標を、Mat map 座標に変換
     int px = (int)((x - mapm_.origin[0]) / mapm_.resolution);
     int py = (int)((y - mapm_.origin[1]) / mapm_.resolution);
+
+    // add by nishi 2024.12.30
+    if(y_reverse_==true){    // Map -> cv::Mat の時、y軸を逆転している。
+        // cv::Mat の y 軸を逆転させる。
+        py = mapm_.height - py - 1;
+    }
 
     //ロボットの現在位置を、マスクの中心にします。
     center_p.x = px;
@@ -1317,14 +1378,14 @@ int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int bla
     }
     //#define TEST_KK2
     #if defined(TEST_KK2)
-        cv::imshow("img", mask);
+        cv::imshow("check_o_msk", mask);
         cv::waitKey(0);
         cv::destroyAllWindows();
     #endif
 
     //#define TEST_KK2_A
     #if defined(TEST_KK2_A)
-        cv::imshow("画像", mat_bin_map_);
+        cv::imshow("check_o_mat", mat_bin_map_);
         cv::waitKey(0);
         cv::destroyAllWindows();
     #endif
@@ -1334,11 +1395,10 @@ int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int bla
 
     //#define TEST_KK2_A2
     #if defined(TEST_KK2_A2)
-        cv::imshow("画像", result2);
+        cv::imshow("check_o_result2", result2);
         cv::waitKey(0);
         cv::destroyAllWindows();
     #endif
-
 
     // 黒色領域の面積(ピクセル数)を計算する
     int black_cnt = cv::countNonZero(result2);
@@ -1352,11 +1412,17 @@ int GetMap::check_obstacle(float x,float y,float rz,float r_lng,int func,int bla
     return black_cnt;
 }
 
-
 /*-------------------------
 * class GetMap
 * cource_obstacle_eye()
 *  走行予定コース上の、Mapの障害物を、robo_radian_marker*2 幅で、チェックする。
+*   float s_x
+*   float s_y
+*   float d_x
+*   float d_y
+*   float robo_radian_marker
+*   int black_thresh
+*   float check_range
 */
 int GetMap::cource_obstacle_eye(float s_x,float s_y,float d_x,float d_y,float robo_radian_marker,int black_thresh,float check_range){
 
@@ -1374,7 +1440,6 @@ int GetMap::cource_obstacle_eye(float s_x,float s_y,float d_x,float d_y,float ro
     // 従来の処理
     // static map or cost map with global_frame: map
     if(map_orient_fix_==true){
-    //if(true){
         // real world 座標を、Mat map 座標に変換 
         s_px = (int)((s_x - mapm_.origin[0]) / mapm_.resolution);
         s_py = (int)((s_y - mapm_.origin[1]) / mapm_.resolution);
@@ -1395,6 +1460,12 @@ int GetMap::cource_obstacle_eye(float s_x,float s_y,float d_x,float d_y,float ro
 
         d_px = (int)((x1 - mapm_.origin[0]) / mapm_.resolution);
         d_py = (int)((y1 - mapm_.origin[1]) / mapm_.resolution);
+    }
+    // add by nishi 2024.12.30
+    if(y_reverse_==true){    // Map -> cv::Mat の時、y軸を逆転している。
+        // cv::Mat の y 軸を逆転させる。
+        s_py = mapm_.height - s_py - 1;
+        d_py = mapm_.height - d_py - 1;
     }
 
     //std::cout << " mapm_.origin[0]:" << mapm_.origin[0] << std::endl;
@@ -1470,6 +1541,12 @@ void GetMap::test_plot(float x,float y,float r_yaw,float robot_r, std::string su
     // real world 座標を、Mat map 座標に変換 
     int px = (int)((x - mapm_.origin[0]) / mapm_.resolution);
     int py = (int)((y - mapm_.origin[1]) / mapm_.resolution);
+
+    // add by nishi 2024.12.30
+    if(y_reverse_==true){    // Map -> cv::Mat の時、y軸を逆転している。
+        // cv::Mat の y 軸を逆転させる。
+        py = mapm_.height - py - 1;
+    }
 
     //ロボットの現在位置を、マスクの中心にします。
     center_p.x = px;
