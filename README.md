@@ -1,4 +1,4 @@
-## turtlebot3_navi_my for Ros2 humble r5  
+## turtlebot3_navi_my for Ros2 humble r6  
   
   Ros2 C++ Programmable Robot Control   
   for [foxbot_core3_r2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  and Turtlebot3  
@@ -305,5 +305,17 @@ GoalList turtlebot3_auto_mower[] ={
 
     ii) run accroding to top memo of turtlebot3_navi_my/launch/turtlebbot3_amcl_scan.launch.py   
     $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True ml_data:=True
+
+2025.1.3 Version r6  
+
+    1) Support automower runs with Obstacle path planner with Lstm tflite.  
     
-    
+    i) run accroding to top memo of turtlebot3_navi_my/launch/turtlebbot3_amcl_scan.launch.py   
+    $ export LD_LIBRARY_PATH=/home/nishi/usr/local/lib/tensorflow-2.16.2-lite-flex:$LD_LIBRARY_PATH
+    $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True opp_on:=True  
+
+    refference  
+    [ROS2 自作 Turtlebot3 による 草刈りロボット開発。#9 LSTM で経路計画をする。](https://www.netosa.com/blog/2024/11/ros2-turtlebot3-9-lstm.html)  
+    [TensorFlow 2.16.2 Lite C++ library build.](https://www.netosa.com/blog/2024/12/tensorflow-2162-lite-c-library-build.html)  
+    [Opp TensorFlow 2.16.2 Lite C++ library build.](https://www.netosa.com/blog/2024/12/opp-tensorflow-2162-lite-c-library-build.html)  
+    [tosa-no-onchan/opp_tflite](https://github.com/tosa-no-onchan/opp_tflite)  
