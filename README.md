@@ -316,6 +316,7 @@ GoalList turtlebot3_auto_mower[] ={
 
 refference  
     [ROS2 自作 Turtlebot3 による 草刈りロボット開発。#9 LSTM で経路計画をする。](https://www.netosa.com/blog/2024/11/ros2-turtlebot3-9-lstm.html)  
+    [tosa-no-onchan/opp_with_lstm](https://github.com/tosa-no-onchan/opp_with_lstm)  
     [TensorFlow 2.16.2 Lite C++ library build.](https://www.netosa.com/blog/2024/12/tensorflow-2162-lite-c-library-build.html)  
     [Opp TensorFlow 2.16.2 Lite C++ library build.](https://www.netosa.com/blog/2024/12/opp-tensorflow-2162-lite-c-library-build.html)  
     [tosa-no-onchan/opp_tflite](https://github.com/tosa-no-onchan/opp_tflite)  
