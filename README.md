@@ -293,6 +293,7 @@ GoalList turtlebot3_auto_mower[] ={
     launch/turtlebot3_amcl_scan.launch.py  
 
 2024.11.13 Version r5  
+AutoMower で、Obstacle path planner with Transfomer or Lstm 用の学習データを保存できるようにしました。  
 
     1) Support automower saves the obsatcle image files ,which are the part of Global cost map.  
     They are used for trained data of opp_with_lstm and opp_with_transformer_cpp.  
@@ -307,9 +308,8 @@ GoalList turtlebot3_auto_mower[] ={
     $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True ml_data:=True
 
 2025.1.3 Version r6  
-
-    1) Support automower runs with Obstacle path planner with Lstm tflite.  
-    
+AutoMower で、Obstacle path planner with Lstm tflite を使えるようにしました。  
+        
     i) run accroding to top memo of turtlebot3_navi_my/launch/turtlebbot3_amcl_scan.launch.py   
     $ export LD_LIBRARY_PATH=/home/nishi/usr/local/lib/tensorflow-2.16.2-lite-flex:$LD_LIBRARY_PATH
     $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True opp_on:=True  
