@@ -1,4 +1,4 @@
-## turtlebot3_navi_my for Ros2 humble r6  
+## turtlebot3_navi_my for Ros2 jazzy r6  
   
   Ros2 C++ Programmable Robot Control   
   for [foxbot_core3_r2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  and Turtlebot3  
@@ -323,3 +323,6 @@ AutoMower で、Obstacle path planner with Lstm tflite を使えるようにし�
 [TensorFlow 2.16.2 Lite C++ library build.](https://www.netosa.com/blog/2024/12/tensorflow-2162-lite-c-library-build.html)  
 [Opp TensorFlow 2.16.2 Lite C++ library build.](https://www.netosa.com/blog/2024/12/opp-tensorflow-2162-lite-c-library-build.html)  
 [tosa-no-onchan/opp_tflite](https://github.com/tosa-no-onchan/opp_tflite)  
+
+2025.2.25  
+ROS2 Jazzy 版に対応しました。  
