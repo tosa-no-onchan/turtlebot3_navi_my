@@ -49,7 +49,7 @@ Turtlebot3 amcl and scan の launch を追加しました。
   
 #### 1. How to install  
 
-    $ cd ~/colcon_ws/src    
+    $ cd ~/colcon_ws-jazzy/src    
     $ git clone https://github.com/tosa-no-onchan/turtlebot3_navi_my.git    
     $ cd ..    
     $ colcon build --symlink-install --parallel-workers 1 --packages-select turtlebot3_navi_my  
@@ -324,5 +324,14 @@ AutoMower で、Obstacle path planner with Lstm tflite を使えるようにし�
 [Opp TensorFlow 2.16.2 Lite C++ library build.](https://www.netosa.com/blog/2024/12/opp-tensorflow-2162-lite-c-library-build.html)  
 [tosa-no-onchan/opp_tflite](https://github.com/tosa-no-onchan/opp_tflite)  
 
-2025.2.25  
-ROS2 Jazzy 版に対応しました。  
+2025.2.25 ROS2 Jazzy 版に対応しました。  
+ROS2 Jazzy + Turtlebot4 + Gazebo Ionic warehouse Simulation で、 AutoMower を走らせる。  
+[ROS2 Jazzy + Turtlebot4 + Gazebo Ionic warehouse Simulation.](https://www.netosa.com/blog/2025/02/ros2-jazzy-turtlebot4-gazebo-ionic-warehouse-simulation.html)  
+
+    term1  Gazebo , Navi and Rviz2 All in one.  
+    $ sudo ufw disable  
+    $ ros2 launch nav2_bringup tb4_simulation_launch.py headless:=False params_file:=/home/nishi/colcon_ws-jazzy/src/turtlebot3_navi_my/params/amcl_scan/rpp_nav2_params.yaml  
+
+    term2 term2 Auto Mower  
+    $ export LD_LIBRARY_PATH=/home/nishi/usr/local/lib/tensorflow-lite-flex:$LD_LIBRARY_PATH  
+    $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True cource_width:=18 [plann_test:=True] [ml_data:=True] [opp_on:=True]  
