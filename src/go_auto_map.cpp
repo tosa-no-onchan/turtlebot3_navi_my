@@ -70,8 +70,8 @@ int main(int argc, char **argv){
     ProControlMap mg_ex;
     mg_ex.init(node);
 
-    //mg_ex.mloop_ex(turtlebot3_auto_map);
-    mg_ex.mloop_ex(turtlebot3_auto_map_achor);
+    mg_ex.mloop_ex(turtlebot3_auto_map);
+    //mg_ex.mloop_ex(turtlebot3_auto_map_achor);
 
     //ros::Rate rate(1);   //  1[Hz]
     while(rclcpp::ok()){

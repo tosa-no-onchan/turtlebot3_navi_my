@@ -396,8 +396,8 @@ int main(int argc, char **argv){
     mg_ex.init(node,true);
 
     //mg_ex.mloop_ex(auto_select);
-    mg_ex.mloop_ex(auto_select2);
-    //mg_ex.mloop_ex(goallist);
+    //mg_ex.mloop_ex(auto_select2);
+    mg_ex.mloop_ex(goallist);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(turtlebot3_house2);
     //mg_ex.mloop_ex(goallist_nav2_cmd);

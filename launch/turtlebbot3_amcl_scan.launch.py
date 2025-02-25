@@ -27,22 +27,28 @@
 # Example:
 #  1. Gazebo
 #   $ export TURTLEBOT3_MODEL=waffle
-#   $ . /usr/share/gazebo/setup.sh
-#   $ ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py
+#   $ export ROBOT_MODEL=turtlebot3
+#   $ ros2 launch turtlebot3_gazebo warehouse.launch.py
 #
-#   Gass Station
-#     ~/colcon_ws/src/turtlebot3_simulations/turtlebot3_gazebo/launch/turtlebot3_world_nav_nishi2.launch.py
-#    $ ros2 launch turtlebot3_gazebo turtlebot3_world_nav_nishi2.launch.py
-#
-#   how to kill Gazeb server
-#   $ killall gzserver
-#
+#  1.1  tb4_simulation_launch.py を使う
+#   $ ros2 launch nav2_bringup tb4_simulation_launch.py headless:=False params_file:=/home/nishi/colcon_ws-jazzy/src/turtlebot3_navi_my/params/amcl_scan/rpp_nav2_params.yaml
+#   注) All in One なので、この場合、2. と 3.1 は不要
+# 
 #  2. amcl scan [start slam,localization and navigation]
 #  2.1 navigation [start localization and navigation ]
 #   $ ros2 launch turtlebot3_navi_my turtlebbot3_amcl_scan.launch.py use_sim_time:=True [map:=FULL PATH] [params_file:=FULL PATH]
 #
 #  2.2 navigation and slam  [start slam and navigation]
 #   $ ros2 launch turtlebot3_navi_my turtlebbot3_amcl_scan.launch.py use_sim_time:=True slam:=True [map:=FULL PATH] [params_file:=FULL PATH]
+#
+#  2.3 
+#  Map Server static map load
+#  1) term2
+#   $ ros2 launch turtlebot3_navi_my localization.launch.py
+#  navigation2 
+#  2) navigation2 rpp_planner
+#   $ ros2 launch nav2_bringup navigation_launch.py use_sim_time:=False params_file:=/home/nishi/colcon_ws-jazzy/src/turtlebot3_navi_my/params/amcl_scan/rpp_nav2_params.yaml
+#
 #
 #  3.1 Rviz
 #   $ ros2 launch nav2_bringup rviz_launch.py
@@ -55,7 +61,7 @@
 #   $ ros2 launch turtlebot3_navi_my go_auto_map.launch.py use_sim_time:=True
 #
 #  6. C++ Auto Mower [localization and  navigation]
-#   $ export LD_LIBRARY_PATH=/home/nishi/usr/local/lib/tensorflow-2.16.2-lite-flex:$LD_LIBRARY_PATH
+#   $ export LD_LIBRARY_PATH=/home/nishi/usr/local/lib/tensorflow-lite-flex:$LD_LIBRARY_PATH
 #   $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True cource_width:=18 [plann_test:=True] [ml_data:=True] [opp_on:=True]
 #
 # append.
@@ -87,7 +93,8 @@ def generate_launch_description():
         #    get_package_share_directory('turtlebot3_navi_my'),
         #    'map',
         #    'house_map.yaml')
-        default=os.path.join('/','home','nishi','map','house_map.yaml'),
+        #default=os.path.join('/','home','nishi','map','house_map.yaml'),
+        default=os.path.join('/','home','nishi','map','depot.yaml'),
         ),
 
     #param_file_name = TURTLEBOT3_MODEL + '.yaml'
@@ -97,10 +104,12 @@ def generate_launch_description():
         #    get_package_share_directory('turtlebot3_navigation2'),
         #    'param',
         #    param_file_name)
-        default=os.path.join(get_package_share_directory('turtlebot3_navi_my'), 'params','amcl_scan', 'rpp_nav2_params.yaml'),
+        #default=os.path.join(get_package_share_directory('turtlebot3_navi_my'), 'params','amcl_scan', 'rpp_nav2_params.yaml'),
+        default=os.path.join(get_package_share_directory('turtlebot3_navi_my'), 'params','amcl_scan', 'nav2_params.yaml'),
         ),
 
-    slam = LaunchConfiguration('slam', default='False')
+    slam = LaunchConfiguration('slam')
+    use_composition = LaunchConfiguration('use_composition')
 
 
     nav2_launch_file_dir = os.path.join(get_package_share_directory('nav2_bringup'), 'launch')
@@ -131,6 +140,11 @@ def generate_launch_description():
             default_value='False',
             description='Use slam if true'),
 
+        DeclareLaunchArgument(
+            'use_composition',
+            default_value='True',
+            description='Use use_composition if true'),
+
 
         DeclareLaunchArgument('rviz',default_value='false', description='Launch RVIZ (optional).'),
 
@@ -143,9 +157,10 @@ def generate_launch_description():
             # if you want reduce to exec launch, then set param for bringup_launch.py
             launch_arguments={
                 'slam': slam,
-                #'use_composition': 'True',
                 'map': map_dir,
                 'use_sim_time': use_sim_time,
+                'use_composition': use_composition,
+                #'use_composition': 'True',
                 'params_file': param_dir}.items(),
         ),
 
