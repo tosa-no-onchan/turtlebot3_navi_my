@@ -155,7 +155,7 @@ void RobotDriveNAV2::init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool n
 
 }
 
-void RobotDriveNAV2::exec_pub(float x,float y,float r_yaw,bool rotate_f){
+void RobotDriveNAV2::exec_pub(float x,float y,float r_yaw,bool rotate_f,int wait_sec){
 
     tf2::Quaternion q;
     q.setRPY(0.0, 0.0, r_yaw);        // q.setRPY( 0, 0, 0 );  // Create this quaternion from roll/pitch/yaw (in radians)
@@ -300,7 +300,9 @@ void RobotDriveNAV2::exec_pub(float x,float y,float r_yaw,bool rotate_f){
                     }
                     else{
                         std::cout << "rotate wait"<< std::endl;
-                        if(moving_cnt > 19){      // 3[sec] * 20 = 60[sec]
+                        //if(moving_cnt > 19){      // 3[sec] * 20 = 60[sec]
+                        // chaged by nishi 2025.6.5
+                        if(moving_cnt >= wait_sec/3){      // 3[sec] * 20 = 60[sec]
                             std::cout << "move_base exceed rotate time"<< std::endl;
                             // cnacel req
                             cancel_goal(goal_handle_);
@@ -521,7 +523,9 @@ void RobotDriveNAV2::rotate_abs(float stop_dz,bool rad_f,float speed){
     }
     //rotate_f=true;
 
-    exec_pub(start_x,start_y,r_yaw,true);
+    //exec_pub(start_x,start_y,r_yaw,true);
+    // changed by nishi 2025.6.5
+    exec_pub(start_x,start_y,r_yaw,true,60*3);
 
 }
 

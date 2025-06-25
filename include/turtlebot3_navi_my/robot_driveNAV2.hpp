@@ -86,7 +86,7 @@ public:
     //void init(ros::NodeHandle &nh,bool navi_use=false);
     void init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,bool navi_use=false);
 
-    void exec_pub(float x,float y,float r_yaw,bool rotate_f=false);
+    void exec_pub(float x,float y,float r_yaw,bool rotate_f=false,int wait_sec=60);
     void cancel_goal(std::shared_future<std::shared_ptr<rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>>>goal_handle );
 
     #ifdef TEST_MOVE_NISI_1

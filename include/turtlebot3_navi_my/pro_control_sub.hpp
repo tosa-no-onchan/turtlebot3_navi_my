@@ -7,6 +7,7 @@
 #define PRO_CONTROL_SUB_HPP
 
 #include <rclcpp/rclcpp.hpp>
+//#include "rclcpp/rclcpp.hpp"
 
 #include <chrono>
 #include <functional>
@@ -53,7 +54,7 @@
 #include <rclcpp/wait_for_message.hpp>
 
 // add by nishi 2024.4.5 for Enable topic statics
-#include "rclcpp/rclcpp.hpp"
+//#include "rclcpp/rclcpp.hpp"
 //#include "rclcpp/subscription_options.hpp"
 
 

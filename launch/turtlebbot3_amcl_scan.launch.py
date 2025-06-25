@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2019 Open Source Robotics Foundation, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +21,14 @@
 #  turtlebot3_navi_my/launch/turtlebbot3_amcl_scan.launch.py
 #
 #-------------------------------------------------------------
+# ROS2 jazzy
+#
+# select params file
+#  for Auto Mower
+#    /home/nishi/colcon_ws-jazzy/src/turtlebot3_navi_my/params/amcl_scan/rpp_nav2_params.yaml
+#  for Auto Map
+#    /home/nishi/colcon_ws-jazzy/src/turtlebot3_navi_my/params/amcl_scan/auto_map_nav2_params.yaml
+#
 # 1. build
 #  $ colcon build --symlink-install --parallel-workers 1 --packages-select turtlebot3_navi_my
 #  $ . install/setup.bash
@@ -31,6 +40,7 @@
 #   $ ros2 launch turtlebot3_gazebo warehouse.launch.py
 #
 #  1.1  tb4_simulation_launch.py を使う
+#   b. for Auto Mower
 #   $ ros2 launch nav2_bringup tb4_simulation_launch.py headless:=False params_file:=/home/nishi/colcon_ws-jazzy/src/turtlebot3_navi_my/params/amcl_scan/rpp_nav2_params.yaml
 #   注) All in One なので、この場合、2. と 3.1 は不要
 # 
@@ -39,7 +49,7 @@
 #   $ ros2 launch turtlebot3_navi_my turtlebbot3_amcl_scan.launch.py use_sim_time:=True [map:=FULL PATH] [params_file:=FULL PATH]
 #
 #  2.2 navigation and slam  [start slam and navigation]
-#   $ ros2 launch turtlebot3_navi_my turtlebbot3_amcl_scan.launch.py use_sim_time:=True slam:=True [map:=FULL PATH] [params_file:=FULL PATH]
+#   $ ros2 launch turtlebot3_navi_my turtlebbot3_amcl_scan.launch.py use_sim_time:=True slam:=True [map:=FULL PATH] params_file:=/home/nishi/colcon_ws-jazzy/src/turtlebot3_navi_my/params/amcl_scan/auto_map_nav2_params.yaml
 #
 #  2.3 
 #  Map Server static map load

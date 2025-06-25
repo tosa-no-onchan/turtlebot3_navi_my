@@ -115,7 +115,7 @@ GoalList goallist[] ={
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
 
             //{67, 0.0, 0.0, 0.0},      // set dumper ON
-            {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
+            //{0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},  // rotate_abs 90
             {2, 0.0, 0.0, 180.0},  // rotate_abs 180
             {2, 0.0, 0.0, 270.0},  // rotate_abs 270
