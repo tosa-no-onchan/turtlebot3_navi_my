@@ -3,7 +3,8 @@
   Ros2 C++ Programmable Robot Control   
   for [foxbot_core3_r2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  and Turtlebot3  
 
-  ROS2 C++ 自立走行ロボット開発 Framework   
+  ROS2 C++ 自立走行ロボット開発 Framework と Application Samples.  
+
   ROS2 Gazebo Turtlebot3 、 自作 Turtlebot3(foxbot_core3_r2.ino) を、 /cmd_vel 、 navigation2 を使って  
   動かす事ができる、 c++ プログラム。  
 
