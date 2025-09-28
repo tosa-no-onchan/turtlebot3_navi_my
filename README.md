@@ -1,6 +1,6 @@
 ## turtlebot3_navi_my for Ros2 jazzy r6  
   
-  Ros2 C++ Programmable Robot Control   
+  Ros2 C++ Programmable Robot Control Stack   
   for [foxbot_core3_r2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  and Turtlebot3  
 
   ROS2 C++ 自立走行ロボット開発 Stack と Application Samples.  
