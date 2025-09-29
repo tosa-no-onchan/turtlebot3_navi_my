@@ -5,8 +5,14 @@
 
   ROS2 C++ 自立走行ロボット開発 Stack と Application Samples.  
 
-  ROS2 Gazebo Turtlebot3 、 自作 Turtlebot3(foxbot_core3_r2.ino) を、 /cmd_vel 、 navigation2 を使って  
-  動かす事ができる、 c++ プログラム Stack。  
+  ROS2 Turtlebot3(実機 or Gazebo) 、 自作 Turtlebot3(実機 foxbot_core3_r2.ino) など、 /cmd_vel 、 navigation2 でコントロールできるロボットを  
+  C++ の簡略コードから、簡単に動かす事ができる、 プログラム Stack。  
+  
+  例えば、  
+  前進して、(x,y) へ進め  
+  右に 90度 回れ  
+  など、簡単に C++ からプログラミンできる。  
+  イメージとしては、Scratch（スクラッチ） の C++ ソースコード版。  
 
   特に、Gazebo House , Turtlebot3 and Rtabmap_ros with RGBD Camera 環境があれば、簡単に下記テストができる。  
   Turtlebot3 amcl and scan の launch を追加しました。    
