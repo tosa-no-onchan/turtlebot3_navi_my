@@ -12,7 +12,8 @@
   前進して、(x,y) へ進め  
   右に 90度 回れ  
   など、簡単に C++ からプログラミンできる。  
-  イメージとしては、Scratch（スクラッチ） の C++ ソースコード版。  
+  イメージとしては、Scratch（スクラッチ） の C++ ソースコード版。ただし、if loop 等の制御コードは無い。  
+  また、class RobotDriveNAV2, class RobotDriveCmd_Vel を使えば、C++ コードから、Diff Drive ロボットを簡単に動かせる。  
 
   特に、Gazebo House , Turtlebot3 and Rtabmap_ros with RGBD Camera 環境があれば、簡単に下記テストができる。  
   Turtlebot3 amcl and scan の launch を追加しました。    
