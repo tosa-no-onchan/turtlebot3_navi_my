@@ -1,4 +1,4 @@
-## turtlebot3_navi_my for Ros2 jazzy r6  
+## turtlebot3_navi_my for Ros2 jazzy r7  
   
   Ros2 C++ Programmable Robot Control Stack for [foxbot_core3_r2.ino](https://github.com/tosa-no-onchan/foxbot_core3)  and Turtlebot3  
   --- ROS2 C++ roboto control Stack or Library ---  
@@ -345,3 +345,8 @@ ROS2 Jazzy + Turtlebot4 + Gazebo Ionic warehouse Simulation で、 AutoMower を
     term2 term2 Auto Mower  
     $ export LD_LIBRARY_PATH=/home/nishi/usr/local/lib/tensorflow-lite-flex:$LD_LIBRARY_PATH  
     $ ros2 launch turtlebot3_navi_my go_auto_mower.launch.py use_sim_time:=True cource_width:=18 [plann_test:=True] [ml_data:=True] [opp_on:=True]  
+
+2025.10.30 version-jazzy-r7  
+
+    /cmd_vel の メッセージタイプを変更しました。  
+    geometry_msgs/msg/Twist -> geometry_msgs/msg/TwistStamped  
