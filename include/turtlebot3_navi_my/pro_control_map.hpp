@@ -118,8 +118,10 @@ public:
 ----------------------------*/
 class BlobFinder{
 private:
-    bool view_f=false;
-    bool view_f_m=false;
+    //bool view_f=false;
+    bool view_f=true;
+    //bool view_f_m=false;
+    bool view_f_m=true;
 
     // blob 重心
     double x_g;
@@ -179,8 +181,10 @@ private:
 public:
 
     ProControlMap(){}
+    void init(std::shared_ptr<rclcpp::Node> node);  // add by nishi 2025.10.28
 
     void auto_map();
+    void auto_map_old();
     void auto_map_anchor();
 
     // set border top-right

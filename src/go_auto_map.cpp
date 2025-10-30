@@ -23,12 +23,56 @@ GoalList turtlebot3_auto_map[] ={
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
             //{67, 0.0, 0.0, 0.0},      // set dumper ON
             // 障害物からの距離の調整
-            {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
+            //{73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
             {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},      // rotate 90
             {2, 0.0, 0.0, 180.0},     // rotate 180
             {2, 0.0, 0.0, 270.0},     // rotate 270
             {2, 0.0, 0.0, 0.0},       // rotate 360
+            //{10,0.0,1.0,90.0},         // navi move
+            //{10,0.0,-1.0,-90.0},         // navi move
+            {30,0.0,0.0, 0.0},        // Auto map builder
+            {99,0.0,0.0, 0.0},        // end
+};
+
+GoalList tugbot_auto_map0[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON
+            // 障害物からの距離の調整
+            //{73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
+            //{73, 8.0, 0.0, 0.0},      // set set robo_r_     tugbot  741 × 640 × 463 mm [LxWxH]   74.1/5 = 14.8 -> 15 / 2 -> 8
+            {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
+            {2, 0.0, 0.0, 90.0},      // rotate 90
+            {2, 0.0, 0.0, 180.0},     // rotate 180
+            {2, 0.0, 0.0, 270.0},     // rotate 270
+            {2, 0.0, 0.0, 0.0},       // rotate 360
+            //{10,0.0,1.0,90.0},         // navi move
+            //{10,0.0,-1.0,-90.0},         // navi move
+            //{22,0.0,0.0, 0.0},      // get map
+            {30,0.0,0.0, 0.0},        // Auto map builder
+            {99,0.0,0.0, 0.0},        // end
+};
+
+
+GoalList tugbot_auto_map[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON
+            // 障害物からの距離の調整
+            //{73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
+            //{73, 8.0, 0.0, 0.0},      // set set robo_r_     tugbot  741 × 640 × 463 mm [LxWxH]   74.1/5 = 14.8 -> 15 / 2 -> 8
+            {81, 0.0, 0.0, 0.0},      //  81 -> cmd_vel mode
+            {0, 2.0, 0.0, 0.0},       // go (2.0,0.0) and rotate 0
+            {80, 0.0, 0.0, 0.0},       // 80 -> navigation2 mode
+            {2, 2.0, 0.0, 90.0},      // rotate 90
+            {2, 2.0, 0.0, 180.0},     // rotate 180
+            {2, 2.0, 0.0, 270.0},     // rotate 270
+            {2, 2.0, 0.0, 0.0},       // rotate 360
+            {2, 2.0, 0.0, 90.0},      // rotate 90
+            {0, 2.0, 3.0, 90.0},       // go (2.0,3.0) and rotate 90
             //{10,0.0,1.0,90.0},         // navi move
             //{10,0.0,-1.0,-90.0},         // navi move
             {30,0.0,0.0, 0.0},        // Auto map builder
@@ -42,18 +86,52 @@ GoalList turtlebot3_auto_map_achor[] ={
             {64, 0.0, 0.0, 0.0},      // go curve ON
             //{67, 0.0, 0.0, 0.0},      // set dumper ON
             // 障害物からの距離の調整
-            {73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
+            //{73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
             {0, 0.0, 0.0, 0.0},       // go (0.0,0.0) and rotate 0
             {2, 0.0, 0.0, 90.0},      // rotate 90
             {2, 0.0, 0.0, 180.0},     // rotate 180
             {2, 0.0, 0.0, 270.0},     // rotate 270
             {2, 0.0, 0.0, 0.0},       // rotate 360
+            // add for wearhose scan by nishi 2025.10.19
+            {0, 2.0, 0.0, 0.0},       // go (2.0,0.0) and rotate 0
+            {2, 2.0, 0.0, 90.0},      // rotate 90
+            {0, 2.0, 3.0, 90.0},       // go (2.0,3.0) and rotate 90
             //{10,0.0,1.0,90.0},         // navi move
             //{10,0.0,-1.0,-90.0},         // navi move
             {31,0.0,0.0, 0.0},        // Auto map builder of anchor
             {99,0.0,0.0, 0.0},        // end
 };
+
+// Auto map II ( nav2 and cmd_vel mode)
+// scan_back が、Map に入って来ないので、最初は、cmd_vel モードで、1回転する。
+GoalList tugbot_auto_map_achor[] ={
+            {60, 0.0, 0.0, 0.0},      // course correct ON
+            {64, 0.0, 0.0, 0.0},      // go curve ON
+            {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
+            //{67, 0.0, 0.0, 0.0},      // set dumper ON
+            // 障害物からの距離の調整
+            //{73, 6.0, 0.0, 0.0},      // set set robo_r_     waffle 281 x 306[mm]    30.6/5 = 6.12 -> 7 / 2 -> 4
+            //{73, 8.0, 0.0, 0.0},      // set set robo_r_     tugbot  741 × 640 × 463 mm [LxWxH]   74.1/5 = 14.8 -> 15 / 2 -> 8
+            {81, 0.0, 0.0, 0.0},      //  81 -> cmd_vel mode
+            {0, 2.0, 0.0, 0.0},       // go (2.0,0.0) and rotate 0
+            {80, 0.0, 0.0, 0.0},       // 80 -> navigation2 mode
+            {2, 2.0, 0.0, 90.0},      // rotate 90
+            {2, 2.0, 0.0, 180.0},     // rotate 180
+            {2, 2.0, 0.0, 270.0},     // rotate 270
+            {2, 2.0, 0.0, 0.0},       // rotate 360
+            {2, 2.0, 0.0, 90.0},      // rotate 90
+            // add for wearhose scan by nishi 2025.10.19
+            //{80, 0.0, 0.0, 0.0},       // 80 -> navigation2 mode
+            //{0, 2.0, 0.0, 0.0},       // go (2.0,0.0) and rotate 0
+            //{2, 2.0, 0.0, 90.0},      // rotate 90
+            {0, 2.0, 3.0, 90.0},       // go (2.0,3.0) and rotate 90
+            //{10,0.0,1.0,90.0},         // navi move
+            //{10,0.0,-1.0,-90.0},         // navi move
+            {31,0.0,0.0, 0.0},        // Auto map builder of anchor
+            {99,0.0,0.0, 0.0},        // end
+};
+
 
 int main(int argc, char **argv){
     using namespace std::chrono_literals;
@@ -71,7 +149,10 @@ int main(int argc, char **argv){
     mg_ex.init(node);
 
     //mg_ex.mloop_ex(turtlebot3_auto_map);
-    mg_ex.mloop_ex(turtlebot3_auto_map_achor);
+    mg_ex.mloop_ex(tugbot_auto_map0);
+    //mg_ex.mloop_ex(tugbot_auto_map);
+    //mg_ex.mloop_ex(turtlebot3_auto_map_achor);
+    //mg_ex.mloop_ex(tugbot_auto_map_achor);
 
     //ros::Rate rate(1);   //  1[Hz]
     while(rclcpp::ok()){

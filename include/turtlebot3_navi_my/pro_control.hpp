@@ -120,9 +120,11 @@ private:
     bool error_auto_stop_=true;
 
 public:
+    // obstacle_escape() で使用します。
+    float r_lng_=0.6;       // ロボットの周囲の半径[M] = 0.6 add by nishi 2024.9.21
+    int black_thresh_=0;    // black count の閾値 = 0
+    float move_l_=0.12;     // 移動距離[M] =0.12add by nishi 2024.9.21
 
-    float r_lng_=0.6;       // add by nishi 2024.9.21
-    float move_l_=0.12;     // add by nishi 2024.9.21
     float robo_radian_marker_=0.2;   // add by nishi 2024.9.21
     float obstacle_eye_start_= 0.3;  // add by nishi 2024.9.27
     float obstacle_eye_stop_= 0.42; // add by nishi 2024.9.27

@@ -59,11 +59,12 @@ GoalList goallist_test[] ={
             {64, 0.0, 0.0, 0.0},      // go curve ON
             {66, 0.0, 0.0, 0.0},      // force current position to map(0,0)
             {67, 0.0, 0.0, 0.0},      // set dumper ON
+            {73, 8.0, 0.0, 0.0},      // set set robo_r_     tugbot  741 × 640 × 463 mm [LxWxH]   74.1/5 = 14.8 -> 15 / 2 -> 8
             {0, 0.0, 0.0, 0.0},   // go (0.0,0.0) and rotate 0
 
-            //{3, 0.0, 0.0, 90.0},    // rotate 90
-            //{3, 0.0, 0.0, 90.0},   // rotate 90
-            //{3, 0.0, 0.0, 90.0},   // rotate 90
+            {3, 0.0, 0.0, 90.0},    // rotate off 90
+            {3, 0.0, 0.0, 90.0},   // rotate off 90
+            {3, 0.0, 0.0, 90.0},   // rotate 90
             //{3, 0.0, 0.0, 90.0},   // rotate 90
             //{3, 0.0, 0.0, 360.0},   // rotate 360
             //{3, 0.0, 0.0, -360.0},   // rotate -360
@@ -73,6 +74,7 @@ GoalList goallist_test[] ={
             //{3, 0.0, 0.0, -20.0},   // rotate -20
             //{3, 0.0, 0.0, 30.0},   // rotate 30
             //{3, 0.0, 0.0, -30.0},   // rotate -30
+            {99,0.0,0.0, 0.0},       // end
 
             // 単体でのテスト
             //{0, 0.0, 0.0, 90.0},   // go (0.0,0.0) and rotate 90
@@ -517,8 +519,8 @@ int main(int argc, char** argv)
     //}
 
     //mg_ex.mloop_ex(abnormal_test);
-    //mg_ex.mloop_ex(goallist_test);
-    mg_ex.mloop_ex(goallist);
+    mg_ex.mloop_ex(goallist_test);
+    //mg_ex.mloop_ex(goallist);
     //mg_ex.mloop_ex(turtlebot3_house);
     //mg_ex.mloop_ex(goallist2);
 

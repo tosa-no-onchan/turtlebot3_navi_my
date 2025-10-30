@@ -9,7 +9,9 @@
 
 #include "turtlebot3_navi_my/robot_driveCmd_Vel.hpp"
 
-#include "geometry_msgs/msg/twist.hpp"
+//#include "geometry_msgs/msg/twist.hpp"
+// changed by nishi 2025.10.19
+#include "geometry_msgs/msg/twist_stamped.hpp"
 
 #include <thread>
 #include <math.h>
@@ -37,14 +39,20 @@ void RobotDriveCmd_Vel::init(std::shared_ptr<rclcpp::Node> node,GetTF *getTF,boo
 
     //set up the publisher for the cmd_vel topic
     //_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-    _pub = node_->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
+    //_pub = node_->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
+    // changed by nishi 2025.10.18
+    _pub = node_->create_publisher<geometry_msgs::msg::TwistStamped>("/cmd_vel", 1);
 
 
     //printf("%s",_pub);
     //std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::Twist_<std::allocator<void> >
 
-    _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
-    _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
+    //_vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.angular.x = _vel_msg.twist.angular.y = _vel_msg.twist.angular.z =0.0;
+    //_vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.linear.x = _vel_msg.twist.linear.y = _vel_msg.twist.linear.z = 0.0;
 
     _course_correct=false;
     _after_correct_wait=false;
@@ -347,12 +355,19 @@ int RobotDriveCmd_Vel::go_abs_core(float x,float y, bool chk_thred, bool isBack,
     else
         i_spped = -abs(speed);
 
-    _vel_msg.linear.x = i_spped;
-    _vel_msg.linear.y = 0.0;
-    _vel_msg.linear.z = 0.0;
-    _vel_msg.angular.x = 0.0;
-    _vel_msg.angular.y = 0.0;
-    _vel_msg.angular.z = 0.0;
+    //_vel_msg.linear.x = i_spped;
+    //_vel_msg.linear.y = 0.0;
+    //_vel_msg.linear.z = 0.0;
+    //_vel_msg.angular.x = 0.0;
+    //_vel_msg.angular.y = 0.0;
+    //_vel_msg.angular.z = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.linear.x = i_spped;
+    _vel_msg.twist.linear.y = 0.0;
+    _vel_msg.twist.linear.z = 0.0;
+    _vel_msg.twist.angular.x = 0.0;
+    _vel_msg.twist.angular.y = 0.0;
+    _vel_msg.twist.angular.z = 0.0;
 
     //ros::Rate rate(30.0);   // 30[Hz]
     rclcpp::WallRate rate(30.0);
@@ -492,7 +507,9 @@ int RobotDriveCmd_Vel::go_abs_core(float x,float y, bool chk_thred, bool isBack,
                     // 到達点まで 1[M] 以上　かつ　ズレが 2.0[dgree] か ズレが 4.0[dgree]
                     if ((abs(theta_ar * RADIANS_F) > 4.0) || ((start_distance - current_distance) > 1.0 &&  abs(theta_ar * RADIANS_F) > 2.0)){
                         rotate_off(theta_ar*RADIANS_F,3.0,_go_curve);
-                        _vel_msg.linear.x = i_spped;
+                        //_vel_msg.linear.x = i_spped;
+                        // changed by nishi 2025.10.18
+                        _vel_msg.twist.linear.x = i_spped;
                         //std::exit(0);
                         //ex_f=true;
                         i=i;
@@ -532,7 +549,9 @@ int RobotDriveCmd_Vel::go_abs_core(float x,float y, bool chk_thred, bool isBack,
     }
     std::cout << "stop" << std::endl;
     // After the loop, stops the robot
-    _vel_msg.linear.x = 0.0;
+    //_vel_msg.linear.x = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.linear.x = 0.0;
     // Force the robot to stop
     //_pub.publish(_vel_msg);
     _pub->publish(_vel_msg);
@@ -610,12 +629,19 @@ int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float 
     else
         i_spped = -abs(speed);
 
-    _vel_msg.linear.x = i_spped;
-    _vel_msg.linear.y = 0.0;
-    _vel_msg.linear.z = 0.0;
-    _vel_msg.angular.x = 0.0;
-    _vel_msg.angular.y = 0.0;
-    _vel_msg.angular.z = 0.0;
+    //_vel_msg.linear.x = i_spped;
+    //_vel_msg.linear.y = 0.0;
+    //_vel_msg.linear.z = 0.0;
+    //_vel_msg.angular.x = 0.0;
+    //_vel_msg.angular.y = 0.0;
+    //_vel_msg.angular.z = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.linear.x = i_spped;
+    _vel_msg.twist.linear.y = 0.0;
+    _vel_msg.twist.linear.z = 0.0;
+    _vel_msg.twist.angular.x = 0.0;
+    _vel_msg.twist.angular.y = 0.0;
+    _vel_msg.twist.angular.z = 0.0;
 
     //ros::Rate rate(30.0);   // 30[Hz]
     rclcpp::WallRate rate(30.0);
@@ -753,7 +779,9 @@ int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float 
                     // 到達点まで 1[M] 以上　かつ　ズレが 2.0[dgree] か ズレが 4.0[dgree]
                     if ((abs(theta_ar * RADIANS_F) > 4.0) || ((start_distance - current_distance) > 1.0 &&  abs(theta_ar * RADIANS_F) > 2.0)){
                         rotate_off(theta_ar*RADIANS_F,3.0,_go_curve);
-                        _vel_msg.linear.x = i_spped;
+                        //_vel_msg.linear.x = i_spped;
+                        // changed by nishi 2025.10.18
+                        _vel_msg.twist.linear.x = i_spped;
                         //std::exit(0);
                         //ex_f=true;
                         i=i;
@@ -797,7 +825,9 @@ int RobotDriveCmd_Vel::go_abs(float x,float y, bool isBack, bool obs_chk, float 
     }
     std::cout << "stop" << std::endl;
     // After the loop, stops the robot
-    _vel_msg.linear.x = 0.0;
+    //_vel_msg.linear.x = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.linear.x = 0.0;
     // Force the robot to stop
     //_pub.publish(_vel_msg);
     _pub->publish(_vel_msg);
@@ -838,8 +868,11 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
 
     std::cout << "C rotate_abs() stop_dz=" << stop_rz*RADIANS_F << std::endl;
 
-    _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
-    _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
+    //_vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
+    //_vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.angular.x = _vel_msg.twist.angular.y = _vel_msg.twist.angular.z =0.0;
+    _vel_msg.twist.linear.x = _vel_msg.twist.linear.y = _vel_msg.twist.linear.z = 0.0;
 
 
     float rz_dlt = abs(speed / RADIANS_F) * 0.25;
@@ -849,7 +882,9 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     //# Twist 型のデータ
     //#t = Twist()
     //#t.linear.x = 0
-    _vel_msg.linear.x = 0.0;
+    //_vel_msg.linear.x = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.linear.x = 0.0;
 
     get_tf(2);
 
@@ -930,12 +965,16 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     if (turn_plus >= 0){
         //#self.vel_msg.angular.z = speed * 3.1415 / 180.0 # [rad]
         //#self.vel_msg.angular.z = speed # [rad]
-        _vel_msg.angular.z = speed / RADIANS_F;  // [rad]
+        //_vel_msg.angular.z = speed / RADIANS_F;  // [rad]
+        // changed by nishi 2025.10.18
+        _vel_msg.twist.angular.z = speed / RADIANS_F;  // [rad]
     }
     // turn minus
     else{
         //#self.vel_msg.angular.z = speed * 3.1415 / -180.0 # [rad]
-        _vel_msg.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
+        //_vel_msg.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
+        // changed by nishi 2025.10.18
+        _vel_msg.twist.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
     }
 
     // stop_rz を目指す
@@ -1001,7 +1040,9 @@ void RobotDriveCmd_Vel::rotate_abs(float stop_dz,bool rad_f, float speed){
     }
 
     std::cout << "stop" << std::endl;
-    _vel_msg.angular.z = 0.0;   // [rad]
+    //_vel_msg.angular.z = 0.0;   // [rad]
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.angular.z = 0.0;   // [rad]
     //Force the robot to stop
     //_pub.publish(_vel_msg);
     _pub->publish(_vel_msg);
@@ -1046,8 +1087,11 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
         speed = rotate_speed_min_;
     }
 
-    _vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
-    _vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
+    //_vel_msg.angular.x = _vel_msg.angular.y = _vel_msg.angular.z =0.0;
+    //_vel_msg.linear.x = _vel_msg.linear.y = _vel_msg.linear.z = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.angular.x = _vel_msg.twist.angular.y = _vel_msg.twist.angular.z =0.0;
+    _vel_msg.twist.linear.x = _vel_msg.twist.linear.y = _vel_msg.twist.linear.z = 0.0;
 
 
     float rz_dlt = abs(speed / RADIANS_F) * 0.25;
@@ -1057,7 +1101,9 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
     //# Twist 型のデータ
     //#t = Twist()
     //#t.linear.x = 0
-    _vel_msg.linear.x = 0.0;
+    //_vel_msg.linear.x = 0.0;
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.linear.x = 0.0;
 
     get_tf(2);
 
@@ -1105,15 +1151,21 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
     if (turn_plus >= 0){
         //#self.vel_msg.angular.z = speed * 3.1415 / 180.0 # [rad]
         //#self.vel_msg.angular.z = speed # [rad]
-        _vel_msg.angular.z = speed / RADIANS_F;  // [rad]
+        //_vel_msg.angular.z = speed / RADIANS_F;  // [rad]
+        // changed by nishi 2025.10.18
+        _vel_msg.twist.angular.z = speed / RADIANS_F;  // [rad]
     }
     // turn minus
     else{
         //#self.vel_msg.angular.z = speed * 3.1415 / -180.0 # [rad]
-        _vel_msg.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
+        //_vel_msg.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
+        // changed by nishi 2025.10.18
+        _vel_msg.twist.angular.z = speed / RADIANS_F * -1.0;  //  [rad]
     }
 
-    float speed_half = _vel_msg.angular.z * 0.5;
+    //float speed_half = _vel_msg.angular.z * 0.5;
+    // changed by nishi 2025.10.18
+    float speed_half = _vel_msg.twist.angular.z * 0.5;
     if(abs(speed_half) < (speed / RADIANS_F)){
         if(speed_half >= 0.0)
              speed_half = speed / RADIANS_F;
@@ -1123,7 +1175,9 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
 
     if (abs(rz_off) <= 10.0/RADIANS_F){      //# 角度差が 10.0 度以内 であれば、補正回転にする
         std::cout << " adjust angle" << std::endl;
-        _vel_msg.angular.z = speed_half;
+        //_vel_msg.angular.z = speed_half;
+        // changed by nishi 2025.10.18
+        _vel_msg.twist.angular.z = speed_half;
     }
     else{
         std::cout << " non adjust angle" << std::endl;
@@ -1177,19 +1231,29 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
         }
 
         if(rz_off > 0.0){
-            if(_vel_msg.angular.z < 0.0)
-                _vel_msg.angular.z *= -1.0;  // [rad]
+            //if(_vel_msg.angular.z < 0.0)
+            // changed by nishi 2025.10.18
+            if(_vel_msg.twist.angular.z < 0.0)
+                //_vel_msg.angular.z *= -1.0;  // [rad]
+                // changed by nishi 2025.10.18
+                _vel_msg.twist.angular.z *= -1.0;  // [rad]
         }
         // rz_off <  0  --->  regura clock(right) rotate(-)
         else{
-            if(_vel_msg.angular.z > 0.0)
-                _vel_msg.angular.z *= -1.0;  // [rad]
+            //if(_vel_msg.angular.z > 0.0)
+            // changed by nishi 2025.10.18
+            if(_vel_msg.twist.angular.z > 0.0)
+                //_vel_msg.angular.z *= -1.0;  // [rad]
+                // changed by nishi 2025.10.18
+                _vel_msg.twist.angular.z *= -1.0;  // [rad]
         }
 
         rz_off=abs(rz_off);
         if (rz_off <= 10.0/RADIANS_F){      //# 角度差が 10.0 度以内 であれば、補正回転にする
             if(speed_half_msg_f==false){
-                _vel_msg.angular.z = speed_half;
+                //_vel_msg.angular.z = speed_half;
+                // changed by nishi 2025.10.18
+                _vel_msg.twist.angular.z = speed_half;
                 std::cout << " set speed_half" << std::endl;
                 speed_half_msg_f=true;
             }
@@ -1203,7 +1267,9 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
             // 最小の角度を通り過ぎ
             else{
                 // 1クロック逆戻り
-                _vel_msg.angular.z *= -1.0;
+                //_vel_msg.angular.z *= -1.0;
+                // changed by nishi 2025.10.18
+                _vel_msg.twist.angular.z *= -1.0;
                 ok_f = true;
             }
         }
@@ -1225,7 +1291,10 @@ void RobotDriveCmd_Vel::rotate_abs_179(float stop_dz,bool rad_f, float speed){
         rclcpp::spin_some(node_);
     }
     std::cout << " stop" << std::endl;
-    _vel_msg.angular.z = 0.0;   // [rad]
+    //_vel_msg.angular.z = 0.0;   // [rad]
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.angular.z = 0.0;   // [rad]
+
     //Force the robot to stop
     //_pub.publish(_vel_msg);
     _pub->publish(_vel_msg);
@@ -1253,17 +1322,21 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
     float r_theta = d_theta/RADIANS_F;
     if (abs(r_theta) <= rz_dlt)
         return;
-
+    // r_theta = 1.571 がまずいみたい。
     if (d_theta >= 0.0){
         turn_plus = true;   // reverse clock(left) rotate(+)
         //_vel_msg.angular.z = speed * 3.1415 / 180.0; //[rad]
         //_vel_msg.angular.z = speed; // [rad]
-        _vel_msg.angular.z = speed/RADIANS_F;  // [rad]
+        //_vel_msg.angular.z = speed/RADIANS_F;  // [rad]
+        // changed by nishi 2025.10.18
+        _vel_msg.twist.angular.z = speed/RADIANS_F;  // [rad]
     }
     else{
         turn_plus = false; // regura clock(right) rotate(-)
         //_vel_msg.angular.z = speed * 3.1415 / -180.0; // [rad]
-        _vel_msg.angular.z = speed/RADIANS_F * -1.0;  // [rad]
+        //_vel_msg.angular.z = speed/RADIANS_F * -1.0;  // [rad]
+        // changed by nishi 2025.10.18
+        _vel_msg.twist.angular.z = speed/RADIANS_F * -1.0;  // [rad]
     }
 
     get_tf(2);
@@ -1276,7 +1349,9 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
     //t.linear.x = 0
     // go on straight and turn to target point
     if (go_curve == false){
-        _vel_msg.linear.x = 0.0;
+        //_vel_msg.linear.x = 0.0;
+        // changed by nishi 2025.10.18
+        _vel_msg.twist.linear.x = 0.0;
     }
 
     // World 座標 stop_rz を目指す。
@@ -1353,7 +1428,9 @@ void RobotDriveCmd_Vel::rotate_off(float d_theta, float speed, bool go_curve){
     }
 
     std::cout << "stop" << std::endl;
-    _vel_msg.angular.z = 0.0; // [rad]
+    //_vel_msg.angular.z = 0.0; // [rad]
+    // changed by nishi 2025.10.18
+    _vel_msg.twist.angular.z = 0.0; // [rad]
     // Force the robot to stop
     //_pub.publish(_vel_msg);
     _pub->publish(_vel_msg);
@@ -1376,10 +1453,16 @@ bool RobotDriveCmd_Vel::driveForwardOdom(double distance)
 
     //we will be sending commands of type "twist"
     //geometry_msgs::Twist base_cmd;
-    geometry_msgs::msg::Twist base_cmd;
+    //geometry_msgs::msg::Twist base_cmd;
+    // changed by nishi 2025.10.18
+    geometry_msgs::msg::TwistStamped base_cmd;
     //the command will be to go forward at 0.25 m/s
-    base_cmd.linear.y = base_cmd.angular.z = 0;
-    base_cmd.linear.x = 0.25;
+    //base_cmd.linear.y = base_cmd.angular.z = 0;
+    // changed by nishi 2025.10.18
+    base_cmd.twist.linear.y = base_cmd.twist.angular.z = 0;
+    //base_cmd.linear.x = 0.25;
+    // changed by nishi 2025.10.18
+    base_cmd.twist.linear.x = 0.25;
 
     //ros::Rate rate(10.0);
     rclcpp::WallRate rate(10.0);
@@ -1421,15 +1504,26 @@ bool RobotDriveCmd_Vel::turnOdom(bool clockwise, double radians)
 
     //we will be sending commands of type "twist"
     //geometry_msgs::Twist base_cmd;
-    geometry_msgs::msg::Twist base_cmd;
+    //geometry_msgs::msg::Twist base_cmd;
+    // changed by nishi 2025.10.18
+    geometry_msgs::msg::TwistStamped base_cmd;
+
     //the command will be to turn at 0.75 rad/s -> 42.97 degrees/s
-    base_cmd.linear.x = 0.0;
-    base_cmd.linear.y = 0.0;
+    //base_cmd.linear.x = 0.0;
+    //base_cmd.linear.y = 0.0;
+    // changed by nishi 2025.10.18
+    base_cmd.twist.linear.x = 0.0;
+    base_cmd.twist.linear.y = 0.0;
+
     //base_cmd.angular.z = 0.75;
-    base_cmd.angular.z = 5.0/RADIANS_F;
+    //base_cmd.angular.z = 5.0/RADIANS_F;
+    // changed by nishi 2025.10.18
+    base_cmd.twist.angular.z = 5.0/RADIANS_F;
 
     if (clockwise) 
-        base_cmd.angular.z = -base_cmd.angular.z;
+        //base_cmd.angular.z = -base_cmd.angular.z;
+        // changed by nishi 2025.10.18
+        base_cmd.twist.angular.z = -base_cmd.twist.angular.z;
 
     //the axis we want to be rotating by
     //tf::Vector3 desired_turn_axis(0,0,1);

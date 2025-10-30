@@ -35,6 +35,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument('use_sim_time',default_value='false', description='sim time optional'),
         DeclareLaunchArgument('get_map_func',default_value='0', description='get_map_func optional'),
+
         DeclareLaunchArgument('threshold',default_value='250.0', description='White threshold'),
         DeclareLaunchArgument('plann_test',default_value='false', description='Plann create test'),
         DeclareLaunchArgument('all_nav2',default_value='false', description='All Navigation2 cotroll'),
@@ -45,6 +46,7 @@ def generate_launch_description():
         DeclareLaunchArgument('min_path_width_n',default_value='2', description='minimum path width factor N[times]'),
         # 狭小エリア minumum factor  最小幅 = safe_margin_dt*2+robot raius*min_path_width_n
         DeclareLaunchArgument('r_lng',default_value='0.6', description='obstacle aroud robot check radius [M]'),
+        DeclareLaunchArgument('black_thresh',default_value='0', description='get_map_func optional'),
         DeclareLaunchArgument('move_l',default_value='0.12', description='robot escape distance [M]'),
 
         DeclareLaunchArgument('robo_radian_marker',default_value='0.2', description='robot obstacle check maker [M]'),
@@ -74,6 +76,7 @@ def generate_launch_description():
                          "safe_margin_dt": LaunchConfiguration('safe_margin_dt'),
                          "min_path_width_n": LaunchConfiguration('min_path_width_n'),
                          "r_lng": LaunchConfiguration('r_lng'),
+                         "black_thresh": LaunchConfiguration('black_thresh'),    # black count の閾値 = 0
                          "move_l": LaunchConfiguration('move_l'),
                          "robo_radian_marker": LaunchConfiguration('robo_radian_marker'),
 

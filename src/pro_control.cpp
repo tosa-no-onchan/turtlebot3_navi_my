@@ -10,7 +10,6 @@
 #include "turtlebot3_navi_my/pro_control.hpp"
 //#include <cmath.h>
 
-
 /*
 * Programable Controller Core Class
 *  class ProControl
@@ -22,8 +21,11 @@ void ProControl::init(std::shared_ptr<rclcpp::Node> node, bool use_costmap){
     node_=node;
 
     use_costmap_=use_costmap;
+    // init params
+	node_->declare_parameter<int>("get_map_func", get_map_func_);
 
-	get_map_func_ = node_->declare_parameter<int>("get_map_func", get_map_func_);
+    // get params
+    node_->get_parameter<int>("get_map_func",get_map_func_);
 
     #if defined(USE_NAV2)
         //drive_=&drive_nav; 
@@ -173,7 +175,7 @@ void ProControl::check_obstacle_backaround(float r_lng,int black_thresh){
 /*
 * obstacle_escape(float r_lng,int black_thresh,float move_l)
 *  float r_lng: ロボットの周囲の半径[M] = 0.6
-*  int black_thresh: black count の閾値
+*  int black_thresh: black count の閾値 = 0
 *  float move_l: 移動距離[M] =0.12
 *  ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。
 */
@@ -195,6 +197,7 @@ void ProControl::obstacle_escape(float r_lng,int black_thresh,float move_l){
     else{
         obstacle_escape_robo_orient(r_lng, black_thresh, move_l, get_map_r);
     }
+    std::cout << "ProControl::obstacle_escape() #99 end" <<std::endl;
 }
 
 /*

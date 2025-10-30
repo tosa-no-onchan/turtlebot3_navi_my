@@ -34,6 +34,7 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     // add by nishi 2024.12.25
     ml_planner_.init(node, drive_, &get_gcostmap, &path_plan_);
 
+    // init params
     node_->declare_parameter<double>("threshold",250.0);
     node_->declare_parameter<bool>("plann_test",false);
     node_->declare_parameter<bool>("all_nav2",true);
@@ -43,8 +44,10 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->declare_parameter<int>("safe_margin_dt",5);    // add by nishi 2024.9.20
     node_->declare_parameter<int>("min_path_width_n",2);    // add by nishi 2024.9.20
 
-    node_->declare_parameter<float>("r_lng",0.6);    // add by nishi 2024.9.21
-    node_->declare_parameter<float>("move_l",0.12);    // add by nishi 2024.9.21
+	node_->declare_parameter<float>("r_lng", r_lng_);
+	node_->declare_parameter<int>("black_thresh", black_thresh_);
+	node_->declare_parameter<float>("move_l", move_l_);
+
     node_->declare_parameter<float>("robo_radian_marker",0.2);    // add by nishi 2024.9.21
     node_->declare_parameter<float>("obstacle_eye_start",0.3);    // add by nishi 2024.9.29
     node_->declare_parameter<float>("obstacle_eye_stop",0.42);    // add by nishi 2024.9.29
@@ -54,7 +57,7 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->declare_parameter<bool>("ml_data",false);  // ML data の収集をする add by nishi 2024.10.8
     node_->declare_parameter<bool>("opp_on",false);  // opp with Lstm を行う add by nishi 2024.12.23
 
-
+    // get params
     node_->get_parameter<double>("threshold",threshold_);
     node_->get_parameter<bool>("plann_test",plann_test_);
     node_->get_parameter<bool>("all_nav2",all_nav2_);
@@ -69,7 +72,9 @@ void ProControlMower::init(std::shared_ptr<rclcpp::Node> node){
     node_->get_parameter<bool>("opp_on",opp_on_);
 
     node_->get_parameter<float>("r_lng",r_lng_);  // add by nishi 2024.9.21
+    node_->get_parameter<int>("black_thresh",black_thresh_);    // add by nishi 2025.10.27
     node_->get_parameter<float>("move_l",move_l_);  // add by nishi 2024.9.21
+
     node_->get_parameter<float>("robo_radian_marker",robo_radian_marker_);  // add by nishi 2024.9.21
     node_->get_parameter<float>("obstacle_eye_start",obstacle_eye_start_);  // add by nishi 2024.9.29
     node_->get_parameter<float>("obstacle_eye_stop",obstacle_eye_stop_);  // add by nishi 2024.9.29

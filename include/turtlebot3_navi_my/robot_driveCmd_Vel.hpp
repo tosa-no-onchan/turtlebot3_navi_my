@@ -40,7 +40,10 @@
 
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "geometry_msgs/msg/twist.hpp"
+// /opt/ros/jazzy/include/geometry_msgs/geometry_msgs/msg
+//#include "geometry_msgs/msg/twist.hpp"
+// changed by nishi 2025.10.19
+#include "geometry_msgs/msg/twist_stamped.hpp"
 #include "tf2/exceptions.h"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
@@ -203,9 +206,12 @@ private:
 
   //! We will be publishing to the "cmd_vel" topic to issue commands
   //ros::Publisher _pub;
-  std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::Twist>> _pub;
-
-  geometry_msgs::msg::Twist _vel_msg;
+  //std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::Twist>> _pub;
+  //geometry_msgs::msg::Twist _vel_msg;
+  
+  // changed by nishi 2025.10.18
+  std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TwistStamped>> _pub;
+  geometry_msgs::msg::TwistStamped _vel_msg;
 
   u_char log_level=1;
 

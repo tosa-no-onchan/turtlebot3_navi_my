@@ -15,11 +15,206 @@
 *
 --------------------------------------*/
 /*
+init()
+*/
+void ProControlMap::init(std::shared_ptr<rclcpp::Node> node){
+    //ProControl::init(node);
+    // changed by nishi 2024.8.31  use local_costmap
+    ProControl::init(node,true);
+
+    // ブロブの作成時の、1[dot]の大きさ。あまり大きいと、ブロブが出来ないので注意。
+    int  line_w = 5;  // ラインの幅 -> grid size [dot]  0.05[m] * 5 = 25[cm]
+    // 障害物との距離の調整に使います。単位: size [dot]
+    int  robo_r = 4;  // robot 半径  -> grid size [dot]  0.05[m] * 5 = 25[cm]
+
+
+    // init params
+	node_->declare_parameter<int>("line_w", line_w);
+	node_->declare_parameter<int>("robo_r", robo_r);
+    node_->declare_parameter<float>("r_lng", r_lng_);
+	node_->declare_parameter<int>("black_thresh", black_thresh_);
+	node_->declare_parameter<float>("move_l", move_l_);
+
+    // get params
+	node_->get_parameter<int>("line_w", line_w);
+	node_->get_parameter<int>("robo_r", robo_r);
+    node_->get_parameter<float>("r_lng",r_lng_);  // add by nishi 2024.9.21
+    node_->get_parameter<int>("black_thresh",black_thresh_);    // add by nishi 2025.10.27
+    node_->get_parameter<float>("move_l",move_l_);  // add by nishi 2024.9.21
+
+    blobFinder_.line_w_=line_w;
+    anchorFinder_.line_w_=line_w;
+
+    blobFinder_.robo_r_=robo_r;
+    anchorFinder_.robo_r_=robo_r;
+
+}
+/*
 AutoMap I
 auto_map()
     Auto Map builder
 */
 void ProControlMap::auto_map(){
+    std::cout << "Start Auto Map" << std::endl;
+
+    float off;
+
+    std::vector<Gpoint> *g_ponts_ptr=nullptr;
+
+    if(blobFinder_.g_points1.empty() != true){
+        blobFinder_.g_points1.clear();
+    }
+    if(blobFinder_.g_points2.empty() != true){
+        blobFinder_.g_points2.clear();
+    }
+    if(blobFinder_.g_points_black.empty() != true){
+        blobFinder_.g_points_black.clear();
+    }
+    blobFinder_.g_points1.reserve(50);
+    blobFinder_.g_points2.reserve(50);
+    blobFinder_.g_points_black.reserve(50);
+
+    for(int lc=0; lc < 100 ;lc++){
+        off=0.0;
+        get_map.get();
+
+        std::cout << "auto_map() #6 call drive.get_tf(2)" << std::endl;
+        drive_->get_tf(2);
+
+        tf2::Vector3 cur_origin = drive_->base_tf.getOrigin();    // changed by nishi 2024.2.28
+
+        float cur_x = cur_origin.getX();
+        float cur_y = cur_origin.getY();
+
+        std::cout << "auto_map() #7 call blobFinder_.check()" << std::endl;
+        // Find Next Unkonown Blob
+        blobFinder_.check(get_map.mat_map_,get_map.mapm_,cur_x,cur_y);
+
+        std::cout << "auto_map() #7.1 blobFinder_.block_mode:"<< +blobFinder_.block_mode << std::endl;
+
+        switch(blobFinder_.block_mode){
+            case 0:
+                g_ponts_ptr = &(blobFinder_.g_points_);
+            break;
+            case 1:
+                g_ponts_ptr = &(blobFinder_.g_points1);
+            break;
+            case 2:
+                g_ponts_ptr = &(blobFinder_.g_points2);
+            break;
+        }
+        if(g_ponts_ptr->size() == 0){
+            std::cout << "Auto Map next point nothing" << std::endl;
+            return;
+        }
+
+        float dist, r_yaw,r_yaw_off;
+
+        int l=0;
+        // add by nishi 2025.10.26
+        bool sw_end=false;
+        // 今回の Map 上の、blob を全て回ります。
+        // 先頭が一番大きいブロブ
+        for(int j=0; j < g_ponts_ptr->size(); j++){
+            if(g_ponts_ptr->at(j).dist > 0.3){
+            // 1.5[m] 以上にしてみる changed by nishi 2025.10 26
+            //if(g_ponts_ptr->at(j).dist > 1.5){
+
+                float ox,oy;
+
+                // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
+                // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
+                obstacle_escape(r_lng_,black_thresh_,move_l_);
+
+                std::cout <<"g_ponts_ptr->at(j).x="<< g_ponts_ptr->at(j).x << " , g_ponts_ptr->at(j).y=" << g_ponts_ptr->at(j).y << std::endl;
+
+                // 此処で、走査先の障害物との距離をチェック
+                // ここの距離に余裕が必要では?  by nishi 2024.3.1
+                //get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy);
+                get_map.check_collision(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,ox,oy,blobFinder_.robo_r_);   // changed by nishi 2024.3.1
+
+                //drive.comp_dad(g_ponts_ptr->at(j).x,g_ponts_ptr->at(j).y,dist, r_yaw, r_yaw_off);
+                drive_->comp_dad(ox,oy,dist, r_yaw, r_yaw_off); // changed by nishi 2024.2.28
+
+                // Navi move
+                std::cout << ">> auto_map() Next, goes to x="<< ox+off << " ,y="<< oy+off << std::endl;
+
+                #define USE_TEST_PLOT
+                #if defined(USE_TEST_PLOT)
+                    // plot してみる for Debug
+                    get_map.test_plot(ox+off,oy+off,r_yaw,r_yaw_off);
+                    //cv::waitKey(0);
+                #endif
+
+                //drive.navi_move(blobFinder_.abs_x_+off,blobFinder_.abs_y_+off,r_yaw);
+                //if(drive.navi_move(g_ponts_ptr->at(j).x+off,g_ponts_ptr->at(j).y+off,r_yaw,r_yaw_off)==false){
+                if(drive_->navi_move(ox+off,oy+off,r_yaw,r_yaw_off)==false){    // changed by nishi 2024.2.28
+                    std::cout << ">> drive_->navi_move() error end"<< std::endl;
+                    std::cout << ">> black point append"<< std::endl;
+                    blobFinder_.g_points_black.push_back(g_ponts_ptr->at(j));   // ブラックポイントリストへ入れる
+                }
+                std::cout << ">> Auto Map inner loop "<< l << " end"<< std::endl;
+                // 試しに、1回でやめてみる add by nishi 2025.10.26
+                sw_end=true;
+            }
+            else{
+                std::cout << ">> Auto Map inner loop "<< l << " pass"<< std::endl;
+            }
+            // Vector は、末尾しか削除できない。
+            //末尾を削除
+            //g_ponts_ptr->pop_back();
+
+            // ロボットの現在位置
+            //cur_origin = drive_->base_tf.getOrigin();   // changed by nishi 2024.2.28
+
+            //cur_x = cur_origin.getX();
+            //cur_y = cur_origin.getY();
+            // ブロブを、ロボットの現在位置の近い順(降順)にする
+            //blobFinder_.sort_blob(cur_x,cur_y);
+            l++;
+            // 1回で終了にしてみる by nishi 2025.10.26
+            if(sw_end == true){
+                break;
+            }
+        }
+        g_ponts_ptr->clear();
+
+        std::cout << ">> Auto Map >>> lc="<< lc << " end!"<<std::endl;
+
+        // ここで、GetMap::check_obstacle() で、前方の障害物をチェックして、問題があれば、後ろを向かせる。add by nishi 2024.3.7
+        //obstacle_escape(r_lng_,black_thresh_,move_l_);
+
+        //#define USE_TURN_AROUND
+        // 動きが多いので、取ってみる。
+        #if defined(USE_TURN_AROUND)
+            // ここを、cmd_vel モードにしたらどう?  by nishi 2024.3.1
+            set_drive_mode(0);      // set cmd_vel mode
+
+            std::cout << ">> Auto Map Turn around 360 start"<<std::endl;
+            float d_yaw=90.0;
+            // 360度回転
+            for(int k=0;k<4 ;k++){
+            drive_->rotate_off(d_yaw);
+            }
+            std::cout << ">> Auto Map Turn around 360 stop"<<std::endl;
+
+            // 前方、60 をチェック
+            //drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
+            //drive_->rotate_off(-60.0);  // changed by nishi 2024.2.28
+            //drive_->rotate_off(30.0);   // changed by nishi 2024.2.28
+            set_drive_mode(1);      // set nav2 mode
+        #endif
+
+    }
+    std::cout << ">> End Auto Map" << std::endl;
+}
+
+/*
+AutoMap I
+auto_map()
+    Auto Map builder
+*/
+void ProControlMap::auto_map_old(){
     std::cout << "Start Auto Map" << std::endl;
 
     float off;
@@ -83,13 +278,15 @@ void ProControlMap::auto_map(){
         // 今回の Map 上の、blob を全て回ります。
         while(j > 0){
             j--;
-            if(g_ponts_ptr->at(j).dist > 0.3){
+            //if(g_ponts_ptr->at(j).dist > 0.3){
+            // 1.5[m] 以上にしてみる changed by nishi 2025.10 26
+            if(g_ponts_ptr->at(j).dist > 1.5){
 
                 float ox,oy;
 
                 // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
                 // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                obstacle_escape();
+                obstacle_escape(r_lng_,black_thresh_,move_l_);
 
                 // 此処で、走査先の障害物との距離をチェック
                 // ここの距離に余裕が必要では?  by nishi 2024.3.1
@@ -141,7 +338,7 @@ void ProControlMap::auto_map(){
         std::cout << ">> Auto Map >>> lc="<< lc << std::endl;
 
         // ここで、GetMap::check_obstacle() で、前方の障害物をチェックして、問題があれば、後ろを向かせる。add by nishi 2024.3.7
-        obstacle_escape();
+        obstacle_escape(r_lng_,black_thresh_,move_l_);
 
         // ここを、cmd_vel モードにしたらどう?  by nishi 2024.3.1
         set_drive_mode(0);      // set cmd_vel mode
@@ -161,7 +358,6 @@ void ProControlMap::auto_map(){
     }
     std::cout << ">> End Auto Map" << std::endl;
 }
-
 
 /*
 AutoMap II
@@ -248,7 +444,7 @@ void ProControlMap::auto_map_anchor(){
 
                 // Collision Ahead - Exiting Spin spin failed が生じるの、組み込みました。将来、改善されれば、不要です。
                 // ここで、ロボットの四方の障害物をチェックして、障害物から少しだけ、離れる。add by nishi 2024.3.7
-                obstacle_escape();
+                obstacle_escape(r_lng_,black_thresh_,move_l_);
 
                 //float ox,oy;
                 // 此処で、走査先の非障害物との距離をチェック
@@ -310,7 +506,7 @@ void ProControlMap::auto_map_anchor(){
         //}
 
         // ここで、GetMap::check_obstacle() で、前方の障害物をチェックして、問題があれば、後ろを向かせる。add by nishi 2024.3.7
-        obstacle_escape();
+        obstacle_escape(r_lng_,black_thresh_,move_l_);
 
         // ここを、cmd_vel モードにしたらどう?  by nishi 2024.3.1
         // 前方、60 をチェック
@@ -907,6 +1103,8 @@ void BlobFinder::sort_blob(float cur_x,float cur_y){
 /*-------------------------
 * class BlobFinder
 * check()
+* block_mode:
+* reffer from : ~/usr/local/src/cpp-nishi/opencv-test1/main-9.cpp
 --------------------------*/
 void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     cv::Mat rgb, gry, thres,reverse,neg,dst2;
@@ -914,21 +1112,25 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     //cv::namedWindow("thres", cv::WINDOW_NORMAL);
     //cv::namedWindow("reverse", cv::WINDOW_NORMAL);
 
+    std::string img_s="1.img";
+    std::string unknown_s="2.unknown";
+    std::string block_s="3.block";
+    std::string label_s="4.label";
+    std::string blob_s="5.blob";
 
     if(view_f_m){
-        //cv::namedWindow("img", cv::WINDOW_AUTOSIZE);
-        cv::namedWindow("img", cv::WINDOW_NORMAL);
-        cv::namedWindow("blob", cv::WINDOW_NORMAL);
+        //cv::namedWindow(img_s, cv::WINDOW_AUTOSIZE);
+        cv::namedWindow(img_s, cv::WINDOW_NORMAL);
+        cv::namedWindow(blob_s, cv::WINDOW_NORMAL);
 
     }
     if(view_f){
         //cv::namedWindow("thres", cv::WINDOW_AUTOSIZE);
         //cv::namedWindow("thres", cv::WINDOW_NORMAL);
-        cv::namedWindow("unknown", cv::WINDOW_NORMAL);
-        cv::namedWindow("block", cv::WINDOW_NORMAL);
-        //cv::namedWindow("label", cv::WINDOW_NORMAL);
+        cv::namedWindow(unknown_s, cv::WINDOW_NORMAL);
+        cv::namedWindow(block_s, cv::WINDOW_NORMAL);
+        //cv::namedWindow(label_s, cv::WINDOW_NORMAL);
     }
-
 
     //rgb = cv::imread("aaa.png");
     //cv::cvtColor(rgb, gry, cv::COLOR_BGR2GRAY);
@@ -937,13 +1139,10 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     //gry = cv::imread("../map_builder-gass.pgm",0);
     //gry = cv::imread("../Grid_save.pgm",0);
 
-
     //cv::imshow("gry", gry);
-
 
     //cv::waitKey(0);
     //return 0;
-
 
     int thresh=100;
     //int thresh=130;
@@ -952,7 +1151,6 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     //cv::threshold(gry,thres,thresh,255,cv::THRESH_BINARY);
 
     //cv::imshow("thres", thres);
-
 
     // 白黒反転
     //thres.convertTo(reverse,thres.type(),-1.0,255.0);
@@ -975,7 +1173,7 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     std::cout << "img.step=" << img.step << std::endl;
 
     if(view_f_m){
-        cv::imshow("img", img);
+        cv::imshow(img_s, img);
         //cv::waitKey(0);
         //return;
     }
@@ -988,7 +1186,6 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     std::cout << "unknown.channels()=" << unknown.channels() << std::endl;
     std::cout << "unknown.type()=" << unknown.type() << std::endl;
     std::cout << "unknown.step=" << unknown.step << std::endl;
-    
 
     //int thresh=100;
     //int thresh=130;
@@ -1001,7 +1198,6 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     //std::cout << (int)thres.at<u_int8_t>(0,0) << "," << (int)thres.at<u_int8_t>(0,1) << "," << (int)thres.at<u_int8_t>(0,2) << std::endl;
     //std::cout << (int)thres.at<u_int8_t>(1,0) << "," << (int)thres.at<u_int8_t>(1,1) << "," << (int)thres.at<u_int8_t>(1,2) << std::endl;
     //std::cout << (int)thres.at<u_int8_t>(2,0) << "," << (int)thres.at<u_int8_t>(2,1) << "," << (int)thres.at<u_int8_t>(2,2) << std::endl;
-
 
     //int nlabel =0;  // ラベルの数
     int w = img.cols;
@@ -1017,8 +1213,6 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
             unknown_t[y*img.cols + x] = 0;
         }
     }
- 
-
     //----------------
     // 1. 4近傍に 未知領域(-1) のある、自由領域(白) をピックアップして、unknown_t[]へ入れる
     //----------------
@@ -1059,7 +1253,7 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     }
 
     if(view_f){
-        cv::imshow("unknown", unknown);
+        cv::imshow(unknown_s, unknown);
         //cv::waitKey(0);
         //return;
     }
@@ -1087,7 +1281,6 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
         size_y_++;
 
     cv::Mat block = cv::Mat::zeros(size_y_,size_x_,CV_8U);
-
     // all raws
     for(int y=0;y < size_y_; y++){
         // all columuns of a raw 
@@ -1115,7 +1308,7 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     }
 
     if(view_f){
-        cv::imshow("block", block);
+        cv::imshow(block_s, block);
         //cv::waitKey(0);
         //return;
     }
@@ -1125,7 +1318,7 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     // 今回は、Labeling.h を使います。
     // https://imura-lab.org/products/labeling/
     //-----------------------
-
+    LabelingBS	labeling;
     int nlabel =0;  // 使用済ラベルの数(次割当ラベル番号)
     //int w = img.cols;
     w = size_x_;
@@ -1136,11 +1329,19 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     //cv::Mat mat_label2 = cv::Mat::zeros(h,w,CV_8U);
 
 	cv::Mat mat_blob;
-	//cv::Mat img_lab(h,w, CV_16SC1);
+    // ブロブ分割(ラベリング) で、ブログID を埋め込んだ画像。 内容値が、blob id+1
+	//cv::Mat img_lab_(h,w, CV_16SC1);
     img_lab_ = cv::Mat::zeros(h,w,CV_16SC1);
 
-    LabelingBS	labeling;
-
+    //--------------------------------
+    // labeling.Exec( src, result, w, h, true, 30 )
+    //  src: 入力画像の先頭アドレス(unsigned char *)
+    //  result: 出力画像の先頭アドレス(short *)
+    //  w: 画像の幅(int)
+    //  h: 画像の高さ(int)
+    //  sort: 領域の大きさ順にソートするか(bool) – true:する false:しない
+    //  min_size: 消去する小領域の最大サイズ(int) – これ以下のサイズの領域を消去する
+    //--------------------------------
     labeling.Exec( block.data, (short *)img_lab_.data, w, h, true, 1 );
 
     point_n_ = labeling.GetNumOfResultRegions();   // ラベル総数
@@ -1150,7 +1351,6 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     //4. ラベリングされたブロブで大きなブロブを
     // 1つ選んで、それの重心を求めて、その場所を、ロボットの移動場所とします。
     //----------------------
-
     RegionInfoBS	*ri;
     ri = labeling.GetResultRegionInfo( 0 );
 
@@ -1174,7 +1374,6 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
 
 	std::cout <<"abs_x_="<< abs_x_ << " , abs_y_=" << abs_y_ << std::endl;
 
-
     // 印を付ける  -> グレーの X 印
     mat_blob.data[((int)y_g-1)*w+(int)x_g-1] = 128;
     mat_blob.data[((int)y_g-1)*w+(int)x_g+1] = 128;
@@ -1183,8 +1382,8 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     mat_blob.data[((int)y_g+1)*w+(int)x_g+1] = 128;
   
     if(view_f_m){
-        cv::imshow("blob", mat_blob);
-        cv::waitKey(0);
+        cv::imshow(blob_s, mat_blob);
+        //cv::waitKey(0);
     }
 
     //------------------------
@@ -1198,14 +1397,18 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
     }
     g_points_.reserve(point_n_);
 
-    for(int i=0;i<point_n_;i++){
+    // ブロブの大きい順に処理する。
+    for(int i=0;i < point_n_;i++){
         ri = labeling.GetResultRegionInfo( i );
-        ri->GetCenter(x_g,y_g);   // 重心を得る
+        ri->GetCenter(x_g,y_g);   // ブロブの重心を得る
+        std::cout <<"x_g="<< x_g << " , y_g=" << y_g << std::endl;
 
+        // アドレスを変換する。
         float x0,y0;
         x0 = (x_g + 0.5) * (double)line_w_ * mapm.resolution + mapm.origin[0];
         y0 = (y_g + 0.5) * (double)line_w_ * mapm.resolution + mapm.origin[1];
 
+        // ブロブの重心を、実アドレスに変換する。
         g_point.x = round_my<float>(x0,2);
         g_point.y = round_my<float>(y0,2);
 
@@ -1213,17 +1416,22 @@ void BlobFinder::check(cv::Mat mat_map,MapM &mapm,float cur_x,float cur_y){
         float off_y = y0 - cur_y;
 
         g_point.dist = std::sqrt(off_x*off_x+off_y*off_y);
-
         g_point.pic = ri->GetNumOfPixels();
 
+        std::cout <<"g_point.x="<< g_point.x << " , g_point.y=" << g_point.y << std::endl;
+        // ブラックポイントチェック add by nishi 2025.10.28
+        if(find_Gpoint(g_point.x,g_point.y,g_points_black)==true){
+            std::cout <<"g_points_black fined"<< std::endl;
+            continue;
+        }
+        // ブロブの重心を実アドレス変換した値をリストに登録する。
         g_points_.push_back(g_point);
-
-        std::cout <<"x_g="<< g_point.x << " , y_g=" << g_point.y << std::endl;
     }
 
     if(block_mode==0){
+        // ブロブの大きい順にロボットの目的地にする。 changed by nishi 2025.10.29
         // dist でソート 大きい順
-        std::sort(g_points_.begin(),g_points_.end(),compare_Gpoint_dist_max);
+        //std::sort(g_points_.begin(),g_points_.end(),compare_Gpoint_dist_max);
     }
     else{
         //std::vector<Gpoint> pg_wk1;
