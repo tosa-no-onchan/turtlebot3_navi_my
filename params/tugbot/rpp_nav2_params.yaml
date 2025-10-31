@@ -37,13 +37,11 @@ amcl:
     z_rand: 0.5
     z_short: 0.05
     scan_topic: /scan
-    #scan_topic: /scan_back
     # add by nishi 2024.4.5
     set_initial_pose: true
     ##initial_pose: {x: -3.0, y: 1.0, z: 0.0, yaw: 0.0} # turtlebot3_simulations/turtlebot3_gazebo/launch/turtlebot3_house.launch.py
     ##initial_pose: {x: -7.9999803934734377, y: -2.7093603668824591e-13, z: -0.0044496538355151202, yaw: 0.0} # turtlebot3_simulations/turtlebot3_gazebo/worlds/warehouse_depot.world
     initial_pose: {x: 0.0, y: 0.0, z: -0.0044496538355151202, yaw: 0.0} # turtlebot3_simulations/turtlebot3_gazebo/worlds/warehouse_depot.world
-    #initial_pose: {x: 1.0, y: 1.0, z: -0.0044496538355151202, yaw: 0.0} # turtlebot3_simulations/turtlebot3_gazebo/worlds/warehouse_depot.world
 
 bt_navigator:
   ros__parameters:
@@ -111,9 +109,8 @@ controller_server:
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       #desired_linear_vel: 0.5
-      desired_linear_vel: 0.25
-      # changed 2024.3.15
-      #desired_linear_vel: 0.1
+      #desired_linear_vel: 0.25
+      desired_linear_vel: 0.125
       # changed 2024.3.2
       # no good
       #desired_linear_vel: -0.125
@@ -122,9 +119,9 @@ controller_server:
       max_lookahead_dist: 0.9
       lookahead_time: 1.5
       #rotate_to_heading_angular_vel: 1.8
-      rotate_to_heading_angular_vel: 0.9
+      #rotate_to_heading_angular_vel: 0.9
       # changed by nishi
-      #rotate_to_heading_angular_vel: 0.45
+      rotate_to_heading_angular_vel: 0.45
       transform_tolerance: 0.1
       use_velocity_scaled_lookahead_dist: false
       min_approach_linear_velocity: 0.05
@@ -145,7 +142,9 @@ controller_server:
       allow_reversing: false
       # changed 2024.3.2  not good!
       #allow_reversing: true
-      rotate_to_heading_min_angle: 0.785
+      #rotate_to_heading_min_angle: 0.785
+      # changed by nishi 2024.5.1
+      rotate_to_heading_min_angle: 0.2
       #max_angular_accel: 3.2
       #max_angular_accel: 1.6
       max_angular_accel: 0.8
@@ -171,12 +170,13 @@ local_costmap:
       #robot_radius: 0.22
       # math.sqrt(0.741*0.741+0.640*0.640)/2.0
       robot_radius: 0.489
-      #plugins: ["voxel_layer", "voxel_layer_back", "inflation_layer"]
-      plugins: ["voxel_layer", "inflation_layer"]
+      #plugins: ["voxel_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.70
+        #inflation_radius: 0.70
+        inflation_radius: 0.6
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         # https://docs.nav2.org/configuration/packages/costmap-plugins/voxel.html
@@ -187,8 +187,6 @@ local_costmap:
         z_voxels: 16
         max_obstacle_height: 2.0
         mark_threshold: 0
-        #observation_sources: ["scan","scan_back"]
-        #observation_sources: {"scan","scan_back"}
         observation_sources: "scan"
         scan:
           topic: /scan
@@ -203,32 +201,14 @@ local_costmap:
           obstacle_min_range: 0.0
           queue_size: 20
           #inf_is_valid: false
-        scan_back:
-          topic: /scan_back
-          #sensor_frame: "scan_back"
-          max_obstacle_height: 2.0
-          clearing: True
-          marking: True
-          data_type: "LaserScan"
-          raytrace_max_range: 3.0
-          raytrace_min_range: 0.0
-          obstacle_max_range: 2.5
-          obstacle_min_range: 0.0
-          #queue_size: 20
-
-      voxel_layer_back:
-        plugin: "nav2_costmap_2d::VoxelLayer"
+      # https://navigation.ros.org/configuration/packages/costmap-plugins/obstacle.html
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
-        publish_voxel_map: True
-        origin_z: 0.0
-        z_resolution: 0.05
-        z_voxels: 16
-        max_obstacle_height: 2.0
-        mark_threshold: 0
-        observation_sources: scan_back
-        scan_back:
-          topic: /scan_back
-          #sensor_frame: "scan_back"
+        #observation_sources: scan
+        observation_sources: point_cloud_sensor
+        scan:
+          topic: /scan
           max_obstacle_height: 2.0
           clearing: True
           marking: True
@@ -237,8 +217,26 @@ local_costmap:
           raytrace_min_range: 0.0
           obstacle_max_range: 2.5
           obstacle_min_range: 0.0
-          #inf_is_valid: false
-          #queue_size: 20
+        # add by nishi 2023.1.20
+        point_cloud_sensor: 
+          #sensor_frame: left_camera
+          #sensor_frame: camera_depth_optical_frame
+          #sensor_frame: camera_front/depth_optical_frame
+          data_type: "PointCloud2"
+          #topic: /cloudXYZ
+          topic: /camera_front/depth/depth_points
+          #expected_update_rate: 10.0
+          #expected_update_rate: 8.0
+          expected_update_rate: 0.0
+          marking: true
+          clearing: true
+          #min_obstacle_height: 0.3
+          # changed by nishi 2024.9.8
+          #min_obstacle_height: 0.16
+          min_obstacle_height: 0.10
+          max_obstacle_height: 0.7
+          # add by nishi 2023.1.23
+          #observation_persistence: 3.0
 
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -261,16 +259,14 @@ global_costmap:
       #origin_x: 2.0
       #origin_y: 2.0
       #transform_tolerance: 1.0
-      #plugins: ["static_layer", "obstacle_layer", "obstacle_layer_back","inflation_layer"]
       plugins: ["static_layer", "obstacle_layer","inflation_layer"]
       # https://docs.nav2.org/configuration/packages/configuring-costmaps.html
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         # https://docs.nav2.org/configuration/packages/costmap-plugins/obstacle.html
         enabled: True
-        #observation_sources: ["scan","scan_back"]
-        #observation_sources: {"scan","scan_back"}
-        observation_sources: "scan"
+        #observation_sources: "scan"
+        observation_sources: point_cloud_sensor
         scan:
           topic: /scan
           #sensor_frame: "scan_front"
@@ -286,40 +282,26 @@ global_costmap:
           obstacle_min_range: 0.0
           queue_size: 20
           #inf_is_valid: false
-        scan_back:
-          topic: /scan_back
-          #sensor_frame: "scan_back"
-          max_obstacle_height: 2.0
-          clearing: True
-          marking: True
-          data_type: "LaserScan"
-          #raytrace_max_range: 3.0
-          raytrace_max_range: 10.0
-          raytrace_min_range: 0.0
-          #obstacle_max_range: 2.5
-          obstacle_max_range: 9.5
-          obstacle_min_range: 0.0
-          #inf_is_valid: false
 
-      obstacle_layer_back:
-        plugin: "nav2_costmap_2d::ObstacleLayer"
-        enabled: True
-        observation_sources: "scan_back"
-        scan_back:
-          topic: /scan_back
-          #sensor_frame: "scan_back"
-          max_obstacle_height: 2.0
-          clearing: True
-          marking: True
-          data_type: "LaserScan"
-          #raytrace_max_range: 3.0
-          raytrace_max_range: 10.0
-          raytrace_min_range: 0.0
-          #obstacle_max_range: 2.5
-          obstacle_max_range: 9.5
-          obstacle_min_range: 0.0
-          queue_size: 20
-          #inf_is_valid: false
+        point_cloud_sensor: 
+          #sensor_frame: left_camera
+          #sensor_frame: camera_depth_optical_frame
+          #sensor_frame: camera_front/depth_optical_frame
+          data_type: "PointCloud2"
+          #topic: /cloudXYZ
+          topic: /camera_front/depth/depth_points
+          #expected_update_rate: 10.0
+          #expected_update_rate: 8.0
+          expected_update_rate: 0.0
+          marking: true
+          clearing: true
+          #min_obstacle_height: 0.3
+          # changed by nishi 2023.9.8
+          #min_obstacle_height: 0.16
+          min_obstacle_height: 0.10
+          max_obstacle_height: 0.7
+          # add by nishi 2023.1.23
+          #observation_persistence: 3.0
 
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
