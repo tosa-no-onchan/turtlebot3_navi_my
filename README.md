@@ -348,13 +348,15 @@ ROS2 Jazzy + Turtlebot4 + Gazebo Ionic warehouse Simulation で、 AutoMower を
 
 2025.10.30 version-jazzy-r7  
 
-    /cmd_vel の メッセージタイプを変更しました。  
+    1) /cmd_vel の メッセージタイプを変更しました。  
     geometry_msgs/msg/Twist -> geometry_msgs/msg/TwistStamped  
 
-    Tugbot Gazebo Wearhouse で動作確認して src/pro_control_map.cpp を改善しました。  
+    2) launch/tugbot_amcl_scan.launch.py を追加しました。  
+
+    3) Tugbot Gazebo Wearhouse で動作確認して src/pro_control_map.cpp を改善しました。  
     launch/tugbot_amcl_scan.launch.py で動作確認出来ます。  
 ````
-launch/tugbot_amcl_scan.launch.py
+launch/tugbot_amcl_scan.launch.py で、Auto Map を走らせる。  
 run:
 1. Gazebo Tugbot Wearhouse
   $ sudo ufw disable
