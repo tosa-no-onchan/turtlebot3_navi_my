@@ -351,7 +351,8 @@ ROS2 Jazzy + Turtlebot4 + Gazebo Ionic warehouse Simulation で、 AutoMower を
     1) /cmd_vel の メッセージタイプを変更しました。  
     geometry_msgs/msg/Twist -> geometry_msgs/msg/TwistStamped  
 
-    2) launch/tugbot_amcl_scan.launch.py を追加しました。  
+    2) Tugbot Gazebo Wearhouse 用 launch を追加しました。  
+    launch/tugbot_amcl_scan.launch.py  
 
     3) Tugbot Gazebo Wearhouse で動作確認して src/pro_control_map.cpp を改善しました。  
     launch/tugbot_amcl_scan.launch.py で動作確認出来ます。  
@@ -374,6 +375,8 @@ run:
    今は、前半分のSCAN だと、AMCLがポンコツで未対応なので、下記手順をしてください。
    i) Teleop keyboard で、ロボットを、1[M] 前に移動させる。移動が終わったら、Ctl+C で終わらせる。
       $ ros2 run turtlebot3_teleop teleop_keyboard
+        w で、1[m] 前に動かせる
+        s  stop
         Ctl+C で終了
    ii) 実際の Auto Map を起動させる。
       $ ros2 launch turtlebot3_navi_my tugbot_amcl_scan.launch.py AUTO_MAP:=true use_sim_time:=true
