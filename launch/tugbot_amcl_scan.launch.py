@@ -82,16 +82,11 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
     map_dir = LaunchConfiguration(
         'map',
-        #default=os.path.join(
-        #    get_package_share_directory('turtlebot3_navigation2'),
-        #    'map',
-        #    'map.yaml')
-        #default=os.path.join(
-        #    get_package_share_directory('turtlebot3_navi_my'),
-        #    'map',
-        #    'house_map.yaml')
+        #default=os.path.join(get_package_share_directory('turtlebot3_navigation2'),'map','map.yaml')
+        #default=os.path.join(get_package_share_directory('turtlebot3_navi_my'),'map','house_map.yaml')
+        default=os.path.join(get_package_share_directory('turtlebot3_navi_my'),'map','depot.yaml')
         #default=os.path.join('/','home','nishi','map','house_map.yaml'),
-        default=os.path.join('/','home','nishi','map','depot.yaml'),
+        #default=os.path.join('/','home','nishi','map','depot.yaml'),
         ),
 
     #param_file_name = TURTLEBOT3_MODEL + '.yaml'
