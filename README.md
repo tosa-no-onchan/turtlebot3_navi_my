@@ -381,3 +381,7 @@ run:
    ii) 実際の Auto Map を起動させる。
       $ ros2 launch turtlebot3_navi_my tugbot_amcl_scan.launch.py AUTO_MAP:=true use_sim_time:=true
 ````
+
+Tugbot Gazebo Wearhouse は、こちらを参照しとうせ!!  
+[ROS2 Gazebo for Tugbot を作ってみた。](https://www.netosa.com/blog/2025/10/ros2-gazebo-for-tugbot.html)  
+[@tosa-no-onchan/tugbot_my](https://github.com/tosa-no-onchan/tugbot_my)  
