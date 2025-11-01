@@ -354,7 +354,8 @@ ROS2 Jazzy + Turtlebot4 + Gazebo Ionic warehouse Simulation で、 AutoMower を
     2) Tugbot Gazebo Wearhouse 用 launch を追加しました。  
     launch/tugbot_amcl_scan.launch.py  
 
-    3) Tugbot Gazebo Wearhouse で動作確認して src/pro_control_map.cpp を改善しました。  
+    3) Auto Map の改善。  
+    Tugbot Gazebo Wearhouse で動作確認して src/pro_control_map.cpp を改善しました。  
     launch/tugbot_amcl_scan.launch.py で動作確認出来ます。  
 ````
 launch/tugbot_amcl_scan.launch.py で、Auto Map を走らせる。  
